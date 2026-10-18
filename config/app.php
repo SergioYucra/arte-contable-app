@@ -123,4 +123,20 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Master Boilerplate: SuperAdmin inicial
+    |--------------------------------------------------------------------------
+    |
+    | Usado por CoreSecuritySeeder. Se lee vía config() (no env()) para que
+    | funcione con `php artisan config:cache`. Nunca definir valores literales.
+    |
+    */
+
+    'superadmin' => [
+        'name' => env('SUPERADMIN_NAME', 'Super Admin'),
+        'email' => env('SUPERADMIN_EMAIL'),
+        'password' => env('SUPERADMIN_PASSWORD'),
+    ],
+
 ];
