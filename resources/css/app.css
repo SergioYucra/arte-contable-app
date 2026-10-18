@@ -1,11 +1,114 @@
-@import 'tailwindcss';
+/*
+|--------------------------------------------------------------------------
+| MASTER BOILERPLATE — Sistema de diseño "Marca Blanca"
+|--------------------------------------------------------------------------
+|
+| Para cambiar la identidad visual de un proyecto edita SOLO el bloque :root.
+| Los colores se definen como canales RGB separados por espacio ("R G B")
+| para que Tailwind pueda aplicar opacidad:  bg-primary/20, ring-accent/40 ...
+|
+| Herramienta rápida HEX -> RGB:  #4F46E5  =>  79 70 229
+|
+*/
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@layer base {
+    :root {
+        /* --- Marca --------------------------------------------------- */
+        --color-primary: 79 70 229;            /* Acción principal (botones, links, focus) */
+        --color-primary-hover: 67 56 202;      /* Hover / active de primary */
+        --color-primary-foreground: 255 255 255; /* Texto sobre primary */
+
+        --color-secondary: 15 23 42;           /* Paneles oscuros, cabeceras de marca */
+        --color-secondary-foreground: 248 250 252;
+
+        --color-accent: 20 184 166;            /* Detalles, badges, highlights */
+
+        /* --- Superficies y texto ------------------------------------- */
+        --color-background: 248 250 252;       /* Fondo general de la app */
+        --color-surface: 255 255 255;          /* Tarjetas, modales, formularios */
+        --color-foreground: 15 23 42;          /* Texto principal */
+        --color-muted: 100 116 139;            /* Texto secundario / placeholders */
+        --color-border: 226 232 240;           /* Bordes y divisores */
+
+        /* --- Tipografía y forma -------------------------------------- */
+        --font-sans: 'Inter';
+        --radius: 0.75rem;
+    }
+
+    /*
+     * Temas alternativos (opcional): aplica la clase en <html> o <body>.
+     * Ejemplo: <body class="theme-emerald">. Solo sobrescribe lo necesario.
+     */
+    .theme-emerald {
+        --color-primary: 5 150 105;
+        --color-primary-hover: 4 120 87;
+        --color-secondary: 6 44 34;
+        --color-accent: 245 158 11;
+    }
+
+    .theme-rose {
+        --color-primary: 225 29 72;
+        --color-primary-hover: 190 18 60;
+        --color-secondary: 39 15 27;
+        --color-accent: 251 146 60;
+    }
+
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+
+    ::selection {
+        @apply bg-primary/20;
+    }
+}
+
+@layer components {
+    /* Patrón de cuadrícula sutil para paneles de marca. */
+    .bg-brand-grid {
+        background-image:
+            linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+}
+
+@layer utilities {
+    .animate-float-slow {
+        animation: float-slow 14s ease-in-out infinite;
+    }
+
+    .animate-float-slower {
+        animation: float-slow 20s ease-in-out infinite reverse;
+    }
+
+    .animate-fade-up {
+        animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes float-slow {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33% { transform: translate(30px, -40px) scale(1.08); }
+        66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    @keyframes fade-up {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animate-float-slow,
+        .animate-float-slower,
+        .animate-fade-up {
+            animation: none;
+        }
+    }
 }
