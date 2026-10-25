@@ -20,7 +20,7 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Correo electrónico')" />
-            <x-text-input id="email" class="block mt-1.5 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="tu@empresa.com" />
+            <x-text-input id="email" class="block mt-1.5 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" placeholder="estudiante@ejemplo.com" />
             <x-input-error :messages="$errors->first('email')" class="mt-1.5" />
         </div>
 
@@ -40,7 +40,7 @@
                 <x-input-label for="password_confirmation" :value="__('Confirmar contraseña')" />
                 <span x-show="confirmation.length > 0" x-cloak x-transition.opacity
                       class="text-xs font-semibold"
-                      :class="confirmation === pwd ? 'text-emerald-600' : 'text-red-500'"
+                      :class="confirmation === pwd ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'"
                       x-text="confirmation === pwd ? '✓ Las contraseñas coinciden' : 'Las contraseñas no coinciden'">
                 </span>
             </div>

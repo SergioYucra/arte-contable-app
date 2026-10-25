@@ -59,7 +59,7 @@
                 <x-input-label for="update_password_password_confirmation" :value="__('Confirmar Nueva Contraseña')" class="text-xs font-medium text-foreground" />
                 <span x-show="confirmation.length > 0" x-cloak x-transition.opacity
                       class="text-[11px] font-medium"
-                      :class="confirmation === pwd ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'"
+                      :class="confirmation === pwd ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'"
                       x-text="confirmation === pwd ? '✓ Coinciden' : 'No coinciden'">
                 </span>
             </div>
@@ -103,7 +103,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 3000)"
-                    class="text-xs text-emerald-600 font-medium inline-flex items-center gap-1.5"
+                    class="text-xs text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-1.5"
                 >
                     <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" />

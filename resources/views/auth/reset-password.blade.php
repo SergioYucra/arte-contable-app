@@ -36,7 +36,7 @@
                 <x-input-label for="password_confirmation" :value="__('Confirmar nueva contraseña')" />
                 <span x-show="confirmation.length > 0" x-cloak x-transition.opacity
                       class="text-xs font-semibold"
-                      :class="confirmation === pwd ? 'text-emerald-600' : 'text-red-500'"
+                      :class="confirmation === pwd ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'"
                       x-text="confirmation === pwd ? '✓ Las contraseñas coinciden' : 'Las contraseñas no coinciden'">
                 </span>
             </div>

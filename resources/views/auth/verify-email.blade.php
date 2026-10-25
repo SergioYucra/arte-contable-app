@@ -29,9 +29,9 @@
                 x-show="show"
                 x-transition.opacity
                 role="status"
-                class="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-xs text-emerald-800"
+                class="flex items-start gap-2.5 rounded-brand border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-3 text-xs text-emerald-800 dark:text-emerald-300"
             >
-                <svg class="mt-0.5 h-4 w-4 flex-none text-emerald-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <svg class="mt-0.5 h-4 w-4 flex-none text-emerald-600 dark:text-emerald-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
                 </svg>
                 <span class="flex-1 font-medium leading-relaxed">
@@ -41,7 +41,7 @@
                         {{ __('Enviamos un nuevo enlace de verificación a tu correo.') }}
                     @endif
                 </span>
-                <button type="button" @click="show = false" class="text-emerald-600 hover:text-emerald-800 transition-colors" aria-label="{{ __('Cerrar aviso') }}">
+                <button type="button" @click="show = false" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 transition-colors" aria-label="{{ __('Cerrar aviso') }}">
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
                 </button>
             </div>
@@ -86,7 +86,7 @@
                             class="mt-1.5 block w-full text-sm"
                             :value="old('email', auth()->user()->email)"
                             required
-                            placeholder="tu@empresa.com"
+                            placeholder="usuario@ejemplo.com"
                             x-effect="if (editing) $nextTick(() => $el.focus())"
                         />
                         <x-input-error :messages="$errors->first('email')" class="mt-1.5" />

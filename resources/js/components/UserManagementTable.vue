@@ -92,17 +92,36 @@ const roleCounts = computed(() => {
     return counts;
 });
 
-// Colores de insignias según rol
+// Etiquetas legibles en español (el valor interno del rol no cambia)
+const ROLE_LABELS = {
+    SuperAdmin: 'Superadministrador',
+    Admin: 'Administrador',
+    Manager: 'Coordinador',
+    User: 'Estudiante',
+};
+
+const ROLE_DESCRIPTIONS = {
+    SuperAdmin: 'Acceso total a la plataforma',
+    Admin: 'Gestión de usuarios y revisión de actividad',
+    Manager: 'Acceso a reportes y seguimiento',
+    User: 'Acceso de estudio sin permisos de gestión',
+};
+
+function roleLabel(role) {
+    return ROLE_LABELS[role] || role;
+}
+
+// Colores de insignias según rol (legibles en modo claro y oscuro)
 function getRoleBadgeClass(role) {
     switch (role) {
         case 'SuperAdmin':
-            return 'bg-purple-500/10 text-purple-700 border-purple-500/20';
+            return 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20';
         case 'Admin':
             return 'bg-primary/10 text-primary border-primary/20';
         case 'Manager':
-            return 'bg-sky-500/10 text-sky-700 border-sky-500/20';
+            return 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20';
         default:
-            return 'bg-slate-500/10 text-slate-700 border-slate-500/20';
+            return 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20';
     }
 }
 
@@ -175,7 +194,7 @@ async function saveRoleChange() {
             </BaseAlert>
         </Transition>
 
-        <!-- Barra de herramientas: Búsqueda instantánea con Fuse.js y Filtros -->
+        <!-- Barra de herramientas: búsqueda instantánea y filtros -->
         <div class="bg-surface border border-border rounded-brand p-4 shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
             <!-- Buscador en tiempo real -->
             <div class="relative w-full md:w-96">
@@ -220,20 +239,16 @@ async function saveRoleChange() {
                         : 'bg-background text-muted hover:text-foreground border border-border'"
                     @click="selectedRoleFilter = role"
                 >
-                    {{ role }} ({{ roleCounts[role] || 0 }})
+                    {{ roleLabel(role) }} ({{ roleCounts[role] || 0 }})
                 </button>
             </div>
         </div>
 
-        <!-- Indicador de estado de Fuse.js (0% estrés al servidor) -->
+        <!-- Resumen de resultados -->
         <div class="flex items-center justify-between text-xs text-muted px-1">
             <span class="flex items-center gap-1.5">
                 <Users class="h-3.5 w-3.5" />
-                Mostrando <strong>{{ filteredUsers.length }}</strong> de {{ users.length }} usuarios registrados
-            </span>
-            <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Filtro instantáneo activo en cliente
+                Mostrando <strong class="text-foreground">{{ filteredUsers.length }}</strong> de {{ users.length }} usuarios registrados
             </span>
         </div>
 
@@ -244,7 +259,7 @@ async function saveRoleChange() {
                     <thead class="bg-background border-b border-border text-xs uppercase font-semibold text-muted tracking-wider">
                         <tr>
                             <th class="px-6 py-3.5">Usuario</th>
-                            <th class="px-6 py-3.5">Rol de Seguridad</th>
+                            <th class="px-6 py-3.5">Nivel de acceso</th>
                             <th class="px-6 py-3.5 hidden md:table-cell">Registrado</th>
                             <th class="px-6 py-3.5 text-right">Acciones</th>
                         </tr>
@@ -275,7 +290,7 @@ async function saveRoleChange() {
                                     :class="getRoleBadgeClass(user.role)"
                                 >
                                     <Shield class="h-3 w-3" />
-                                    {{ user.role }}
+                                    {{ roleLabel(user.role) }}
                                 </span>
                             </td>
 
@@ -293,12 +308,12 @@ async function saveRoleChange() {
                                     @click="openRoleModal(user)"
                                 >
                                     <Shield class="h-3.5 w-3.5 text-primary" />
-                                    Cambiar Rol
+                                    Cambiar nivel
                                 </button>
                                 <span
                                     v-else
                                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-brand text-xs text-muted bg-background border border-border/80 cursor-not-allowed"
-                                    title="Las cuentas de SuperAdmin solo pueden ser modificadas por otro SuperAdmin"
+                                    title="Las cuentas de superadministrador solo pueden ser modificadas por otro superadministrador"
                                 >
                                     <Shield class="h-3 w-3 text-muted/60" />
                                     Protegido
@@ -332,19 +347,19 @@ async function saveRoleChange() {
             </div>
         </div>
 
-        <!-- Modal interactivo para cambiar rol (utiliza BaseModal de Fase 5) -->
+        <!-- Modal para cambiar el nivel de acceso -->
         <BaseModal
             v-model="isModalOpen"
-            title="Modificar Rol de Usuario"
+            title="Modificar nivel de acceso"
             max-width="md"
         >
             <div v-if="activeUser" class="space-y-4">
                 <p class="text-xs text-muted">
-                    Selecciona el nuevo nivel de acceso para <strong>{{ activeUser.name }}</strong> ({{ activeUser.email }}):
+                    Selecciona el nuevo nivel de acceso para <strong class="text-foreground">{{ activeUser.name }}</strong> ({{ activeUser.email }}):
                 </p>
 
                 <!-- Alerta de error si el servidor rechaza la operación -->
-                <BaseAlert v-if="modalError" type="error" title="No se pudo cambiar el rol">
+                <BaseAlert v-if="modalError" type="error" title="No se pudo cambiar el nivel de acceso">
                     {{ modalError }}
                 </BaseAlert>
 
@@ -366,13 +381,8 @@ async function saveRoleChange() {
                                 class="text-primary focus:ring-primary border-border"
                             />
                             <div>
-                                <span class="block text-sm font-semibold text-foreground">{{ role }}</span>
-                                <span class="block text-xs text-muted">
-                                    {{ role === 'SuperAdmin' ? 'Acceso irrestricto a todo el sistema' : '' }}
-                                    {{ role === 'Admin' ? 'Gestión de usuarios y auditoría' : '' }}
-                                    {{ role === 'Manager' ? 'Acceso a reportes y dashboard' : '' }}
-                                    {{ role === 'User' ? 'Acceso estándar sin permisos de gestión' : '' }}
-                                </span>
+                                <span class="block text-sm font-semibold text-foreground">{{ roleLabel(role) }}</span>
+                                <span class="block text-xs text-muted">{{ ROLE_DESCRIPTIONS[role] || '' }}</span>
                             </div>
                         </div>
 
@@ -380,7 +390,7 @@ async function saveRoleChange() {
                             class="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
                             :class="getRoleBadgeClass(role)"
                         >
-                            {{ role }}
+                            {{ roleLabel(role) }}
                         </span>
                     </label>
                 </div>
@@ -403,7 +413,7 @@ async function saveRoleChange() {
                 >
                     <RefreshCw v-if="isSubmitting" class="h-3.5 w-3.5 animate-spin" />
                     <Check v-else class="h-3.5 w-3.5" />
-                    {{ isSubmitting ? 'Guardando...' : 'Confirmar nuevo rol' }}
+                    {{ isSubmitting ? 'Guardando...' : 'Confirmar cambio' }}
                 </button>
             </template>
         </BaseModal>

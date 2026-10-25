@@ -16,7 +16,7 @@
         <!-- Email Address -->
         <div>
             <x-input-label for="email" :value="__('Correo electrónico')" />
-            <x-text-input id="email" class="block mt-1.5 w-full" type="email" name="email" :value="old('email')" required autofocus placeholder="tu@empresa.com" />
+            <x-text-input id="email" class="block mt-1.5 w-full" type="email" name="email" :value="old('email')" required autofocus placeholder="usuario@ejemplo.com" />
             <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
         </div>
 

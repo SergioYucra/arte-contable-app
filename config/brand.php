@@ -2,32 +2,34 @@
 
 /*
 |--------------------------------------------------------------------------
-| Master Boilerplate: Identidad de marca (textos)
+| El Arte de la Contabilidad — Identidad de Marca y Contenidos
 |--------------------------------------------------------------------------
 |
-| Textos del panel de marca de las pantallas de autenticación y SEO.
-| Los COLORES se configuran en resources/css/app.css (bloque :root).
+| Textos institucionales, eslogan y propuesta de valor de la plataforma.
+| Los colores se configuran en resources/css/app.css (:root y .dark).
 |
 */
 
 return [
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'El Arte de la Contabilidad'),
 
-    'tagline' => env('BRAND_TAGLINE', 'Tu plataforma, lista para crecer.'),
+    'book_title' => 'El Arte de Contabilizar desde 0',
+
+    'tagline' => env('BRAND_TAGLINE', 'Tu espacio digital para estudiar y practicar'),
 
     'description' => env(
         'BRAND_DESCRIPTION',
-        'Gestiona tu operación desde un único lugar: seguro, rápido y diseñado para escalar.'
+        'Domina los principios contables con ejercicios prácticos, balances interactivos y la metodología del libro "El Arte de Contabilizar desde 0".'
     ),
 
-    // Ruta pública a un logo propio (p. ej. '/images/logo.svg'). Null = logo por defecto.
-    'logo' => env('BRAND_LOGO'),
+    // Ruta al logotipo oficial
+    'logo' => env('BRAND_LOGO', 'images/logo_contable.png'),
 
     'features' => [
-        'Acceso seguro con roles y permisos granulares',
-        'Auditoría completa de cada acción',
-        'Interfaz rápida, moderna y adaptable',
+        'Acompañamiento didáctico basado en el libro "El Arte de Contabilizar desde 0"',
+        'Práctica contable en tiempo real: asientos, libros mayores y balances',
+        'Plataforma segura, accesible y optimizada para estudiantes y profesionales',
     ],
 
 ];

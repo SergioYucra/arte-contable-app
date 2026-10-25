@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        {{-- Prevención de FOUC de tema visual --}}
+        <x-theme-script />
+
         {{-- SEO técnico (ralphjsmit/laravel-seo): title, description, canonical, Open Graph. --}}
         {!! seo() !!}
 
@@ -27,12 +30,8 @@
 
                 {{-- Logo --}}
                 <a href="/" class="relative z-10 inline-flex items-center gap-3 group">
-                    <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-white/10 ring-1 ring-white/20 backdrop-blur transition group-hover:bg-white/15">
-                        @if (config('brand.logo'))
-                            <img src="{{ asset(config('brand.logo')) }}" alt="{{ config('brand.name') }}" class="h-7 w-7 object-contain">
-                        @else
-                            <x-application-logo class="h-6 w-6 fill-current text-white" />
-                        @endif
+                    <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-white/10 ring-1 ring-white/20 backdrop-blur transition group-hover:bg-white/15 overflow-hidden">
+                        <x-application-logo class="h-8 w-8 object-contain" />
                     </span>
                     <span class="text-lg font-semibold tracking-tight">{{ config('brand.name') }}</span>
                 </a>
@@ -73,14 +72,19 @@
 
             {{-- ============ Panel de formulario (derecha) ============ --}}
             <main class="relative flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
+                {{-- Selector de tema superior derecho --}}
+                <div class="absolute top-6 end-6 z-20">
+                    <x-theme-toggle />
+                </div>
+
                 {{-- Glow sutil en mobile/tablet --}}
                 <div class="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary/10 to-transparent lg:hidden"></div>
 
                 <div class="relative w-full max-w-md animate-fade-up">
                     {{-- Logo mobile --}}
                     <a href="/" class="mb-10 inline-flex items-center gap-3 lg:hidden">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-                            <x-application-logo class="h-6 w-6 fill-current" />
+                        <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-primary/10 text-primary overflow-hidden">
+                            <x-application-logo class="h-8 w-8 object-contain" />
                         </span>
                         <span class="text-lg font-semibold tracking-tight">{{ config('brand.name') }}</span>
                     </a>

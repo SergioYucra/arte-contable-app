@@ -2,18 +2,18 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-                <h2 class="font-semibold text-xl text-foreground leading-tight">
-                    {{ __('Administración de Usuarios y Roles') }}
-                </h2>
+                <h1 class="font-semibold text-xl text-foreground leading-tight">
+                    {{ __('Usuarios y niveles de acceso') }}
+                </h1>
                 <p class="text-xs text-muted mt-1">
-                    {{ __('Control de accesos y niveles de seguridad del sistema.') }}
+                    {{ __('Consulta quién tiene acceso a la plataforma y qué puede hacer.') }}
                 </p>
             </div>
 
             <div class="flex items-center gap-2">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                     <span class="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-                    {{ count($users) }} {{ __('Usuarios activos') }}
+                    {{ count($users) }} {{ __('usuarios registrados') }}
                 </span>
             </div>
         </div>

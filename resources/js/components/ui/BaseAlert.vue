@@ -34,17 +34,17 @@ const config = {
     },
     success: {
         bg: 'bg-emerald-500/10 border-emerald-500/20 text-foreground',
-        iconColor: 'text-emerald-600',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
         icon: CheckCircle2,
     },
     warning: {
         bg: 'bg-amber-500/10 border-amber-500/20 text-foreground',
-        iconColor: 'text-amber-600',
+        iconColor: 'text-amber-600 dark:text-amber-400',
         icon: AlertTriangle,
     },
     error: {
         bg: 'bg-rose-500/10 border-rose-500/20 text-foreground',
-        iconColor: 'text-rose-600',
+        iconColor: 'text-rose-600 dark:text-rose-400',
         icon: AlertCircle,
     },
 }[props.type];

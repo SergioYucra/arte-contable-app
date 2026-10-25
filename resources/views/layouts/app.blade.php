@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        {{-- Prevención de FOUC de tema visual --}}
+        <x-theme-script />
+
         {{-- SEO técnico automático (ralphjsmit/laravel-seo) --}}
         {!! seo() !!}
 

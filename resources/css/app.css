@@ -1,13 +1,10 @@
 /*
 |--------------------------------------------------------------------------
-| Sistema de diseño "Marca Blanca"
+| El Arte de la Contabilidad — Sistema de Diseño Dual (Claro / Oscuro)
 |--------------------------------------------------------------------------
 |
-| Para cambiar la identidad visual de un proyecto edita SOLO el bloque :root.
 | Los colores se definen como canales RGB separados por espacio ("R G B")
-| para que Tailwind pueda aplicar opacidad:  bg-primary/20, ring-accent/40 ...
-|
-| Herramienta rápida HEX -> RGB:  #4F46E5  =>  79 70 229
+| para soportar modificadores de opacidad en Tailwind (bg-primary/20, etc).
 |
 */
 
@@ -17,44 +14,47 @@
 
 @layer base {
     :root {
-        /* --- Marca --------------------------------------------------- */
-        --color-primary: 79 70 229;            /* Acción principal (botones, links, focus) */
-        --color-primary-hover: 67 56 202;      /* Hover / active de primary */
-        --color-primary-foreground: 255 255 255; /* Texto sobre primary */
+        /* --- Marca: Modo Claro --------------------------------------- */
+        --color-primary: 23 92 128;               /* Azul petróleo (#175c80) */
+        --color-primary-hover: 18 74 104;         /* Azul petróleo oscuro (#124a68) */
+        --color-primary-foreground: 255 255 255;  /* Texto sobre primary */
 
-        --color-secondary: 15 23 42;           /* Paneles oscuros, cabeceras de marca */
-        --color-secondary-foreground: 248 250 252;
+        --color-secondary: 15 35 53;              /* Azul pizarra profundo (#0f2335) */
+        --color-secondary-foreground: 248 250 252;/* Blanco suave */
 
-        --color-accent: 20 184 166;            /* Detalles, badges, highlights */
+        --color-accent: 20 184 166;               /* Acento esmeralda/teal */
 
-        /* --- Superficies y texto ------------------------------------- */
-        --color-background: 248 250 252;       /* Fondo general de la app */
-        --color-surface: 255 255 255;          /* Tarjetas, modales, formularios */
-        --color-foreground: 15 23 42;          /* Texto principal */
-        --color-muted: 100 116 139;            /* Texto secundario / placeholders */
-        --color-border: 226 232 240;           /* Bordes y divisores */
+        /* --- Superficies y Texto: Modo Claro ------------------------- */
+        --color-background: 248 250 252;          /* Gris tenue de fondo (#f8fafc) */
+        --color-surface: 255 255 255;             /* Blanco limpio (#ffffff) */
+        --color-foreground: 15 23 42;             /* Pizarra oscuro (#0f172a) */
+        --color-text-main: 15 23 42;              /* Pizarra oscuro (#0f172a) */
+        --color-muted: 100 116 139;               /* Gris pizarra medio (#64748b) */
+        --color-border: 226 232 240;              /* Gris suave (#e2e8f0) */
 
-        /* --- Tipografía y forma -------------------------------------- */
+        /* --- Tipografía y Forma -------------------------------------- */
         --font-sans: 'Inter';
         --radius: 0.75rem;
     }
 
-    /*
-     * Temas alternativos (opcional): aplica la clase en <html> o <body>.
-     * Ejemplo: <body class="theme-emerald">. Solo sobrescribe lo necesario.
-     */
-    .theme-emerald {
-        --color-primary: 5 150 105;
-        --color-primary-hover: 4 120 87;
-        --color-secondary: 6 44 34;
-        --color-accent: 245 158 11;
-    }
+    .dark {
+        /* --- Marca: Modo Oscuro -------------------------------------- */
+        --color-primary: 56 189 248;              /* Azul cian radiante (#38bdf8) */
+        --color-primary-hover: 14 165 233;        /* Azul cian intenso (#0ea5e9) */
+        --color-primary-foreground: 15 23 42;     /* Pizarra noche para alto contraste WCAG */
 
-    .theme-rose {
-        --color-primary: 225 29 72;
-        --color-primary-hover: 190 18 60;
-        --color-secondary: 39 15 27;
-        --color-accent: 251 146 60;
+        --color-secondary: 30 41 59;              /* Pizarra noche (#1e293b) */
+        --color-secondary-foreground: 248 250 252;/* Blanco suave */
+
+        --color-accent: 56 189 248;               /* Cian de acento */
+
+        /* --- Superficies y Texto: Modo Oscuro ------------------------ */
+        --color-background: 3 7 18;               /* Fondo noche profundo (#030712) */
+        --color-surface: 15 23 42;                /* Pizarra muy oscuro (#0f172a) */
+        --color-foreground: 248 250 252;          /* Blanco suave (#f8fafc) */
+        --color-text-main: 248 250 252;           /* Blanco suave (#f8fafc) */
+        --color-muted: 148 163 184;               /* Pizarra claro (#94a3b8) */
+        --color-border: 51 65 85;                 /* Pizarra de borde (#334155) */
     }
 
     html {
@@ -62,7 +62,7 @@
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground transition-colors duration-200;
     }
 
     [x-cloak] {
@@ -70,17 +70,22 @@
     }
 
     ::selection {
-        @apply bg-primary/20;
+        @apply bg-primary/20 text-foreground;
     }
 }
 
 @layer components {
-    /* Patrón de cuadrícula sutil para paneles de marca. */
+    /* Patrón de cuadrícula para paneles de marca */
     .bg-brand-grid {
         background-image:
-            linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
-            linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
-        background-size: 40px 40px;
+            linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+        background-size: 32px 32px;
+    }
+
+    /* Efecto de relieve y libro 3D para la portada */
+    .book-spine-shadow {
+        box-shadow: -6px 0 12px -3px rgba(0, 0, 0, 0.4), inset 3px 0 6px -2px rgba(255, 255, 255, 0.25);
     }
 }
 
@@ -94,17 +99,17 @@
     }
 
     .animate-fade-up {
-        animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     @keyframes float-slow {
         0%, 100% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(30px, -40px) scale(1.08); }
-        66% { transform: translate(-20px, 20px) scale(0.95); }
+        33% { transform: translate(24px, -30px) scale(1.05); }
+        66% { transform: translate(-16px, 16px) scale(0.97); }
     }
 
     @keyframes fade-up {
-        from { opacity: 0; transform: translateY(12px); }
+        from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
 

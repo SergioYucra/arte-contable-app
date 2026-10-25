@@ -9,6 +9,7 @@ const themeColor = (variable) => `rgb(var(${variable}) / <alpha-value>)`;
 
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class',
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
@@ -36,6 +37,7 @@ export default {
                 background: themeColor('--color-background'),
                 surface: themeColor('--color-surface'),
                 foreground: themeColor('--color-foreground'),
+                'text-main': themeColor('--color-text-main'),
                 muted: themeColor('--color-muted'),
                 border: themeColor('--color-border'),
             },
