@@ -12,18 +12,6 @@
 @endphp
 
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between gap-3">
-            <h1 class="font-semibold text-xl text-foreground leading-tight">
-                {{ __('Panel de Control') }}
-            </h1>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                <span class="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-                {{ config('brand.name') }}
-            </span>
-        </div>
-    </x-slot>
-
     <div class="py-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 

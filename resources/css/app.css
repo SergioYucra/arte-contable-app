@@ -87,6 +87,53 @@
     .book-spine-shadow {
         box-shadow: -6px 0 12px -3px rgba(0, 0, 0, 0.4), inset 3px 0 6px -2px rgba(255, 255, 255, 0.25);
     }
+
+    /* --- Menú lateral del sistema interno ------------------------------ */
+    .app-sidebar {
+        width: 16rem;
+        transition: transform 0.25s ease, width 0.2s ease;
+    }
+
+    .app-shell {
+        transition: padding 0.2s ease;
+    }
+
+    @media (min-width: 1024px) {
+        .app-shell {
+            padding-inline-start: 16rem;
+        }
+
+        html[data-sidebar="collapsed"] .app-shell {
+            padding-inline-start: 4.5rem;
+        }
+
+        html[data-sidebar="collapsed"] .app-sidebar {
+            width: 4.5rem;
+        }
+
+        html[data-sidebar="collapsed"] .sidebar-label,
+        html[data-sidebar="collapsed"] .sidebar-section-title {
+            display: none;
+        }
+
+        html[data-sidebar="collapsed"] .sidebar-brand,
+        html[data-sidebar="collapsed"] .nav-item,
+        html[data-sidebar="collapsed"] .sidebar-user {
+            justify-content: center;
+            padding-inline: 0;
+        }
+
+        html[data-sidebar="collapsed"] .sidebar-brand {
+            gap: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .app-sidebar,
+        .app-shell {
+            transition: none;
+        }
+    }
 }
 
 @layer utilities {

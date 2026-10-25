@@ -18,5 +18,11 @@
         } catch (e) {
             // Manejo de error silencioso en caso de cookies/localStorage deshabilitados
         }
+
+        // Estado del menú lateral (solo escritorio): se aplica antes del primer pintado.
+        try {
+            document.documentElement.dataset.sidebar =
+                localStorage.getItem('sidebar') === 'collapsed' ? 'collapsed' : 'expanded';
+        } catch (e) {}
     })();
 </script>
