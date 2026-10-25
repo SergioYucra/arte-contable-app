@@ -1,6 +1,6 @@
 /*
 |--------------------------------------------------------------------------
-| MASTER BOILERPLATE — Sistema de diseño "Marca Blanca"
+| Sistema de diseño "Marca Blanca"
 |--------------------------------------------------------------------------
 |
 | Para cambiar la identidad visual de un proyecto edita SOLO el bloque :root.
@@ -63,6 +63,10 @@
 
     body {
         @apply bg-background text-foreground;
+    }
+
+    [x-cloak] {
+        display: none !important;
     }
 
     ::selection {

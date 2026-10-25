@@ -6,7 +6,7 @@
                     {{ __('Administración de Usuarios y Roles') }}
                 </h2>
                 <p class="text-xs text-muted mt-1">
-                    {{ __('Control de accesos y niveles de seguridad protegidos por Spatie Permission.') }}
+                    {{ __('Control de accesos y niveles de seguridad del sistema.') }}
                 </p>
             </div>
 

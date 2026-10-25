@@ -233,7 +233,7 @@ async function saveRoleChange() {
             </span>
             <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Filtro instantáneo Fuse.js activo en cliente
+                Filtro instantáneo activo en cliente
             </span>
         </div>
 

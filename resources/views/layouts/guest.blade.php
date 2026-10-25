@@ -67,7 +67,7 @@
                 </div>
 
                 <p class="relative z-10 text-xs text-secondary-foreground/50">
-                    &copy; {{ date('Y') }} {{ config('brand.name') }}. {{ __('All rights reserved.') }}
+                    &copy; {{ date('Y') }} {{ config('brand.name') }}. {{ __('Todos los derechos reservados.') }}
                 </p>
             </aside>
 

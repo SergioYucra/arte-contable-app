@@ -45,6 +45,12 @@ class LoginRequest extends FormRequest
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            if (\App\Models\User::onlyTrashed()->where('email', $this->string('email'))->exists()) {
+                throw ValidationException::withMessages([
+                    'email' => __('Esta cuenta ha sido desactivada. Por favor, comunícate con el administrador del sistema.'),
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);

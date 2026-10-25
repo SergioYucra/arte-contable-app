@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-foreground leading-tight">
-                {{ __('Dashboard') }}
+                {{ __('Panel de Control') }}
             </h2>
             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                 <span class="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
@@ -17,7 +17,7 @@
                 <div class="p-6 text-foreground flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-semibold">{{ __('¡Bienvenido de vuelta, :name!', ['name' => auth()->user()->name]) }}</h3>
-                        <p class="text-sm text-muted mt-1">{{ __('La sesión actual está autenticada y protegida por roles y permisos de Spatie.') }}</p>
+                        <p class="text-sm text-muted mt-1">{{ __('La sesión actual está autenticada y protegida por el sistema de control de accesos.') }}</p>
                     </div>
                     <div class="hidden sm:block">
                         <span class="inline-flex items-center px-3 py-1 rounded-brand text-xs font-medium bg-background text-muted border border-border">
@@ -29,7 +29,7 @@
 
             {{-- Isla Vue 3: componente montado sobre Blade --}}
             <div id="app">
-                <system-status-badge environment="{{ app()->environment() }}" label="Master Boilerplate Status"></system-status-badge>
+                <system-status-badge environment="{{ app()->environment() }}" label="Estado del Sistema"></system-status-badge>
             </div>
         </div>
     </div>

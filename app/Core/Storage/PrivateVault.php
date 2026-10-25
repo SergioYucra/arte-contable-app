@@ -18,11 +18,58 @@ class PrivateVault
     public const DISK = 'private_vault';
 
     /**
+     * Valida estrictamente una ruta relativa contra ataques de Path Traversal (CWE-22).
+     * Rechaza secuencias '..', separadores Windows '\', slash inicial '/' y byte nulo '\0'.
+     */
+    public static function validatePath(string $path): string
+    {
+        if (
+            str_contains($path, '..') ||
+            str_contains($path, '\\') ||
+            str_starts_with($path, '/') ||
+            str_contains($path, "\0")
+        ) {
+            abort(404, 'Ruta de archivo inválida o intento de acceso no permitido.');
+        }
+
+        $trimmed = trim($path);
+
+        if ($trimmed === '') {
+            abort(404, 'Ruta de archivo vacía.');
+        }
+
+        return $trimmed;
+    }
+
+    /**
+     * Valida el subdirectorio contra una lista blanca regex estricta.
+     */
+    public static function validateSubfolder(string $subfolder): string
+    {
+        $clean = trim($subfolder, '/');
+
+        if ($clean === '') {
+            return '';
+        }
+
+        if (
+            str_contains($clean, '..') ||
+            str_contains($clean, '\\') ||
+            str_contains($clean, "\0") ||
+            ! preg_match('/^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/', $clean)
+        ) {
+            abort(404, 'Subdirectorio inválido o intento de acceso no permitido.');
+        }
+
+        return $clean;
+    }
+
+    /**
      * Guarda un archivo subido de forma segura en el disco privado.
      *
+     * - Valida el subdirectorio con una lista blanca regex estricta.
      * - Genera un nombre de archivo criptográficamente aleatorio (UUID) para evitar sobrescrituras
      *   y neutralizar ataques de ejecución de nombres maliciosos.
-     * - Sanitiza el subdirectorio para evitar Directory Traversal (../).
      *
      * @param  UploadedFile  $file  Archivo recibido de una solicitud HTTP validada.
      * @param  string  $subfolder  Subdirectorio lógico dentro del vault (ej. 'invoices', 'contracts').
@@ -30,20 +77,19 @@ class PrivateVault
      */
     public static function store(UploadedFile $file, string $subfolder = ''): array
     {
-        // Sanitizar subdirectorio contra traversal
-        $safeSubfolder = trim(str_replace(['..', '\\'], '', $subfolder), '/');
+        $safeSubfolder = self::validateSubfolder($subfolder);
 
         // Nombre de archivo seguro e impredecible
         $extension = strtolower($file->getClientOriginalExtension());
         $safeExtension = preg_replace('/[^a-z0-9]/', '', $extension);
         $randomFileName = Str::uuid()->toString().($safeExtension ? '.'.$safeExtension : '');
 
-        $path = $safeSubfolder
+        $path = $safeSubfolder !== ''
             ? $safeSubfolder.'/'.$randomFileName
             : $randomFileName;
 
         Storage::disk(self::DISK)->putFileAs(
-            $safeSubfolder ?: '',
+            $safeSubfolder,
             $file,
             $randomFileName
         );
@@ -65,16 +111,15 @@ class PrivateVault
      */
     public static function download(string $path, ?string $downloadName = null): StreamedResponse
     {
-        // Neutralizar posibles secuencias de Path Traversal
-        $sanitizedPath = trim(str_replace(['..', '\\'], '', $path), '/');
+        $validatedPath = self::validatePath($path);
 
-        if (! Storage::disk(self::DISK)->exists($sanitizedPath)) {
+        if (! Storage::disk(self::DISK)->exists($validatedPath)) {
             abort(404, 'El archivo solicitado no existe en la bóveda privada.');
         }
 
-        $fallbackName = basename($sanitizedPath);
+        $fallbackName = basename($validatedPath);
         $finalName = $downloadName ? basename($downloadName) : $fallbackName;
-        $mimeType = Storage::disk(self::DISK)->mimeType($sanitizedPath) ?: 'application/octet-stream';
+        $mimeType = Storage::disk(self::DISK)->mimeType($validatedPath) ?: 'application/octet-stream';
 
         $headers = [
             'Content-Type' => $mimeType,
@@ -84,18 +129,18 @@ class PrivateVault
             'Pragma' => 'no-cache',
         ];
 
-        return Storage::disk(self::DISK)->download($sanitizedPath, $finalName, $headers);
+        return Storage::disk(self::DISK)->download($validatedPath, $finalName, $headers);
     }
 
     /**
-     * Elimina un archivo del vault.
+     * Elimina un archivo del vault previa validación estricta de ruta.
      */
     public static function delete(string $path): bool
     {
-        $sanitizedPath = trim(str_replace(['..', '\\'], '', $path), '/');
+        $validatedPath = self::validatePath($path);
 
-        if (Storage::disk(self::DISK)->exists($sanitizedPath)) {
-            return Storage::disk(self::DISK)->delete($sanitizedPath);
+        if (Storage::disk(self::DISK)->exists($validatedPath)) {
+            return Storage::disk(self::DISK)->delete($validatedPath);
         }
 
         return false;

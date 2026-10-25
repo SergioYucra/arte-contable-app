@@ -114,4 +114,59 @@ class UserController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Elimina (SoftDelete) un usuario del sistema protegiendo la existencia de al menos un SuperAdmin.
+     */
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $currentUser = $request->user();
+        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
+
+        if (! $currentUser->can('manage-users')) {
+            return response()->json([
+                'message' => 'No tienes permisos suficientes para eliminar usuarios.',
+            ], 403);
+        }
+
+        if ($user->id === $currentUser->id) {
+            return response()->json([
+                'message' => 'Operación denegada: No puedes eliminar tu propia cuenta desde el panel de administración.',
+            ], 422);
+        }
+
+        if ($user->hasRole('SuperAdmin') && ! $isSuperAdmin) {
+            return response()->json([
+                'message' => 'Operación denegada: No tienes privilegios para eliminar la cuenta de un SuperAdmin.',
+            ], 403);
+        }
+
+        if ($user->hasRole('SuperAdmin')) {
+            $otherSuperAdminsCount = User::role('SuperAdmin')
+                ->where('id', '!=', $user->id)
+                ->count();
+
+            if ($otherSuperAdminsCount === 0) {
+                return response()->json([
+                    'message' => 'Operación denegada: No es posible eliminar al único SuperAdmin del sistema.',
+                ], 422);
+            }
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        $user->delete();
+
+        activity('users')
+            ->causedBy($currentUser)
+            ->performedOn($user)
+            ->withProperties(['name' => $userName, 'email' => $userEmail])
+            ->log("Usuario '{$userName}' ({$userEmail}) eliminado lógicamente (SoftDelete)");
+
+        return response()->json([
+            'success' => true,
+            'message' => "El usuario {$userName} fue eliminado correctamente.",
+        ]);
+    }
 }
