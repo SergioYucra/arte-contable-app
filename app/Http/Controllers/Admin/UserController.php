@@ -13,14 +13,16 @@ class UserController extends Controller
 {
     /**
      * Muestra el panel interactivo de administración de usuarios y roles.
+     * Incluye usuarios activos y desactivados (SoftDeletes) con estado de verificación.
      */
     public function index(Request $request): View
     {
         $currentUser = $request->user();
         $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
 
-        $users = User::with('roles:id,name')
-            ->select('id', 'name', 'email', 'created_at')
+        $users = User::withTrashed()
+            ->with('roles:id,name')
+            ->select('id', 'name', 'email', 'created_at', 'deleted_at', 'email_verified_at')
             ->latest('id')
             ->get()
             ->map(fn (User $user) => [
@@ -29,6 +31,10 @@ class UserController extends Controller
                 'email' => $user->email,
                 'role' => $user->roles->first()?->name ?? 'User',
                 'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
+                'deleted_at' => $user->deleted_at?->toISOString(),
+                'is_active' => is_null($user->deleted_at),
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+                'is_verified' => ! is_null($user->email_verified_at),
                 'can_edit' => $isSuperAdmin || ! $user->hasRole('SuperAdmin'),
             ]);
 
@@ -81,7 +87,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        // 3. Protección de seguridad: Evitar dejar el sistema sin ningún SuperAdmin
+        // 3. Regla de Negocio S3: Evitar dejar el sistema sin ningún SuperAdmin
         if ($user->hasRole('SuperAdmin') && $newRole !== 'SuperAdmin') {
             $otherSuperAdminsCount = User::role('SuperAdmin')
                 ->where('id', '!=', $user->id)
@@ -116,7 +122,7 @@ class UserController extends Controller
     }
 
     /**
-     * Elimina (SoftDelete) un usuario del sistema protegiendo la existencia de al menos un SuperAdmin.
+     * Desactiva (SoftDelete) un usuario del sistema protegiendo al último SuperAdmin.
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
@@ -162,11 +168,100 @@ class UserController extends Controller
             ->causedBy($currentUser)
             ->performedOn($user)
             ->withProperties(['name' => $userName, 'email' => $userEmail])
-            ->log("Usuario '{$userName}' ({$userEmail}) eliminado lógicamente (SoftDelete)");
+            ->log("Usuario '{$userName}' ({$userEmail}) desactivado (SoftDelete)");
 
         return response()->json([
             'success' => true,
-            'message' => "El usuario {$userName} fue eliminado correctamente.",
+            'message' => "El usuario {$userName} fue desactivado correctamente.",
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->roles->first()?->name ?? 'User',
+                'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
+                'deleted_at' => now()->toISOString(),
+                'is_active' => false,
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+                'is_verified' => ! is_null($user->email_verified_at),
+                'can_edit' => $isSuperAdmin || ! $user->hasRole('SuperAdmin'),
+            ],
+        ]);
+    }
+
+    /**
+     * Reactiva un usuario previamente desactivado (SoftDeletes).
+     * Registra la reactivación en la bitácora de auditoría.
+     */
+    public function restore(Request $request, int|string $id): JsonResponse
+    {
+        $currentUser = $request->user();
+        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
+
+        if (! $currentUser->can('manage-users')) {
+            return response()->json([
+                'message' => 'No tienes permisos suficientes para reactivar usuarios.',
+            ], 403);
+        }
+
+        $user = User::onlyTrashed()->with('roles:id,name')->findOrFail($id);
+
+        $user->restore();
+
+        activity('users')
+            ->causedBy($currentUser)
+            ->performedOn($user)
+            ->withProperties(['name' => $user->name, 'email' => $user->email])
+            ->log("Usuario '{$user->name}' ({$user->email}) reactivado exitosamente");
+
+        return response()->json([
+            'success' => true,
+            'message' => "El usuario {$user->name} fue reactivado correctamente.",
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->roles->first()?->name ?? 'User',
+                'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
+                'deleted_at' => null,
+                'is_active' => true,
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+                'is_verified' => ! is_null($user->email_verified_at),
+                'can_edit' => $isSuperAdmin || ! $user->hasRole('SuperAdmin'),
+            ],
+        ]);
+    }
+
+    /**
+     * Reenvía la notificación de verificación de correo electrónico para un usuario no verificado.
+     * Registra el reenvío en la bitácora de auditoría.
+     */
+    public function resendVerification(Request $request, User $user): JsonResponse
+    {
+        $currentUser = $request->user();
+
+        if (! $currentUser->can('manage-users')) {
+            return response()->json([
+                'message' => 'No tienes permisos suficientes para reenviar correos de verificación.',
+            ], 403);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => "La cuenta de {$user->name} ya se encuentra verificada.",
+            ], 422);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        activity('users')
+            ->causedBy($currentUser)
+            ->performedOn($user)
+            ->withProperties(['name' => $user->name, 'email' => $user->email])
+            ->log("Enlace de verificación de correo reenviado a '{$user->email}'");
+
+        return response()->json([
+            'success' => true,
+            'message' => "Se ha reenviado el enlace de verificación a {$user->email}.",
         ]);
     }
 }

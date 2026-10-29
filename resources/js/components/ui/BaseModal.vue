@@ -1,5 +1,5 @@
 <script setup>
-import { watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -32,6 +32,17 @@ const maxWidthClass = {
     '2xl': 'sm:max-w-2xl',
 }[props.maxWidth];
 
+const modalRef = ref(null);
+const previouslyFocusedElement = ref(null);
+
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getFocusableElements() {
+    if (!modalRef.value) return [];
+    return Array.from(modalRef.value.querySelectorAll(FOCUSABLE_SELECTOR))
+        .filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+}
+
 function close() {
     if (props.closeable) {
         emit('update:modelValue', false);
@@ -39,19 +50,64 @@ function close() {
     }
 }
 
+/**
+ * UX-06: Focus Trap. Confinar el foco del teclado (Tab y Shift+Tab) dentro del modal
+ * e impedir que navegue a elementos interactivos del fondo.
+ */
 function handleKeydown(e) {
-    if (e.key === 'Escape' && props.modelValue) {
+    if (!props.modelValue) return;
+
+    if (e.key === 'Escape' && props.closeable) {
         close();
+        return;
+    }
+
+    if (e.key === 'Tab') {
+        const focusables = getFocusableElements();
+        if (focusables.length === 0) {
+            e.preventDefault();
+            return;
+        }
+
+        const firstElement = focusables[0];
+        const lastElement = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+            // Shift + Tab: Si está en el primer elemento o fuera del modal, redirigir al último
+            if (document.activeElement === firstElement || !modalRef.value?.contains(document.activeElement)) {
+                e.preventDefault();
+                lastElement.focus();
+            }
+        } else {
+            // Tab: Si está en el último elemento o fuera del modal, redirigir al primero
+            if (document.activeElement === lastElement || !modalRef.value?.contains(document.activeElement)) {
+                e.preventDefault();
+                firstElement.focus();
+            }
+        }
     }
 }
 
 watch(
     () => props.modelValue,
-    (isOpen) => {
+    async (isOpen) => {
         if (isOpen) {
+            previouslyFocusedElement.value = document.activeElement;
             document.body.classList.add('overflow-hidden');
+
+            await nextTick();
+            const focusables = getFocusableElements();
+            if (focusables.length > 0) {
+                // Enfocar automáticamente el primer elemento interactivo
+                focusables[0].focus();
+            } else if (modalRef.value) {
+                modalRef.value.focus();
+            }
         } else {
             document.body.classList.remove('overflow-hidden');
+            if (previouslyFocusedElement.value && typeof previouslyFocusedElement.value.focus === 'function') {
+                previouslyFocusedElement.value.focus();
+            }
         }
     }
 );
@@ -79,6 +135,7 @@ onUnmounted(() => {
                 @click.self="close"
                 role="dialog"
                 aria-modal="true"
+                :aria-label="title || 'Ventana emergente'"
             >
                 <Transition
                     enter-active-class="transition duration-200 ease-out"
@@ -90,18 +147,20 @@ onUnmounted(() => {
                 >
                     <div
                         v-if="modelValue"
-                        class="w-full bg-surface border border-border rounded-brand shadow-2xl overflow-hidden flex flex-col"
+                        ref="modalRef"
+                        tabindex="-1"
+                        class="w-full bg-surface border border-border rounded-brand shadow-2xl overflow-hidden flex flex-col focus:outline-none"
                         :class="maxWidthClass"
                     >
                         <!-- Header -->
                         <div v-if="$slots.header || title" class="flex items-center justify-between px-6 py-4 border-b border-border">
                             <slot name="header">
-                                <h3 class="text-base font-semibold text-foreground tracking-tight">{{ title }}</h3>
+                                <h3 id="modal-title" class="text-base font-semibold text-foreground tracking-tight">{{ title }}</h3>
                             </slot>
                             <button
                                 v-if="closeable"
                                 type="button"
-                                class="p-1 rounded-brand text-muted hover:text-foreground hover:bg-background transition-colors"
+                                class="p-1 rounded-brand text-muted hover:text-foreground hover:bg-background transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                                 @click="close"
                                 aria-label="Cerrar modal"
                             >

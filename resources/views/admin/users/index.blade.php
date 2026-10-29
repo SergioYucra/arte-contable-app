@@ -27,6 +27,9 @@
                     :initial-users="@js($users)"
                     :available-roles="@js($availableRoles)"
                     update-role-url-template="{{ route('admin.users.update-role', ':id') }}"
+                    delete-user-url-template="{{ route('admin.users.destroy', ':id') }}"
+                    restore-user-url-template="{{ route('admin.users.restore', ':id') }}"
+                    resend-verification-url-template="{{ route('admin.users.resend-verification', ':id') }}"
                 ></user-management-table>
             </div>
         </div>

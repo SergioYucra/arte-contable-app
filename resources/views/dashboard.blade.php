@@ -36,44 +36,101 @@
                 </div>
             </section>
 
-            {{-- Tarjetas de resumen --}}
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="{{ __('Resumen de tu cuenta') }}">
-                <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
-                    <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                        </span>
-                        <div class="min-w-0">
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Mi cuenta') }}</p>
-                            <p class="text-sm font-semibold text-foreground truncate" title="{{ $user->email }}">{{ $user->email }}</p>
+            {{-- Tarjetas de resumen adaptadas al rol (N5) --}}
+            @if ($user->hasRole('SuperAdmin') || $user->hasRole('Admin'))
+                {{-- Tarjetas Informativas para Administrador / SuperAdmin --}}
+                <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="{{ __('Panel de control administrativo') }}">
+                    <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Nivel de acceso') }}</p>
+                                <p class="text-sm font-semibold text-foreground truncate">{{ $roleLabel }}</p>
+                            </div>
                         </div>
-                    </div>
-                </article>
+                    </article>
 
-                <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
-                    <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M22 4 12 14.01l-3-3" /></svg>
-                        </span>
-                        <div>
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Correo electrónico') }}</p>
-                            <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{{ __('Verificado') }}</p>
+                    <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Gestión de usuarios') }}</p>
+                                <p class="text-sm font-semibold text-foreground">
+                                    <a href="{{ route('admin.users.index') }}" class="hover:text-primary transition-colors underline decoration-dotted">
+                                        {{ __('Administrar accesos') }} &rarr;
+                                    </a>
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                </article>
+                    </article>
 
-                <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
-                    <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                        </span>
-                        <div>
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Miembro desde') }}</p>
-                            <p class="text-sm font-semibold text-foreground">{{ $user->created_at?->translatedFormat('d \d\e F \d\e Y') }}</p>
+                    <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Seguridad y auditoría') }}</p>
+                                <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{{ __('Bitácora inmutable activa') }}</p>
+                            </div>
                         </div>
-                    </div>
-                </article>
-            </section>
+                    </article>
+                </section>
+            @else
+                {{-- Tarjetas Informativas para Estudiante --}}
+                <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="{{ __('Resumen de tu cuenta de estudio') }}">
+                    <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Mi cuenta de estudiante') }}</p>
+                                <p class="text-sm font-semibold text-foreground truncate" title="{{ $user->email }}">{{ $user->email }}</p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $user->hasVerifiedEmail() ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400' }}">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    @if ($user->hasVerifiedEmail())
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M22 4 12 14.01l-3-3" />
+                                    @else
+                                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                    @endif
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Estado de correo') }}</p>
+                                <p class="text-sm font-semibold {{ $user->hasVerifiedEmail() ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                    {{ $user->hasVerifiedEmail() ? __('Verificado') : __('Pendiente de verificación') }}
+                                </p>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+                            </span>
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Espacio de estudio') }}</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-foreground">{{ __('Libro Oficial') }}</span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">Próximamente</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+            @endif
 
             {{-- Accesos rápidos --}}
             <section aria-labelledby="quick-heading">

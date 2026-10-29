@@ -50,7 +50,7 @@
         <div class="space-y-1">
             <p class="sidebar-section-title px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted/80">{{ __('Principal') }}</p>
 
-            <x-sidebar-link :href="route('dashboard')" :label="__('Mi Biblioteca')" :active="request()->routeIs('dashboard')">
+            <x-sidebar-link :href="route('dashboard')" :label="__('Inicio')" :active="request()->routeIs('dashboard')">
                 <x-slot:icon>
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></svg>
                 </x-slot:icon>
