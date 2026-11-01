@@ -29,7 +29,7 @@
 
         {{-- ============ BARRA DE NAVEGACIÓN SUPERIOR ============ --}}
         <header class="w-full border-b border-border bg-surface/90 backdrop-blur sticky top-0 z-50 transition-colors">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 h-16 flex items-center justify-between">
                 {{-- Isotipo y Nombre de Marca Oficial --}}
                 <a href="/" class="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-brand" aria-label="Inicio - El Arte de la Contabilidad">
                     <span class="flex h-10 w-10 items-center justify-center rounded-brand bg-primary/10 text-primary border border-primary/20 shadow-xs transition-transform group-hover:scale-105">
@@ -64,14 +64,14 @@
         </header>
 
         {{-- ============ CONTENIDO PRINCIPAL / HERO SECTION ============ --}}
-        <main class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-12 lg:py-20 relative overflow-hidden">
+        <main class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-10 xl:px-12 py-10 lg:py-16 relative overflow-hidden">
             {{-- Halos de iluminación ambiental suave --}}
             <div class="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden" aria-hidden="true">
                 <div class="h-[28rem] w-[28rem] rounded-full bg-primary/10 dark:bg-primary/5 blur-3xl animate-float-slow"></div>
                 <div class="h-[24rem] w-[24rem] rounded-full bg-accent/10 dark:bg-accent/5 blur-3xl translate-x-32 -translate-y-16 animate-float-slower"></div>
             </div>
 
-            <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            <div class="max-w-screen-2xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
                 {{-- Columna Izquierda: Propuesta de Valor --}}
                 <div class="lg:col-span-7 space-y-6 text-center lg:text-start animate-fade-up">
                     {{-- Badge Institucional --}}
@@ -189,7 +189,7 @@
             </div>
 
             {{-- ============ PILARES DE LA PLATAFORMA ============ --}}
-            <section class="mt-20 sm:mt-28 max-w-7xl mx-auto w-full border-t border-border pt-12" aria-labelledby="features-heading">
+            <section class="mt-16 sm:mt-24 max-w-screen-2xl mx-auto w-full border-t border-border pt-12" aria-labelledby="features-heading">
                 <div class="text-center max-w-2xl mx-auto mb-10">
                     <h2 id="features-heading" class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                         Diseñado para tu formación contable integral
@@ -249,7 +249,7 @@
 
         {{-- ============ PIE DE PÁGINA (FOOTER) ============ --}}
         <footer class="border-t border-border bg-surface py-6 text-center text-xs text-muted transition-colors">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                     <x-application-logo class="h-4 w-4 text-primary" />
                     <span class="font-medium text-foreground">&copy; 2026 {{ config('brand.name') }}.</span>

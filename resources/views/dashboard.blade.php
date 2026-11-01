@@ -12,8 +12,8 @@
 @endphp
 
 <x-app-layout :title="__('Inicio')">
-    <div class="py-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- Bienvenida --}}
             <section class="relative overflow-hidden rounded-brand border border-border bg-surface p-6 sm:p-8 shadow-xs" aria-labelledby="welcome-heading">
@@ -23,7 +23,7 @@
                         <h2 id="welcome-heading" class="text-2xl font-bold tracking-tight text-foreground">
                             {{ __('¡Hola, :name!', ['name' => $firstName]) }}
                         </h2>
-                        <p class="mt-1.5 text-sm text-muted max-w-xl leading-relaxed">
+                        <p class="mt-1.5 text-sm text-muted max-w-2xl leading-relaxed">
                             {{ config('brand.tagline') }}. {{ __('Aquí encontrarás tu información de cuenta y los accesos a tus herramientas de estudio.') }}
                         </p>
                     </div>

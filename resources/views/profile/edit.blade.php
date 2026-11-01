@@ -10,18 +10,14 @@
         </div>
     </x-slot>
 
-    <div class="py-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="py-6">
+        <div class="w-full px-4 sm:px-6 lg:px-8 grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
             <div class="p-6 sm:p-8 bg-surface border border-border rounded-brand shadow-xs">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
+                @include('profile.partials.update-profile-information-form')
             </div>
 
             <div class="p-6 sm:p-8 bg-surface border border-border rounded-brand shadow-xs">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
+                @include('profile.partials.update-password-form')
             </div>
         </div>
     </div>

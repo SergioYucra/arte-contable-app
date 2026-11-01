@@ -31,7 +31,7 @@
         <div class="min-h-screen flex">
 
             {{-- ============ Panel de marca (izquierda, solo desktop) ============ --}}
-            <aside class="relative hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between overflow-hidden bg-secondary text-secondary-foreground p-12 xl:p-16">
+            <aside class="relative hidden lg:flex lg:w-1/2 xl:w-[52%] flex-col justify-between overflow-hidden bg-secondary text-secondary-foreground p-10 xl:p-14">
                 {{-- Fondo decorativo --}}
                 <div class="pointer-events-none absolute inset-0 bg-brand-grid [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"></div>
                 <div class="pointer-events-none absolute -top-32 -left-24 h-[28rem] w-[28rem] rounded-full bg-primary/40 blur-3xl animate-float-slow"></div>
@@ -46,7 +46,7 @@
                 </a>
 
                 {{-- Mensaje principal --}}
-                <div class="relative z-10 max-w-lg animate-fade-up">
+                <div class="relative z-10 max-w-xl animate-fade-up">
                     <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium ring-1 ring-white/15 backdrop-blur">
                         <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
                         {{ config('brand.name') }}
@@ -89,7 +89,7 @@
                 {{-- Glow sutil en mobile/tablet --}}
                 <div class="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary/10 to-transparent lg:hidden"></div>
 
-                <div class="relative w-full max-w-md animate-fade-up">
+                <div class="relative w-full max-w-lg animate-fade-up">
                     {{-- Logo mobile --}}
                     <a href="/" class="mb-10 inline-flex items-center gap-3 lg:hidden">
                         <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-primary/10 text-primary overflow-hidden">
