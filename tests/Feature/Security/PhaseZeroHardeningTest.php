@@ -205,4 +205,51 @@ class PhaseZeroHardeningTest extends TestCase
         $this->assertStringContainsString('Coordinador', (string) $roleResponse->json('message'));
         $this->assertStringNotContainsString('Manager', (string) $roleResponse->json('message'));
     }
+
+    /**
+     * Aislamiento silencioso: Admin no ve cuentas SuperAdmin, recibe 404 ante sondas por ID
+     * y no posee permiso sobre la bitácora de auditoría ('view-audit-logs').
+     */
+    public function test_superadmin_is_completely_invisible_to_admin_and_audit_permission_is_restricted(): void
+    {
+        $superAdmin = User::role('SuperAdmin')->firstOrFail();
+
+        $admin = User::factory()->create([
+            'name' => 'Operador Administrativo',
+            'email' => 'operador@ejemplo.com',
+        ]);
+        $admin->assignRole('Admin');
+
+        $manager = User::factory()->create();
+        $manager->assignRole('Manager');
+
+        // 1. Permiso de auditoría exclusivo para SuperAdmin
+        $this->assertTrue($superAdmin->can('view-audit-logs'));
+        $this->assertFalse($admin->can('view-audit-logs'));
+        $this->assertFalse($manager->can('view-audit-logs'));
+
+        // 2. En listado de usuarios, Admin no recibe ni el correo ni el nombre del SuperAdmin
+        $adminIndex = $this->actingAs($admin)->get(route('admin.users.index'));
+        $adminIndex->assertOk();
+        $adminIndex->assertDontSee($superAdmin->email, false);
+        $adminIndex->assertDontSee($superAdmin->name, false);
+
+        // En cambio, SuperAdmin sí visualiza su propia cuenta maestra
+        $superIndex = $this->actingAs($superAdmin)->get(route('admin.users.index'));
+        $superIndex->assertOk();
+        $superIndex->assertSee($superAdmin->email, false);
+
+        // 3. Sondas directas por ID contra SuperAdmin devuelven 404 (anti-enumeración)
+        $this->actingAs($admin)
+            ->patchJson(route('admin.users.update-role', $superAdmin), ['role' => 'User'])
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->deleteJson(route('admin.users.destroy', $superAdmin))
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.users.resend-verification', $superAdmin))
+            ->assertNotFound();
+    }
 }

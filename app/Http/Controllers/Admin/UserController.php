@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,17 +31,37 @@ class UserController extends Controller
     }
 
     /**
+     * Impide la enumeración por ID de cuentas SuperAdmin ante operadores de menor jerarquía,
+     * lanzando exactamente la misma excepción 404 que un registro inexistente.
+     */
+    private function ensureTargetIsVisible(User $targetUser, bool $isSuperAdmin): void
+    {
+        if (! $isSuperAdmin && $targetUser->hasRole('SuperAdmin')) {
+            throw (new ModelNotFoundException)->setModel(User::class, [$targetUser->id]);
+        }
+    }
+
+    /**
      * Muestra el panel interactivo de administración de usuarios y roles.
      * Incluye usuarios activos y desactivados (SoftDeletes) con estado de verificación.
+     * Las cuentas SuperAdmin permanecen completamente invisibles para roles inferiores.
      */
     public function index(Request $request): View
     {
         $currentUser = $request->user();
         $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
 
-        $users = User::withTrashed()
+        $usersQuery = User::withTrashed()
             ->with('roles:id,name')
-            ->select('id', 'name', 'email', 'created_at', 'deleted_at', 'email_verified_at')
+            ->select('id', 'name', 'email', 'created_at', 'deleted_at', 'email_verified_at');
+
+        if (! $isSuperAdmin) {
+            $usersQuery->whereDoesntHave('roles', function ($query): void {
+                $query->where('name', 'SuperAdmin');
+            });
+        }
+
+        $users = $usersQuery
             ->latest('id')
             ->get()
             ->map(fn (User $user) => [
@@ -85,6 +106,9 @@ class UserController extends Controller
             ], 403);
         }
 
+        // Ocultar existencia de cuentas SuperAdmin (404 idéntico a inexistente)
+        $this->ensureTargetIsVisible($user, $isSuperAdmin);
+
         $validated = $request->validate([
             'role' => ['required', 'string', 'exists:roles,name'],
         ]);
@@ -96,13 +120,6 @@ class UserController extends Controller
         if ($newRole === 'SuperAdmin' && ! $isSuperAdmin) {
             return response()->json([
                 'message' => 'Operación denegada: Solo un Superadministrador puede promover cuentas al nivel de Superadministrador.',
-            ], 403);
-        }
-
-        // 2. Inmunidad del SuperAdmin: Un Admin común no puede modificar el rol de un SuperAdmin
-        if ($user->hasRole('SuperAdmin') && ! $isSuperAdmin) {
-            return response()->json([
-                'message' => 'Operación denegada: No tienes privilegios para modificar la cuenta de un Superadministrador.',
             ], 403);
         }
 
@@ -155,16 +172,13 @@ class UserController extends Controller
             ], 403);
         }
 
+        // Ocultar existencia de cuentas SuperAdmin (404 idéntico a inexistente)
+        $this->ensureTargetIsVisible($user, $isSuperAdmin);
+
         if ($user->id === $currentUser->id) {
             return response()->json([
                 'message' => 'Operación denegada: No puedes desactivar tu propia cuenta desde el panel de administración.',
             ], 422);
-        }
-
-        if ($user->hasRole('SuperAdmin') && ! $isSuperAdmin) {
-            return response()->json([
-                'message' => 'Operación denegada: No tienes privilegios para desactivar la cuenta de un Superadministrador.',
-            ], 403);
         }
 
         if ($user->hasRole('SuperAdmin')) {
@@ -236,6 +250,8 @@ class UserController extends Controller
 
         $user = User::onlyTrashed()->with('roles:id,name')->findOrFail($id);
 
+        $this->ensureTargetIsVisible($user, $isSuperAdmin);
+
         $user->restore();
 
         activity('users')
@@ -269,12 +285,15 @@ class UserController extends Controller
     public function resendVerification(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
+        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
 
         if (! $currentUser->can('manage-users')) {
             return response()->json([
                 'message' => 'No tienes permisos suficientes para reenviar correos de verificación.',
             ], 403);
         }
+
+        $this->ensureTargetIsVisible($user, $isSuperAdmin);
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([

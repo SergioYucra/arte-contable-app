@@ -28,12 +28,14 @@ class CoreSecuritySeeder extends Seeder
 
     /**
      * Matriz rol => permisos.
-     * SuperAdmin recibe todos los permisos y además tiene bypass global vía Gate::before.
+     * SuperAdmin recibe todos los permisos (incluido 'view-audit-logs') y bypass global vía Gate::before.
+     * Los roles operativos (Admin / Manager) no tienen acceso a la bitácora de auditoría para proteger
+     * la trazabilidad y el aislamiento de las cuentas SuperAdmin.
      */
     public const ROLE_MATRIX = [
         'SuperAdmin' => self::PERMISSIONS,
-        'Admin' => ['access-dashboard', 'manage-users', 'view-audit-logs'],
-        'Manager' => ['access-dashboard', 'view-audit-logs'],
+        'Admin' => ['access-dashboard', 'manage-users'],
+        'Manager' => ['access-dashboard'],
         'User' => ['access-dashboard'],
     ];
 
