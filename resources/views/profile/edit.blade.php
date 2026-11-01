@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout :title="__('Mi perfil')">
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-foreground leading-tight">

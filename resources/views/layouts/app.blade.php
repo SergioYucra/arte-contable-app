@@ -8,8 +8,14 @@
         {{-- Prevención de FOUC de tema visual --}}
         <x-theme-script />
 
-        {{-- SEO técnico automático (ralphjsmit/laravel-seo) --}}
-        {!! seo() !!}
+        {{-- SEO técnico automático en español y bloqueo de indexación en área privada --}}
+        @php
+            $seoData = new \RalphJSmit\Laravel\SEO\Support\SEOData(
+                title: $title ?: __('Espacio de estudio'),
+                robots: 'noindex, nofollow',
+            );
+        @endphp
+        {!! seo($seoData) !!}
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -12,7 +12,7 @@ return [
     /**
      * Use this setting to specify the site name that will be used in OpenGraph tags.
      */
-    'site_name' => null,
+    'site_name' => env('APP_NAME', 'El Arte de la Contabilidad'),
 
     /**
      * Use this setting to specify the path to the sitemap of your website. This exact path will outputted, so
@@ -69,13 +69,13 @@ return [
          *
          * For example, if you have a page with the url '/foo/about-me', we'll automatically set the title to 'About me' and append the site suffix.
          */
-        'infer_title_from_url' => true,
+        'infer_title_from_url' => false,
 
         /**
          * Use this setting to provide a suffix that will be added after the title on each page.
          * If you don't want a suffix, you should specify an empty string.
          */
-        'suffix' => '',
+        'suffix' => ' — '.env('APP_NAME', 'El Arte de la Contabilidad'),
 
         /**
          * Use this setting to provide a custom title for the homepage. We will not use the suffix on the homepage,
@@ -91,7 +91,7 @@ return [
          * where we don't have a description set via an associated ->seo model or via
          * the ->getDynamicSEOData() method.
          */
-        'fallback' => null,
+        'fallback' => env('BRAND_DESCRIPTION'),
     ],
 
     'image' => [

@@ -6,11 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    /**
+     * Etiquetas legibles en español para niveles de acceso (cero nombres técnicos en UI).
+     *
+     * @var array<string, string>
+     */
+    public const ROLE_LABELS = [
+        'SuperAdmin' => 'Superadministrador',
+        'Admin' => 'Administrador',
+        'Manager' => 'Coordinador',
+        'User' => 'Estudiante',
+    ];
+
+    public static function roleLabel(string $role): string
+    {
+        return self::ROLE_LABELS[$role] ?? $role;
+    }
+
     /**
      * Muestra el panel interactivo de administración de usuarios y roles.
      * Incluye usuarios activos y desactivados (SoftDeletes) con estado de verificación.
@@ -63,7 +81,7 @@ class UserController extends Controller
         // Verificar autorización granular
         if (! $currentUser->can('manage-roles') && ! $currentUser->can('manage-users')) {
             return response()->json([
-                'message' => 'No tienes permisos suficientes para modificar roles de usuario.',
+                'message' => 'No tienes permisos suficientes para modificar niveles de acceso.',
             ], 403);
         }
 
@@ -72,18 +90,19 @@ class UserController extends Controller
         ]);
 
         $newRole = $validated['role'];
+        $newRoleLabel = self::roleLabel($newRole);
 
         // 1. Blindaje contra Escalada de Privilegios: Solo SuperAdmin puede asignar el rol SuperAdmin
         if ($newRole === 'SuperAdmin' && ! $isSuperAdmin) {
             return response()->json([
-                'message' => 'Operación denegada: Solo un SuperAdmin puede promover usuarios al rol de SuperAdmin.',
+                'message' => 'Operación denegada: Solo un Superadministrador puede promover cuentas al nivel de Superadministrador.',
             ], 403);
         }
 
         // 2. Inmunidad del SuperAdmin: Un Admin común no puede modificar el rol de un SuperAdmin
         if ($user->hasRole('SuperAdmin') && ! $isSuperAdmin) {
             return response()->json([
-                'message' => 'Operación denegada: No tienes privilegios para modificar la cuenta de un SuperAdmin.',
+                'message' => 'Operación denegada: No tienes privilegios para modificar la cuenta de un Superadministrador.',
             ], 403);
         }
 
@@ -95,7 +114,7 @@ class UserController extends Controller
 
             if ($otherSuperAdminsCount === 0) {
                 return response()->json([
-                    'message' => 'Operación denegada: No es posible quitar el rol al único SuperAdmin activo.',
+                    'message' => 'Operación denegada: No es posible quitar el nivel de acceso al único Superadministrador activo.',
                 ], 422);
             }
         }
@@ -111,7 +130,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "El rol de {$user->name} fue actualizado exitosamente a {$newRole}.",
+            'message' => "El nivel de acceso de {$user->name} se actualizó a {$newRoleLabel}.",
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -122,7 +141,8 @@ class UserController extends Controller
     }
 
     /**
-     * Desactiva (SoftDelete) un usuario del sistema protegiendo al último SuperAdmin.
+     * Desactiva (SoftDelete) un usuario del sistema, revocando todas sus sesiones activas
+     * y protegiendo al último SuperAdmin.
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
@@ -131,19 +151,19 @@ class UserController extends Controller
 
         if (! $currentUser->can('manage-users')) {
             return response()->json([
-                'message' => 'No tienes permisos suficientes para eliminar usuarios.',
+                'message' => 'No tienes permisos suficientes para desactivar cuentas de usuario.',
             ], 403);
         }
 
         if ($user->id === $currentUser->id) {
             return response()->json([
-                'message' => 'Operación denegada: No puedes eliminar tu propia cuenta desde el panel de administración.',
+                'message' => 'Operación denegada: No puedes desactivar tu propia cuenta desde el panel de administración.',
             ], 422);
         }
 
         if ($user->hasRole('SuperAdmin') && ! $isSuperAdmin) {
             return response()->json([
-                'message' => 'Operación denegada: No tienes privilegios para eliminar la cuenta de un SuperAdmin.',
+                'message' => 'Operación denegada: No tienes privilegios para desactivar la cuenta de un Superadministrador.',
             ], 403);
         }
 
@@ -154,7 +174,7 @@ class UserController extends Controller
 
             if ($otherSuperAdminsCount === 0) {
                 return response()->json([
-                    'message' => 'Operación denegada: No es posible eliminar al único SuperAdmin del sistema.',
+                    'message' => 'Operación denegada: No es posible desactivar al único Superadministrador del sistema.',
                 ], 422);
             }
         }
@@ -162,7 +182,18 @@ class UserController extends Controller
         $userName = $user->name;
         $userEmail = $user->email;
 
-        $user->delete();
+        DB::transaction(function () use ($user): void {
+            // 1. Revocar token "Recordarme" sin disparar logs intermedios
+            $user->forceFill(['remember_token' => null])->saveQuietly();
+
+            // 2. Invalidar inmediatamente cualquier sesión activa en base de datos (sin consultas a information_schema)
+            DB::table(config('session.table', 'sessions'))
+                ->where('user_id', $user->id)
+                ->delete();
+
+            // 3. Desactivación lógica (SoftDelete). Los módulos de negocio reaccionan vía eventos de modelo si lo requieren.
+            $user->delete();
+        });
 
         activity('users')
             ->causedBy($currentUser)
@@ -172,7 +203,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "El usuario {$userName} fue desactivado correctamente.",
+            'message' => "La cuenta de {$userName} fue desactivada y sus sesiones activas fueron cerradas.",
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -215,7 +246,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "El usuario {$user->name} fue reactivado correctamente.",
+            'message' => "La cuenta de {$user->name} fue reactivada correctamente.",
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

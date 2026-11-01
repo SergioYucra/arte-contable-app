@@ -1,4 +1,4 @@
-<x-guest-layout>
+<x-guest-layout :title="__('Verificar correo electrónico')">
     <div
         x-data="{ editing: {{ $errors->has('email') ? 'true' : 'false' }} }"
         class="space-y-6"

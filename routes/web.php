@@ -18,7 +18,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Módulo Base: Administración de Usuarios y Roles (Capa Core)
-Route::middleware(['auth', 'permission:manage-users'])
+Route::middleware(['auth', 'verified', 'permission:manage-users'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {

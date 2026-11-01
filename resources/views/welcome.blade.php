@@ -8,10 +8,15 @@
         {{-- Prevención de FOUC de tema visual --}}
         <x-theme-script />
 
-        <title>{{ config('brand.name', 'El Arte de la Contabilidad') }} — {{ config('brand.tagline') }}</title>
-
-        {{-- Metadatos SEO de servidor (ralphjsmit/laravel-seo) --}}
-        {!! seo() !!}
+        {{-- Metadatos SEO de servidor alimentados desde config/brand.php (única fuente de verdad) --}}
+        @php
+            $seoData = new \RalphJSmit\Laravel\SEO\Support\SEOData(
+                title: config('brand.name').' — '.config('brand.tagline'),
+                description: config('brand.description'),
+                enableTitleSuffix: false,
+            );
+        @endphp
+        {!! seo($seoData) !!}
 
         <!-- Tipografía Inter oficial -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -41,7 +46,7 @@
                     <x-theme-toggle />
                     @auth
                         <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center px-4 py-2 rounded-brand text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary-hover shadow-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                            {{ __('Ir al Panel de Control') }} &rarr;
+                            {{ __('Ir a mi espacio de estudio') }} &rarr;
                         </a>
                     @else
                         <a href="{{ route('login') }}" class="px-3.5 py-2 rounded-brand text-xs font-semibold text-muted hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
@@ -89,7 +94,7 @@
                     <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
                         @auth
                             <a href="{{ route('dashboard') }}" class="w-full sm:w-auto px-6 py-3.5 rounded-brand text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm transition-all text-center">
-                                {{ __('Ir al Panel de Control') }} &rarr;
+                                {{ __('Ir a mi espacio de estudio') }} &rarr;
                             </a>
                         @else
                             @if (Route::has('register'))

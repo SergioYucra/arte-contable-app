@@ -45,7 +45,7 @@ class ProfileController extends Controller
                         'attempted_email' => $newEmail,
                         'ip' => $request->ip(),
                     ])
-                    ->log("Intento de cambio de correo bloqueado por exceder el límite diario (máximo 3 por día).");
+                    ->log('Intento de cambio de correo bloqueado por exceder el límite diario (máximo 3 por día).');
 
                 throw ValidationException::withMessages([
                     'email' => __("Has alcanzado el límite máximo de 3 solicitudes de cambio de correo por día. Intenta de nuevo en {$hours} horas."),
@@ -66,11 +66,17 @@ class ProfileController extends Controller
 
         $user->fill($request->validated());
 
-        if ($user->isDirty('email')) {
+        $emailChanged = $user->isDirty('email');
+
+        if ($emailChanged) {
             $user->email_verified_at = null;
         }
 
         $user->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

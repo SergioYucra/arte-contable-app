@@ -29,12 +29,12 @@ class UserPolicy
 
         // Blindaje contra escalada de privilegios
         if ($newRole === 'SuperAdmin' && ! $isSuperAdmin) {
-            return Response::deny('Operación denegada: Solo un SuperAdmin puede promover usuarios al rol de SuperAdmin.');
+            return Response::deny('Operación denegada: Solo un Superadministrador puede promover cuentas al nivel de Superadministrador.');
         }
 
         // Inmunidad del SuperAdmin
         if ($targetUser->hasRole('SuperAdmin') && ! $isSuperAdmin) {
-            return Response::deny('Operación denegada: No tienes privilegios para modificar la cuenta de un SuperAdmin.');
+            return Response::deny('Operación denegada: No tienes privilegios para modificar la cuenta de un Superadministrador.');
         }
 
         // Regla de Negocio S3: Prohibir degradar al último SuperAdmin
@@ -44,7 +44,7 @@ class UserPolicy
                 ->count();
 
             if ($otherSuperAdmins === 0) {
-                return Response::deny('Operación denegada: No es posible degradar al único SuperAdmin activo.');
+                return Response::deny('Operación denegada: No es posible cambiar el nivel al único Superadministrador activo.');
             }
         }
 
@@ -68,7 +68,7 @@ class UserPolicy
         $isSuperAdmin = $currentUser->hasRole('SuperAdmin');
 
         if ($targetUser->hasRole('SuperAdmin') && ! $isSuperAdmin) {
-            return Response::deny('Operación denegada: No tienes privilegios para eliminar la cuenta de un SuperAdmin.');
+            return Response::deny('Operación denegada: No tienes privilegios para desactivar la cuenta de un Superadministrador.');
         }
 
         // Regla de Negocio S3: Prohibir eliminar al último SuperAdmin
@@ -78,7 +78,7 @@ class UserPolicy
                 ->count();
 
             if ($otherSuperAdmins === 0) {
-                return Response::deny('Operación denegada: No es posible eliminar al único SuperAdmin del sistema.');
+                return Response::deny('Operación denegada: No es posible desactivar al único Superadministrador del sistema.');
             }
         }
 

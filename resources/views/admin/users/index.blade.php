@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout :title="__('Usuarios y niveles de acceso')">
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -21,17 +21,18 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {{-- Isla Vue 3: Montaje reactivo del módulo interactivo de usuarios --}}
-            <div data-vue-island>
-                <user-management-table
-                    :initial-users="@js($users)"
-                    :available-roles="@js($availableRoles)"
-                    update-role-url-template="{{ route('admin.users.update-role', ':id') }}"
-                    delete-user-url-template="{{ route('admin.users.destroy', ':id') }}"
-                    restore-user-url-template="{{ route('admin.users.restore', ':id') }}"
-                    resend-verification-url-template="{{ route('admin.users.resend-verification', ':id') }}"
-                ></user-management-table>
-            </div>
+            {{-- Isla Vue 3 (Seguridad H6: montaje por nombre y data-props sin compilación en navegador) --}}
+            <div
+                data-vue-island="UserManagementTable"
+                data-props="{{ json_encode([
+                    'initialUsers' => $users,
+                    'availableRoles' => $availableRoles,
+                    'updateRoleUrlTemplate' => route('admin.users.update-role', ':id'),
+                    'deleteUserUrlTemplate' => route('admin.users.destroy', ':id'),
+                    'restoreUserUrlTemplate' => route('admin.users.restore', ':id'),
+                    'resendVerificationUrlTemplate' => route('admin.users.resend-verification', ':id'),
+                ]) }}"
+            ></div>
         </div>
     </div>
 </x-app-layout>

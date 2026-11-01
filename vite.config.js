@@ -21,9 +21,8 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            // Build con compilador de plantillas en tiempo de ejecución:
-            // necesario para montar componentes Vue escritos directamente en .blade.php.
-            vue: 'vue/dist/vue.esm-bundler.js',
+            // Runtime puro de Vue 3 (sin compilador en navegador):
+            // previene inyección de plantillas (CSTI) y permite CSP sin 'unsafe-eval'.
             '@': '/resources/js',
         },
     },

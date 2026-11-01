@@ -8,8 +8,17 @@
         {{-- Prevención de FOUC de tema visual --}}
         <x-theme-script />
 
-        {{-- SEO técnico (ralphjsmit/laravel-seo): title, description, canonical, Open Graph. --}}
-        {!! seo() !!}
+        {{-- SEO técnico: títulos en español y noindex por defecto en formularios de autenticación/verificación --}}
+        @php
+            $resolvedTitle = $title
+                ?: (isset($heading) ? trim(strip_tags((string) $heading)) : null)
+                ?: config('brand.name');
+            $seoData = new \RalphJSmit\Laravel\SEO\Support\SEOData(
+                title: $resolvedTitle,
+                robots: $noindex ? 'noindex, nofollow' : null,
+            );
+        @endphp
+        {!! seo($seoData) !!}
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

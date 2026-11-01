@@ -1,31 +1,51 @@
 /**
- * Montador de "Islas Vue" sobre Blade.
+ * Montador seguro de "Islas Vue 3" sobre Blade (Cumplimiento Seguridad H6).
  *
- * - Monta una app Vue independiente en cada contenedor `#app` o `[data-vue-island]`.
- * - Todas las islas comparten UNA instancia de Pinia (estado global entre islas).
- * - Registra automáticamente todos los componentes de `resources/js/components/**`
- *   usando el nombre del archivo: `SystemStatusBadge.vue` => <system-status-badge>.
- * - Marca cada isla con `x-ignore` para que Alpine.js no la procese (evita conflictos
- *   entre la sintaxis `@click` / `:attr` de Alpine y la de Vue).
- *
- * SEGURIDAD: el contenido de una isla se compila como plantilla Vue. NO imprimir
- * datos controlados por usuarios con `{{ }}` de Blade dentro de una isla
- * (riesgo de inyección de plantillas). Pasarlos como props: :prop="@js($dato)".
+ * - Usa exclusivamente el runtime precompilado de Vue 3 (sin compilador en navegador ni 'unsafe-eval').
+ * - Monta cada contenedor `[data-vue-island="NombreComponente"]` leyendo sus propiedades desde
+ *   el atributo JSON `data-props` y limpiándolo tras el montaje.
+ * - Todas las islas comparten UNA instancia global de Pinia.
+ * - Marca cada isla con `x-ignore` para aislarla de Alpine.js.
  */
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 
-export const ISLAND_SELECTOR = '#app, [data-vue-island]';
+export const ISLAND_SELECTOR = '[data-vue-island]';
 
 export const pinia = createPinia();
 
-// Descubrimiento automático de componentes (se resuelve en build, sin coste en runtime).
+// Registro en tiempo de compilación de todos los componentes de resources/js/components/**
 const componentModules = import.meta.glob('../components/**/*.vue', { eager: true });
 
-function registerComponents(app) {
-    for (const [path, module] of Object.entries(componentModules)) {
-        const name = path.split('/').pop().replace(/\.vue$/, '');
-        app.component(name, module.default);
+const componentRegistry = new Map();
+
+function toKebabCase(str) {
+    return str
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+        .toLowerCase();
+}
+
+for (const [path, module] of Object.entries(componentModules)) {
+    const pascalName = path.split('/').pop().replace(/\.vue$/, '');
+    if (module?.default) {
+        componentRegistry.set(pascalName, module.default);
+        componentRegistry.set(toKebabCase(pascalName), module.default);
+    }
+}
+
+function parseIslandProps(el) {
+    const rawProps = el.dataset.props;
+    if (!rawProps) {
+        return {};
+    }
+
+    try {
+        const parsed = JSON.parse(rawProps);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        console.error('Error al interpretar las propiedades iniciales del componente interactivo.');
+        return {};
     }
 }
 
@@ -38,11 +58,20 @@ export function mountVueIslands(root = document) {
             return;
         }
 
-        el.setAttribute('x-ignore', '');
+        const componentName = (el.dataset.vueIsland || '').trim();
+        const rootComponent = componentRegistry.get(componentName);
 
-        const app = createApp({});
+        if (!rootComponent) {
+            return;
+        }
+
+        const props = parseIslandProps(el);
+
+        el.setAttribute('x-ignore', '');
+        el.removeAttribute('data-props');
+
+        const app = createApp(rootComponent, props);
         app.use(pinia);
-        registerComponents(app);
         app.mount(el);
     });
 }
