@@ -131,7 +131,7 @@ onUnmounted(() => {
         >
             <div
                 v-if="modelValue"
-                class="fixed inset-0 z-50 overflow-y-auto bg-secondary/60 backdrop-blur-xs p-4 sm:p-6 flex items-center justify-center"
+                class="fixed inset-0 z-50 overflow-y-auto bg-secondary/60 backdrop-blur-xs p-0 sm:p-6 flex items-end sm:items-center justify-center"
                 @click.self="close"
                 role="dialog"
                 aria-modal="true"
@@ -139,42 +139,45 @@ onUnmounted(() => {
             >
                 <Transition
                     enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="opacity-0 scale-95 translate-y-2"
-                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                    enter-from-class="opacity-0 translate-y-4 sm:translate-y-2 sm:scale-95"
+                    enter-to-class="opacity-100 translate-y-0 sm:scale-100"
                     leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100 scale-100 translate-y-0"
-                    leave-to-class="opacity-0 scale-95 translate-y-2"
+                    leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+                    leave-to-class="opacity-0 translate-y-4 sm:translate-y-2 sm:scale-95"
                 >
                     <div
                         v-if="modelValue"
                         ref="modalRef"
                         tabindex="-1"
-                        class="w-full bg-surface border border-border rounded-brand shadow-2xl overflow-hidden flex flex-col focus:outline-none"
+                        class="w-full max-h-[92dvh] sm:max-h-[85vh] bg-surface border-t sm:border border-border rounded-t-2xl sm:rounded-brand shadow-2xl overflow-hidden flex flex-col focus:outline-none"
                         :class="maxWidthClass"
                     >
                         <!-- Header -->
-                        <div v-if="$slots.header || title" class="flex items-center justify-between px-6 py-4 border-b border-border">
+                        <div v-if="$slots.header || title" class="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-6 sm:py-4 border-b border-border shrink-0">
                             <slot name="header">
-                                <h3 id="modal-title" class="text-base font-semibold text-foreground tracking-tight">{{ title }}</h3>
+                                <h3 id="modal-title" class="text-sm sm:text-base font-semibold text-foreground tracking-tight truncate">{{ title }}</h3>
                             </slot>
                             <button
                                 v-if="closeable"
                                 type="button"
-                                class="p-1 rounded-brand text-muted hover:text-foreground hover:bg-background transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                class="p-2 -mr-1 rounded-brand text-muted hover:text-foreground hover:bg-background transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 shrink-0"
                                 @click="close"
-                                aria-label="Cerrar modal"
+                                aria-label="Cerrar ventana"
                             >
                                 <X class="h-4 w-4" />
                             </button>
                         </div>
 
                         <!-- Body -->
-                        <div class="px-6 py-5 text-sm text-foreground overflow-y-auto max-h-[75vh]">
+                        <div class="px-4 py-4 sm:px-6 sm:py-5 text-sm text-foreground overflow-y-auto flex-1">
                             <slot />
                         </div>
 
                         <!-- Footer -->
-                        <div v-if="$slots.footer" class="px-6 py-4 bg-background border-t border-border flex items-center justify-end gap-3">
+                        <div
+                            v-if="$slots.footer"
+                            class="px-4 pt-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 bg-background border-t border-border flex items-center justify-end gap-2.5 sm:gap-3 shrink-0"
+                        >
                             <slot name="footer" :close="close" />
                         </div>
                     </div>

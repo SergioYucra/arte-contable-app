@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         {{-- Prevención de FOUC de tema visual --}}
@@ -62,7 +62,7 @@
                 <!-- Page Heading -->
                 @isset($header)
                     <header class="bg-surface border-b border-border shadow-xs">
-                        <div class="w-full py-4 px-4 sm:px-6 lg:px-8">
+                        <div class="w-full py-3 sm:py-4 px-3.5 sm:px-6 lg:px-8">
                             {{ $header }}
                         </div>
                     </header>

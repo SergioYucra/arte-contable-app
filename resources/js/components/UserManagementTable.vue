@@ -17,6 +17,7 @@ import {
 } from 'lucide-vue-next';
 import BaseModal from './ui/BaseModal.vue';
 import BaseAlert from './ui/BaseAlert.vue';
+import BaseToast from './ui/BaseToast.vue';
 
 const props = defineProps({
     initialUsers: {
@@ -336,32 +337,17 @@ async function handleResendVerification(user) {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <!-- Notificación global superior -->
-        <Transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="opacity-0 -translate-y-2"
-            leave-active-class="transition duration-150 ease-in"
-            leave-to-class="opacity-0 -translate-y-2"
-        >
-            <BaseAlert
-                v-if="notification"
-                :type="notification.type"
-                :title="notification.title"
-                dismissible
-                @dismiss="notification = null"
-            >
-                {{ notification.message }}
-            </BaseAlert>
-        </Transition>
+    <div class="space-y-4 sm:space-y-6">
+        <!-- Notificación flotante suave y global (Toast) -->
+        <BaseToast v-model="notification" />
 
-        <!-- Barra de herramientas: Tabs de estado, búsqueda instantánea y filtros de roles (UX-07 390px responsive) -->
-        <div class="bg-surface border border-border rounded-brand p-4 shadow-xs space-y-4">
+        <!-- Barra de herramientas: Tabs de estado, búsqueda instantánea y filtros de roles -->
+        <div class="bg-surface border border-border rounded-brand p-3 sm:p-4 shadow-xs space-y-3 sm:space-y-4">
             <!-- Pestañas de estado (Activos / Desactivados / Todos) -->
-            <div class="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto">
+            <div class="-mx-3 px-3 sm:mx-0 sm:px-0 flex items-center gap-1.5 sm:gap-2 border-b border-border pb-3 overflow-x-auto no-scrollbar snap-x">
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-brand text-xs font-semibold transition-all"
+                    class="shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-brand text-xs font-semibold whitespace-nowrap transition-all"
                     :class="selectedStatusFilter === 'ACTIVE'
                         ? 'bg-primary text-primary-foreground shadow-xs'
                         : 'bg-background text-muted hover:text-foreground border border-border'"
@@ -373,7 +359,7 @@ async function handleResendVerification(user) {
 
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-brand text-xs font-semibold transition-all"
+                    class="shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-brand text-xs font-semibold whitespace-nowrap transition-all"
                     :class="selectedStatusFilter === 'DEACTIVATED'
                         ? 'bg-rose-600 text-white shadow-xs'
                         : 'bg-background text-muted hover:text-foreground border border-border'"
@@ -385,7 +371,7 @@ async function handleResendVerification(user) {
 
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-brand text-xs font-semibold transition-all"
+                    class="shrink-0 snap-start inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-brand text-xs font-semibold whitespace-nowrap transition-all"
                     :class="selectedStatusFilter === 'ALL'
                         ? 'bg-secondary text-secondary-foreground shadow-xs'
                         : 'bg-background text-muted hover:text-foreground border border-border'"
@@ -396,46 +382,48 @@ async function handleResendVerification(user) {
                 </button>
             </div>
 
-            <!-- Búsqueda y Filtros de Roles con flex-wrap para evitar desbordes a 390px -->
+            <!-- Búsqueda y Filtros de Roles -->
             <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
                 <!-- Buscador en tiempo real -->
                 <div class="relative w-full md:w-80">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
                     <input
                         v-model="searchQuery"
-                        type="text"
-                        placeholder="Buscar por nombre, email o rol..."
-                        class="w-full pl-9 pr-8 py-2 bg-background border border-border rounded-brand text-xs sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        type="search"
+                        inputmode="search"
+                        placeholder="Buscar por nombre, correo o nivel..."
+                        class="w-full pl-9 pr-9 py-2.5 sm:py-2 bg-background border border-border rounded-brand text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     />
                     <button
                         v-if="searchQuery"
                         type="button"
-                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground p-1"
+                        class="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground p-2"
                         @click="searchQuery = ''"
                         title="Limpiar búsqueda"
+                        aria-label="Limpiar búsqueda"
                     >
                         <X class="h-3.5 w-3.5" />
                     </button>
                 </div>
 
-                <!-- Filtros por Rol tipo Pills con flex-wrap -->
-                <div class="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+                <!-- Filtros por Rol tipo Pills desplazables en móvil -->
+                <div class="-mx-3 px-3 sm:mx-0 sm:px-0 flex md:flex-wrap items-center gap-1.5 overflow-x-auto md:overflow-visible no-scrollbar snap-x w-auto">
                     <button
                         type="button"
-                        class="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                        class="shrink-0 snap-start px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                         :class="selectedRoleFilter === 'ALL'
                             ? 'bg-primary text-primary-foreground shadow-xs'
                             : 'bg-background text-muted hover:text-foreground border border-border'"
                         @click="selectedRoleFilter = 'ALL'"
                     >
-                        Todos los roles ({{ roleCounts.ALL }})
+                        Todos ({{ roleCounts.ALL }})
                     </button>
 
                     <button
                         v-for="role in availableRoles"
                         :key="role"
                         type="button"
-                        class="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                        class="shrink-0 snap-start px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                         :class="selectedRoleFilter === role
                             ? 'bg-primary text-primary-foreground shadow-xs'
                             : 'bg-background text-muted hover:text-foreground border border-border'"
@@ -455,8 +443,147 @@ async function handleResendVerification(user) {
             </span>
         </div>
 
-        <!-- Tabla interactiva con contenedor overflow-x-auto estricto para 390px (UX-07) -->
-        <div class="bg-surface border border-border rounded-brand shadow-xs overflow-hidden">
+        <!-- Vista móvil en tarjetas (pantallas < 768px) -->
+        <div class="md:hidden space-y-3">
+            <article
+                v-for="user in filteredUsers"
+                :key="`mobile-${user.id}`"
+                class="bg-surface border border-border rounded-brand p-3.5 shadow-xs space-y-3"
+                :class="{ 'opacity-70': !!user.deleted_at }"
+            >
+                <div class="flex items-start justify-between gap-2.5">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div
+                            class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center font-semibold text-sm border"
+                            :class="user.deleted_at
+                                ? 'bg-muted/10 text-muted border-border'
+                                : 'bg-primary/10 text-primary border-primary/20'"
+                        >
+                            {{ user.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="text-sm font-semibold text-foreground truncate">{{ user.name }}</span>
+                                <span
+                                    v-if="user.deleted_at"
+                                    class="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                >
+                                    Desactivado
+                                </span>
+                            </div>
+                            <p class="text-xs text-muted truncate">{{ user.email }}</p>
+                        </div>
+                    </div>
+
+                    <span
+                        class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                        :class="getRoleBadgeClass(user.role)"
+                    >
+                        <Shield class="h-3 w-3" />
+                        {{ roleLabel(user.role) }}
+                    </span>
+                </div>
+
+                <!-- Verificación y fecha -->
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span
+                            v-if="user.email_verified_at"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                        >
+                            <Check class="h-3 w-3" />
+                            Verificado
+                        </span>
+                        <template v-else>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                <AlertCircle class="h-3 w-3" />
+                                Pendiente
+                            </span>
+                            <button
+                                v-if="!user.deleted_at && resendVerificationUrlTemplate"
+                                type="button"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-brand text-[11px] font-medium bg-background border border-border text-foreground hover:text-primary transition-all disabled:opacity-50"
+                                :disabled="resendingVerificationId === user.id"
+                                @click="handleResendVerification(user)"
+                            >
+                                <RefreshCw v-if="resendingVerificationId === user.id" class="h-3 w-3 animate-spin text-primary" />
+                                <Send v-else class="h-3 w-3" />
+                                Reenviar
+                            </button>
+                        </template>
+                    </div>
+
+                    <span class="text-[11px] text-muted">{{ user.created_at }}</span>
+                </div>
+
+                <!-- Acciones táctiles -->
+                <div class="pt-2.5 border-t border-border flex items-center gap-2">
+                    <template v-if="!user.deleted_at">
+                        <template v-if="user.can_edit !== false">
+                            <button
+                                type="button"
+                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-brand text-xs font-semibold bg-background border border-border text-foreground hover:border-primary/40 transition-all"
+                                @click="openRoleModal(user)"
+                            >
+                                <Shield class="h-3.5 w-3.5 text-primary" />
+                                Cambiar nivel
+                            </button>
+
+                            <button
+                                type="button"
+                                class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-brand text-xs font-medium bg-background border border-border text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-all"
+                                @click="confirmDeactivateUser(user)"
+                            >
+                                <UserX class="h-3.5 w-3.5" />
+                                Desactivar
+                            </button>
+                        </template>
+
+                        <span
+                            v-else
+                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-brand text-xs text-muted bg-background border border-border/80"
+                        >
+                            <Shield class="h-3.5 w-3.5 text-muted/60" />
+                            Cuenta protegida
+                        </span>
+                    </template>
+
+                    <template v-else>
+                        <button
+                            type="button"
+                            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-brand text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all"
+                            @click="confirmRestoreUser(user)"
+                        >
+                            <RotateCcw class="h-3.5 w-3.5" />
+                            Reactivar acceso
+                        </button>
+                    </template>
+                </div>
+            </article>
+
+            <div
+                v-if="filteredUsers.length === 0"
+                class="bg-surface border border-border rounded-brand p-8 text-center space-y-3"
+            >
+                <div class="h-10 w-10 mx-auto rounded-full bg-muted/10 text-muted flex items-center justify-center">
+                    <Search class="h-5 w-5" />
+                </div>
+                <h4 class="text-sm font-semibold text-foreground">No se encontraron usuarios</h4>
+                <p class="text-xs text-muted">
+                    No hay usuarios que coincidan con el filtro actual.
+                </p>
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-1 px-4 py-2 rounded-brand text-xs font-medium bg-primary text-primary-foreground hover:bg-primary-hover transition-colors"
+                    @click="searchQuery = ''; selectedRoleFilter = 'ALL'; selectedStatusFilter = 'ALL'"
+                >
+                    Restablecer filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla interactiva para tabletas y escritorio (pantallas >= 768px) -->
+        <div class="hidden md:block bg-surface border border-border rounded-brand shadow-xs overflow-hidden">
             <div class="w-full overflow-x-auto">
                 <table class="min-w-[720px] w-full text-left text-sm divide-y divide-border">
                     <thead class="bg-background text-xs uppercase font-semibold text-muted tracking-wider">
@@ -677,7 +804,7 @@ async function handleResendVerification(user) {
             <template #footer="{ close }">
                 <button
                     type="button"
-                    class="px-4 py-2 text-xs font-medium rounded-brand border border-border text-muted hover:text-foreground hover:bg-surface transition-colors"
+                    class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-xs font-medium rounded-brand border border-border text-muted hover:text-foreground hover:bg-surface transition-colors"
                     :disabled="isSubmittingRole"
                     @click="close"
                 >
@@ -685,7 +812,7 @@ async function handleResendVerification(user) {
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-brand bg-primary text-primary-foreground hover:bg-primary-hover shadow-xs focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 text-xs font-semibold rounded-brand bg-primary text-primary-foreground hover:bg-primary-hover shadow-xs focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50"
                     :disabled="isSubmittingRole || targetRole === activeUser?.role"
                     @click="saveRoleChange"
                 >
@@ -696,7 +823,7 @@ async function handleResendVerification(user) {
             </template>
         </BaseModal>
 
-        <!-- Modal 2: Confirmar Desactivación (SoftDelete) -->
+        <!-- Modal 2: Confirmar Desactivación -->
         <BaseModal
             v-model="isDeactivateModalOpen"
             title="Desactivar cuenta de usuario"
@@ -707,7 +834,7 @@ async function handleResendVerification(user) {
                     ¿Estás seguro de que deseas desactivar la cuenta de <strong class="font-semibold">{{ userToDeactivate.name }}</strong> ({{ userToDeactivate.email }})?
                 </p>
                 <p class="text-xs text-muted leading-relaxed">
-                    El usuario no podrá iniciar sesión en la plataforma. Esta acción realiza un borrado lógico (SoftDelete), por lo que sus registros históricos se conservarán y la cuenta podrá ser reactivada en cualquier momento.
+                    El usuario no podrá iniciar sesión en la plataforma. Sus registros históricos se conservarán y la cuenta podrá reactivarse en cualquier momento.
                 </p>
 
                 <BaseAlert v-if="modalError" type="error" title="No se pudo desactivar la cuenta">
@@ -718,7 +845,7 @@ async function handleResendVerification(user) {
             <template #footer="{ close }">
                 <button
                     type="button"
-                    class="px-4 py-2 text-xs font-medium rounded-brand border border-border text-muted hover:text-foreground hover:bg-surface transition-colors"
+                    class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-xs font-medium rounded-brand border border-border text-muted hover:text-foreground hover:bg-surface transition-colors"
                     :disabled="isSubmittingDeactivate"
                     @click="close"
                 >
@@ -726,13 +853,13 @@ async function handleResendVerification(user) {
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-brand bg-rose-600 text-white hover:bg-rose-700 shadow-xs focus:ring-2 focus:ring-rose-500/20 transition-all disabled:opacity-50"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 text-xs font-semibold rounded-brand bg-rose-600 text-white hover:bg-rose-700 shadow-xs focus:ring-2 focus:ring-rose-500/20 transition-all disabled:opacity-50"
                     :disabled="isSubmittingDeactivate"
                     @click="executeDeactivateUser"
                 >
                     <RefreshCw v-if="isSubmittingDeactivate" class="h-3.5 w-3.5 animate-spin" />
                     <UserX v-else class="h-3.5 w-3.5" />
-                    {{ isSubmittingDeactivate ? 'Desactivando...' : 'Sí, desactivar cuenta' }}
+                    {{ isSubmittingDeactivate ? 'Desactivando...' : 'Sí, desactivar' }}
                 </button>
             </template>
         </BaseModal>
@@ -748,7 +875,7 @@ async function handleResendVerification(user) {
                     ¿Deseas reactivar el acceso para <strong class="font-semibold">{{ userToRestore.name }}</strong> ({{ userToRestore.email }})?
                 </p>
                 <p class="text-xs text-muted leading-relaxed">
-                    La cuenta volverá a estar activa y el usuario podrá iniciar sesión con sus credenciales habituales. La reactivación quedará asentada en la bitácora de auditoría.
+                    La cuenta volverá a estar activa y el usuario podrá iniciar sesión con sus credenciales habituales.
                 </p>
 
                 <BaseAlert v-if="modalError" type="error" title="No se pudo reactivar la cuenta">
@@ -759,7 +886,7 @@ async function handleResendVerification(user) {
             <template #footer="{ close }">
                 <button
                     type="button"
-                    class="px-4 py-2 text-xs font-medium rounded-brand border border-border text-muted hover:text-foreground hover:bg-surface transition-colors"
+                    class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-xs font-medium rounded-brand border border-border text-muted hover:text-foreground hover:bg-surface transition-colors"
                     :disabled="isSubmittingRestore"
                     @click="close"
                 >
@@ -767,7 +894,7 @@ async function handleResendVerification(user) {
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-brand bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs focus:ring-2 focus:ring-emerald-500/20 transition-all disabled:opacity-50"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 text-xs font-semibold rounded-brand bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs focus:ring-2 focus:ring-emerald-500/20 transition-all disabled:opacity-50"
                     :disabled="isSubmittingRestore"
                     @click="executeRestoreUser"
                 >

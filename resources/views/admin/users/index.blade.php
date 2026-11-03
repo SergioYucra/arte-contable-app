@@ -1,26 +1,26 @@
 <x-app-layout :title="__('Usuarios y niveles de acceso')">
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-                <h1 class="font-semibold text-xl text-foreground leading-tight">
+        <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+                <h1 class="font-semibold text-lg sm:text-xl text-foreground leading-tight truncate">
                     {{ __('Usuarios y niveles de acceso') }}
                 </h1>
-                <p class="text-xs text-muted mt-1">
+                <p class="hidden sm:block text-xs text-muted mt-1">
                     {{ __('Consulta quién tiene acceso a la plataforma y qué puede hacer.') }}
                 </p>
             </div>
 
-            <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+            <div class="shrink-0 flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                     <span class="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-                    {{ count($users) }} {{ __('usuarios registrados') }}
+                    {{ count($users) }} <span class="hidden sm:inline">{{ __('usuarios registrados') }}</span><span class="sm:hidden">{{ __('usuarios') }}</span>
                 </span>
             </div>
         </div>
     </x-slot>
 
-    <div class="py-6">
-        <div class="w-full px-4 sm:px-6 lg:px-8">
+    <div class="py-4 sm:py-6">
+        <div class="w-full px-3 sm:px-6 lg:px-8">
             {{-- Isla Vue 3 (Seguridad H6: montaje por nombre y data-props sin compilación en navegador) --}}
             <div
                 data-vue-island="UserManagementTable"
