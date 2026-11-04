@@ -24,6 +24,7 @@ class Subscription extends Model
     protected $fillable = [
         'user_id',
         'book_edition_id',
+        'subscription_plan_id',
         'payment_request_id',
         'access_code_id',
         'starts_at',
@@ -85,6 +86,14 @@ class Subscription extends Model
     }
 
     /**
+     * Plan de suscripción contratado (o null para canje directo por código/promoción).
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
+    /**
      * Solicitud de pago P2P que originó la suscripción (si aplica).
      */
     public function paymentRequest(): BelongsTo
@@ -113,6 +122,7 @@ class Subscription extends Model
             ->logOnly([
                 'user_id',
                 'book_edition_id',
+                'subscription_plan_id',
                 'payment_request_id',
                 'access_code_id',
                 'starts_at',

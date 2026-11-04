@@ -37,16 +37,20 @@ class MvpDatabaseSchemaTest extends TestCase
                 'toc_json', 'status', 'is_current', 'created_at', 'updated_at', 'deleted_at',
             ],
             'access_codes' => [
-                'id', 'code', 'reference', 'duration_days', 'redeemed_by',
+                'id', 'code', 'reference', 'subscription_plan_id', 'duration_days', 'redeemed_by',
                 'redeemed_at', 'revoked_at', 'created_by', 'created_at', 'updated_at',
             ],
             'payment_requests' => [
-                'id', 'user_id', 'amount', 'reference_text', 'proof_vault_path',
+                'id', 'user_id', 'subscription_plan_id', 'amount', 'reference_text', 'proof_vault_path',
                 'status', 'admin_notes', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at',
             ],
             'subscriptions' => [
-                'id', 'user_id', 'book_edition_id', 'payment_request_id', 'access_code_id', 'starts_at',
+                'id', 'user_id', 'book_edition_id', 'subscription_plan_id', 'payment_request_id', 'access_code_id', 'starts_at',
                 'expires_at', 'status', 'active_session_token', 'created_at', 'updated_at',
+            ],
+            'subscription_plans' => [
+                'id', 'name', 'price', 'duration_days', 'qr_image_path', 'description',
+                'is_active', 'sort_order', 'created_at', 'updated_at', 'deleted_at',
             ],
             'reading_states' => [
                 'id', 'user_id', 'book_edition_id', 'last_page', 'updated_at',

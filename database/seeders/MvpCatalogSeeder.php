@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Book;
 use App\Models\BookEdition;
+use App\Models\SubscriptionPlan;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -62,5 +63,28 @@ class MvpCatalogSeeder extends Seeder
             ->where('id', '!=', $edition->id)
             ->where('is_current', true)
             ->update(['is_current' => false]);
+
+        // Planes base iniciales para suscripción P2P
+        SubscriptionPlan::updateOrCreate(
+            ['name' => 'Plan Semestral'],
+            [
+                'price' => 120.00,
+                'duration_days' => 180,
+                'description' => 'Acceso completo al catálogo y lector protegido por 6 meses.',
+                'is_active' => true,
+                'sort_order' => 1,
+            ]
+        );
+
+        SubscriptionPlan::updateOrCreate(
+            ['name' => 'Plan Anual Completo'],
+            [
+                'price' => 200.00,
+                'duration_days' => 365,
+                'description' => 'Membresía total por un año completo con todas las actualizaciones.',
+                'is_active' => true,
+                'sort_order' => 2,
+            ]
+        );
     }
 }

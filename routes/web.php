@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BookController;
+use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +44,20 @@ Route::middleware(['auth', 'verified', 'permission:manage-users'])
         Route::delete('/ediciones/{edition}/paginas', [BookController::class, 'purgePages'])->middleware('throttle:30,1')->name('books.editions.purge-pages');
         Route::delete('/ediciones/{edition}', [BookController::class, 'destroyEdition'])->middleware('throttle:30,1')->name('books.editions.destroy');
         Route::get('/ediciones/{edition}/paginas/{page}', [BookController::class, 'previewPage'])->whereNumber('page')->middleware('throttle:120,1')->name('books.editions.preview-page');
+
+        // Gestión de Suscripciones, Planes de Acceso y Solicitudes de Pago
+        Route::get('/suscripciones', [SubscriptionAdminController::class, 'index'])->name('subscriptions.index');
+        Route::post('/suscripciones/planes', [SubscriptionAdminController::class, 'storePlan'])->middleware('throttle:30,1')->name('subscriptions.plans.store');
+        Route::post('/suscripciones/planes/{id}', [SubscriptionAdminController::class, 'updatePlan'])->whereNumber('id')->middleware('throttle:30,1')->name('subscriptions.plans.update');
+        Route::delete('/suscripciones/planes/{plan}', [SubscriptionAdminController::class, 'destroyPlan'])->middleware('throttle:30,1')->name('subscriptions.plans.destroy');
+        Route::post('/suscripciones/planes/{id}/restaurar', [SubscriptionAdminController::class, 'restorePlan'])->whereNumber('id')->middleware('throttle:30,1')->name('subscriptions.plans.restore');
+
+        Route::post('/suscripciones/solicitudes/{paymentRequest}/aprobar', [SubscriptionAdminController::class, 'approvePaymentRequest'])->middleware('throttle:30,1')->name('subscriptions.requests.approve');
+        Route::post('/suscripciones/solicitudes/{paymentRequest}/rechazar', [SubscriptionAdminController::class, 'rejectPaymentRequest'])->middleware('throttle:30,1')->name('subscriptions.requests.reject');
+        Route::get('/suscripciones/solicitudes/{paymentRequest}/comprobante', [SubscriptionAdminController::class, 'previewProof'])->middleware('throttle:60,1')->name('subscriptions.requests.proof');
+
+        Route::post('/suscripciones/codigos', [SubscriptionAdminController::class, 'storeAccessCode'])->middleware('throttle:30,1')->name('subscriptions.codes.store');
+        Route::post('/suscripciones/codigos/{accessCode}/revocar', [SubscriptionAdminController::class, 'revokeAccessCode'])->middleware('throttle:30,1')->name('subscriptions.codes.revoke');
     });
 
 require __DIR__.'/auth.php';

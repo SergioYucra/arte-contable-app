@@ -26,6 +26,7 @@ class PaymentRequest extends Model
      */
     protected $fillable = [
         'user_id',
+        'subscription_plan_id',
         'amount',
         'reference_text',
         'proof_vault_path',
@@ -46,6 +47,14 @@ class PaymentRequest extends Model
             'amount' => 'decimal:2',
             'reviewed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Plan de suscripción seleccionado para esta solicitud.
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
 
     /**
@@ -84,6 +93,7 @@ class PaymentRequest extends Model
             ->useLogName('payment_requests')
             ->logOnly([
                 'user_id',
+                'subscription_plan_id',
                 'amount',
                 'reference_text',
                 'proof_vault_path',

@@ -21,6 +21,7 @@ class AccessCode extends Model
     protected $fillable = [
         'code',
         'reference',
+        'subscription_plan_id',
         'duration_days',
         'redeemed_by',
         'redeemed_at',
@@ -43,18 +44,32 @@ class AccessCode extends Model
     }
 
     /**
-     * Genera un código criptográficamente seguro (CSPRNG) de hasta 32 caracteres
-     * cuando no se especifica uno explícitamente al crear el registro.
+     * Genera un código criptográficamente seguro (CSPRNG) con formato legible
+     * sin caracteres confusos (omitiendo 0, O, 1, I).
      */
+    public static function generateSecureCode(): string
+    {
+        $alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $alphaLength = strlen($alphabet);
+
+        do {
+            $part1 = '';
+            $part2 = '';
+            for ($i = 0; $i < 4; $i++) {
+                $part1 .= $alphabet[random_int(0, $alphaLength - 1)];
+                $part2 .= $alphabet[random_int(0, $alphaLength - 1)];
+            }
+            $candidate = "AC-{$part1}-{$part2}";
+        } while (static::where('code', $candidate)->exists());
+
+        return $candidate;
+    }
+
     protected static function booted(): void
     {
         static::creating(function (AccessCode $accessCode): void {
             if (blank($accessCode->code)) {
-                do {
-                    $candidate = 'AC-'.strtoupper(bin2hex(random_bytes(8)));
-                } while (static::where('code', $candidate)->exists());
-
-                $accessCode->code = $candidate;
+                $accessCode->code = static::generateSecureCode();
             }
         });
     }
@@ -65,6 +80,14 @@ class AccessCode extends Model
     public function isAvailable(): bool
     {
         return $this->redeemed_at === null && $this->revoked_at === null;
+    }
+
+    /**
+     * Plan de suscripción asociado a este código prepago (si aplica).
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
 
     /**
@@ -101,6 +124,7 @@ class AccessCode extends Model
             ->logOnly([
                 'code',
                 'reference',
+                'subscription_plan_id',
                 'duration_days',
                 'redeemed_by',
                 'redeemed_at',
