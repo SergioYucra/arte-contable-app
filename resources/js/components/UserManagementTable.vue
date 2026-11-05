@@ -27,6 +27,11 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    // H7: niveles que el operador puede asignar (UserPolicy). availableRoles sigue alimentando los filtros.
+    assignableRoles: {
+        type: Array,
+        required: true,
+    },
     updateRoleUrlTemplate: {
         type: String,
         required: true,
@@ -152,7 +157,7 @@ const ROLE_LABELS = {
 
 const ROLE_DESCRIPTIONS = {
     SuperAdmin: 'Acceso total y configuración del sistema',
-    Admin: 'Gestión de usuarios y revisión de actividad',
+    Admin: 'Gestión de cuentas de Coordinadores y Estudiantes',
     Manager: 'Acceso a reportes y seguimiento',
     User: 'Acceso de estudio sin permisos de gestión',
 };
@@ -176,8 +181,18 @@ function isLastSuperAdmin(user) {
 
 const activeUserIsLastSuperAdmin = computed(() => isLastSuperAdmin(activeUser.value));
 
+function canAssignRole(role) {
+    return props.assignableRoles.includes(role);
+}
+
+// H7: el modal ofrece solo los niveles asignables. El nivel actual se muestra aunque no lo sea
+// (un Administrador editando su propia fila), deshabilitado, para que se vea de dónde parte.
+const roleOptions = computed(() =>
+    props.availableRoles.filter((role) => canAssignRole(role) || role === activeUser.value?.role)
+);
+
 function isRoleOptionDisabled(role) {
-    return activeUserIsLastSuperAdmin.value && role !== 'SuperAdmin';
+    return !canAssignRole(role) || (activeUserIsLastSuperAdmin.value && role !== 'SuperAdmin');
 }
 
 // Motivo visible cuando una fila no admite acciones (H7: la policy reserva los Administradores al SuperAdmin)
@@ -703,6 +718,9 @@ async function handleResendVerification(user) {
                 <BaseAlert v-else-if="activeUser.is_self" type="warning" title="Es tu propia cuenta">
                     Estás cambiando tu propio nivel de acceso. Si eliges un nivel sin permisos de gestión,
                     perderás el acceso a este panel.
+                    <template v-if="!canAssignRole(activeUser.role)">
+                        Solo un Superadministrador podrá devolverte el nivel {{ roleLabel(activeUser.role) }}.
+                    </template>
                 </BaseAlert>
 
                 <BaseAlert v-if="modalError" type="error" title="Operación no permitida">
@@ -711,7 +729,7 @@ async function handleResendVerification(user) {
 
                 <div class="space-y-2">
                     <label
-                        v-for="role in availableRoles"
+                        v-for="role in roleOptions"
                         :key="role"
                         class="flex items-center gap-3 p-3 rounded-brand border transition-all"
                         :class="[
@@ -733,6 +751,9 @@ async function handleResendVerification(user) {
                         <div>
                             <span class="block text-sm font-semibold text-foreground">{{ roleLabel(role) }}</span>
                             <span class="block text-xs text-muted">{{ ROLE_DESCRIPTIONS[role] || '' }}</span>
+                            <span v-if="!canAssignRole(role)" class="block text-[11px] text-muted italic">
+                                Nivel actual. Solo un Superadministrador puede asignarlo.
+                            </span>
                         </div>
                     </label>
                 </div>

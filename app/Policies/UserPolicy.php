@@ -21,6 +21,14 @@ class UserPolicy
     private const ADMIN_HIERARCHY_MESSAGE = 'Operación denegada: Solo un Superadministrador puede modificar, desactivar o reactivar a otro Administrador.';
 
     /**
+     * H7: niveles que solo un SuperAdmin puede asignar. Incluye Admin para que la regla sea simétrica:
+     * quien no puede quitarle el nivel a otro Administrador tampoco puede crearlo.
+     *
+     * @var list<string>
+     */
+    public const SUPERADMIN_ONLY_ROLES = ['SuperAdmin', 'Admin'];
+
+    /**
      * Determina si el usuario puede ver el listado de usuarios.
      */
     public function viewAny(User $user): bool
@@ -48,7 +56,7 @@ class UserPolicy
     /**
      * Cambio de nivel de acceso.
      * S3: impide la escalada a SuperAdmin y degradar al último SuperAdmin activo.
-     * H7: solo un SuperAdmin modifica a otro Administrador.
+     * H7: solo un SuperAdmin asigna los niveles Administrador y Superadministrador, y modifica a otro Administrador.
      */
     public function updateRole(User $currentUser, User $targetUser, ?string $newRole = null): Response
     {
@@ -60,8 +68,8 @@ class UserPolicy
 
         $isSuperAdmin = $currentUser->hasRole('SuperAdmin');
 
-        if ($newRole === 'SuperAdmin' && ! $isSuperAdmin) {
-            return Response::deny('Operación denegada: Solo un Superadministrador puede promover cuentas al nivel de Superadministrador.');
+        if (! $isSuperAdmin && in_array($newRole, self::SUPERADMIN_ONLY_ROLES, true)) {
+            return Response::deny('Operación denegada: Solo un Superadministrador puede asignar los niveles de Administrador y Superadministrador.');
         }
 
         if (! $isSuperAdmin && $this->isAnotherAdmin($currentUser, $targetUser)) {

@@ -55,6 +55,8 @@ return [
      * (migración 2026_11_05_000001). Activados por defecto. Ponerlo en false solo
      * si el hosting no permite crear triggers: la protección queda entonces en el
      * modelo y en los privilegios del usuario de BD. Se lee al correr la migración.
+     * Sin triggers, DB::table('activity_log') puede borrar o modificar filas desde
+     * código (y en MySQL TRUNCATE nunca dispara triggers): lo compensan los backups (H12).
      */
     'database_triggers' => (bool) env('ACTIVITY_LOG_DB_TRIGGERS', true),
 ];

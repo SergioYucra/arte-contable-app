@@ -65,6 +65,8 @@ return [
     |
     | B8: en el .env va la zona del negocio (APP_TIMEZONE=America/La_Paz) para
     | que las fechas del panel no se muestren adelantadas.
+    | Laravel guarda las fechas en esta zona y sin desfase: no cambiarla una vez
+    | que haya datos en producción, porque las filas anteriores quedarían corridas.
     |
     */
 

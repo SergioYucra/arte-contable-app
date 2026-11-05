@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -78,9 +80,16 @@ class UserController extends Controller
         }
         $availableRoles = $availableRolesQuery->pluck('name')->values()->all();
 
+        // H7: el modal solo ofrece los niveles que UserPolicy::updateRole() permite asignar.
+        // availableRoles se mantiene completo porque alimenta los filtros de la tabla.
+        $assignableRoles = $isSuperAdmin
+            ? $availableRoles
+            : array_values(array_diff($availableRoles, UserPolicy::SUPERADMIN_ONLY_ROLES));
+
         return view('admin.users.index', [
             'users' => $users,
             'availableRoles' => $availableRoles,
+            'assignableRoles' => $assignableRoles,
             'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
@@ -188,7 +197,7 @@ class UserController extends Controller
 
     /**
      * Reenvía la notificación de verificación de correo electrónico para un usuario no verificado.
-     * N9: máximo 3 reenvíos por hora por usuario destino. Registra el reenvío (y los bloqueos) en la bitácora.
+     * N9: máximo 3 reenvíos por hora por usuario destino. Registra cada reenvío y el primer bloqueo de cada ventana.
      */
     public function resendVerification(Request $request, User $user): JsonResponse
     {
@@ -205,13 +214,18 @@ class UserController extends Controller
         $throttleKey = 'resend-verification:'.$user->id;
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::RESEND_VERIFICATION_MAX_ATTEMPTS)) {
-            $minutes = max(1, (int) ceil(RateLimiter::availableIn($throttleKey) / 60));
+            $secondsLeft = max(1, RateLimiter::availableIn($throttleKey));
+            $minutes = (int) ceil($secondsLeft / 60);
 
-            activity('security')
-                ->causedBy($currentUser)
-                ->performedOn($user)
-                ->withProperties(['email' => $user->email, 'ip' => $request->ip()])
-                ->log("Reenvío de verificación a '{$user->email}' bloqueado por exceder el límite (máximo ".self::RESEND_VERIFICATION_MAX_ATTEMPTS.' por hora).');
+            // La bitácora es inmutable y no se depura: solo se registra el primer bloqueo de la ventana,
+            // así repetir el clic no la llena de filas iguales.
+            if (Cache::add($throttleKey.':blocked-logged', true, $secondsLeft)) {
+                activity('security')
+                    ->causedBy($currentUser)
+                    ->performedOn($user)
+                    ->withProperties(['email' => $user->email, 'ip' => $request->ip()])
+                    ->log("Reenvío de verificación a '{$user->email}' bloqueado por exceder el límite (máximo ".self::RESEND_VERIFICATION_MAX_ATTEMPTS.' por hora).');
+            }
 
             return response()->json([
                 'message' => 'Se alcanzó el límite de '.self::RESEND_VERIFICATION_MAX_ATTEMPTS." reenvíos por hora para {$user->email}. Intenta de nuevo en {$minutes} minutos.",

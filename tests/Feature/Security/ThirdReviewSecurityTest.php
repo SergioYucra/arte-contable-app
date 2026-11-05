@@ -115,6 +115,12 @@ class ThirdReviewSecurityTest extends TestCase
 
         // Fuera de la gestión de usuarios, el SuperAdmin conserva el acceso implícito
         $this->assertTrue($superAdmin->can('habilidad-futura-no-sembrada'));
+
+        // ...también en habilidades que reciben un usuario pero que UserPolicy no define
+        $student = $this->makeUser('User');
+        $this->assertTrue($superAdmin->can('habilidad-futura-no-sembrada', $student));
+        $this->assertTrue($superAdmin->can('habilidad-futura-no-sembrada', User::class));
+        $this->assertFalse($this->makeUser('Admin')->can('habilidad-futura-no-sembrada', $student));
     }
 
     /**
@@ -188,8 +194,40 @@ class ThirdReviewSecurityTest extends TestCase
     }
 
     /**
+     * H7 simétrico: quien no puede quitarle el nivel a otro Administrador tampoco puede crearlo.
+     * Solo el SuperAdmin asigna el nivel Administrador, y el modal no se lo ofrece a nadie más.
+     */
+    public function test_only_superadmin_can_assign_admin_level(): void
+    {
+        $superAdmin = User::role('SuperAdmin')->firstOrFail();
+        $admin = $this->makeUser('Admin');
+        $student = $this->makeUser('User');
+
+        $this->actingAs($admin)
+            ->patchJson(route('admin.users.update-role', $student), ['role' => 'Admin'])
+            ->assertForbidden();
+        $this->assertTrue($student->fresh()->hasRole('User'));
+
+        $this->actingAs($superAdmin)
+            ->patchJson(route('admin.users.update-role', $student), ['role' => 'Admin'])
+            ->assertOk();
+        $this->assertTrue($student->fresh()->hasRole('Admin'));
+
+        $adminView = $this->actingAs($admin)->get(route('admin.users.index'))->assertOk();
+        $this->assertEqualsCanonicalizing(['Manager', 'User'], $adminView->viewData('assignableRoles'));
+        $this->assertContains('Admin', $adminView->viewData('availableRoles'));
+
+        $superAdminView = $this->actingAs($superAdmin)->get(route('admin.users.index'))->assertOk();
+        $this->assertEqualsCanonicalizing(
+            ['SuperAdmin', 'Admin', 'Manager', 'User'],
+            $superAdminView->viewData('assignableRoles')
+        );
+    }
+
+    /**
      * N9: "Reenviar verificación" admite 3 envíos por hora por usuario destino; el 4.º responde 429,
-     * no envía correo y queda en la bitácora de seguridad. El límite no afecta a otros usuarios.
+     * no envía correo y queda en la bitácora de seguridad una sola vez por ventana, por más que se
+     * insista. El límite no afecta a otros usuarios.
      */
     public function test_resend_verification_is_rate_limited_per_target_user(): void
     {
@@ -205,19 +243,33 @@ class ThirdReviewSecurityTest extends TestCase
                 ->assertOk();
         }
 
-        $blocked = $this->actingAs($admin)
-            ->postJson(route('admin.users.resend-verification', $pending));
+        // Insistir sigue bloqueado, pero la bitácora (inmutable) recibe una sola fila por ventana
+        for ($i = 1; $i <= 5; $i++) {
+            $blocked = $this->actingAs($admin)
+                ->postJson(route('admin.users.resend-verification', $pending));
 
-        $blocked->assertStatus(429);
-        $this->assertStringContainsString('límite', (string) $blocked->json('message'));
+            $blocked->assertStatus(429);
+            $this->assertStringContainsString('límite', (string) $blocked->json('message'));
+        }
 
         Notification::assertSentToTimes($pending, VerifyEmail::class, UserController::RESEND_VERIFICATION_MAX_ATTEMPTS);
 
-        $this->assertDatabaseHas('activity_log', [
-            'log_name' => 'security',
-            'causer_id' => $admin->id,
-            'subject_id' => $pending->id,
-        ]);
+        $blockedRows = fn () => Activity::query()
+            ->where('log_name', 'security')
+            ->where('causer_id', $admin->id)
+            ->where('subject_id', $pending->id)
+            ->count();
+
+        $this->assertSame(1, $blockedRows());
+
+        // En la ventana siguiente, un nuevo bloqueo vuelve a quedar registrado (una vez)
+        $this->travel(UserController::RESEND_VERIFICATION_DECAY_SECONDS + 60)->seconds();
+
+        for ($i = 1; $i <= UserController::RESEND_VERIFICATION_MAX_ATTEMPTS + 2; $i++) {
+            $this->actingAs($admin)->postJson(route('admin.users.resend-verification', $pending));
+        }
+
+        $this->assertSame(2, $blockedRows());
 
         // La clave es por usuario destino: otra cuenta pendiente no está bloqueada
         $this->actingAs($admin)
