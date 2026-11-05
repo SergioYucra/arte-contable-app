@@ -4,13 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Administración de usuarios y niveles de acceso (Capa Core).
+ *
+ * Las reglas de autorización viven en App\Policies\UserPolicy (N8): aquí solo se autoriza con
+ * Gate::authorize(...) y la policy fija el código HTTP (403 permisos, 404 anti-enumeración, 422 reglas).
+ */
 class UserController extends Controller
 {
     /**
@@ -25,20 +32,15 @@ class UserController extends Controller
         'User' => 'Estudiante',
     ];
 
+    /** N9: reenvíos del correo de verificación permitidos por usuario destino dentro de la ventana. */
+    public const RESEND_VERIFICATION_MAX_ATTEMPTS = 3;
+
+    /** N9: ventana del límite de reenvíos, en segundos (1 hora). */
+    public const RESEND_VERIFICATION_DECAY_SECONDS = 3600;
+
     public static function roleLabel(string $role): string
     {
         return self::ROLE_LABELS[$role] ?? $role;
-    }
-
-    /**
-     * Impide la enumeración por ID de cuentas SuperAdmin ante operadores de menor jerarquía,
-     * lanzando exactamente la misma excepción 404 que un registro inexistente.
-     */
-    private function ensureTargetIsVisible(User $targetUser, bool $isSuperAdmin): void
-    {
-        if (! $isSuperAdmin && $targetUser->hasRole('SuperAdmin')) {
-            throw (new ModelNotFoundException)->setModel(User::class, [$targetUser->id]);
-        }
     }
 
     /**
@@ -48,13 +50,16 @@ class UserController extends Controller
      */
     public function index(Request $request): View
     {
+        Gate::authorize('viewAny', User::class);
+
         $currentUser = $request->user();
-        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
+        $isSuperAdmin = $currentUser->hasRole('SuperAdmin');
 
         $usersQuery = User::withTrashed()
             ->with('roles:id,name')
             ->select('id', 'name', 'email', 'created_at', 'deleted_at', 'email_verified_at');
 
+        // Mismo criterio que UserPolicy::view(): un SuperAdmin no existe para quien no lo es
         if (! $isSuperAdmin) {
             $usersQuery->whereDoesntHave('roles', function ($query): void {
                 $query->where('name', 'SuperAdmin');
@@ -64,18 +69,7 @@ class UserController extends Controller
         $users = $usersQuery
             ->latest('id')
             ->get()
-            ->map(fn (User $user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->roles->first()?->name ?? 'User',
-                'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
-                'deleted_at' => $user->deleted_at?->toISOString(),
-                'is_active' => is_null($user->deleted_at),
-                'email_verified_at' => $user->email_verified_at?->toISOString(),
-                'is_verified' => ! is_null($user->email_verified_at),
-                'can_edit' => $isSuperAdmin || ! $user->hasRole('SuperAdmin'),
-            ]);
+            ->map(fn (User $user) => $this->presentUser($user, $currentUser));
 
         // Si el usuario autenticado NO es SuperAdmin, no debe ver ni poder asignar 'SuperAdmin'
         $availableRolesQuery = Role::query();
@@ -97,101 +91,44 @@ class UserController extends Controller
     public function updateRole(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
-        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
 
-        // Verificar autorización granular
-        if (! $currentUser->can('manage-roles') && ! $currentUser->can('manage-users')) {
-            return response()->json([
-                'message' => 'No tienes permisos suficientes para modificar niveles de acceso.',
-            ], 403);
-        }
-
-        // Ocultar existencia de cuentas SuperAdmin (404 idéntico a inexistente)
-        $this->ensureTargetIsVisible($user, $isSuperAdmin);
+        // El 404 anti-enumeración se decide ANTES de validar: un payload inválido contra un
+        // SuperAdmin no debe responder 422 y delatar que la cuenta existe.
+        Gate::authorize('view', $user);
 
         $validated = $request->validate([
             'role' => ['required', 'string', 'exists:roles,name'],
         ]);
 
         $newRole = $validated['role'];
-        $newRoleLabel = self::roleLabel($newRole);
 
-        // 1. Blindaje contra Escalada de Privilegios: Solo SuperAdmin puede asignar el rol SuperAdmin
-        if ($newRole === 'SuperAdmin' && ! $isSuperAdmin) {
-            return response()->json([
-                'message' => 'Operación denegada: Solo un Superadministrador puede promover cuentas al nivel de Superadministrador.',
-            ], 403);
-        }
-
-        // 3. Regla de Negocio S3: Evitar dejar el sistema sin ningún SuperAdmin
-        if ($user->hasRole('SuperAdmin') && $newRole !== 'SuperAdmin') {
-            $otherSuperAdminsCount = User::role('SuperAdmin')
-                ->where('id', '!=', $user->id)
-                ->count();
-
-            if ($otherSuperAdminsCount === 0) {
-                return response()->json([
-                    'message' => 'Operación denegada: No es posible quitar el nivel de acceso al único Superadministrador activo.',
-                ], 422);
-            }
-        }
+        Gate::authorize('updateRole', [$user, $newRole]);
 
         $previousRole = $user->roles->first()?->name ?? 'Ninguno';
         $user->syncRoles([$newRole]);
+        $user->load('roles:id,name');
 
         activity('users')
-            ->causedBy($request->user())
+            ->causedBy($currentUser)
             ->performedOn($user)
             ->withProperties(['old_role' => $previousRole, 'new_role' => $newRole])
             ->log("Rol de usuario modificado a '{$newRole}'");
 
         return response()->json([
             'success' => true,
-            'message' => "El nivel de acceso de {$user->name} se actualizó a {$newRoleLabel}.",
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $newRole,
-            ],
+            'message' => "El nivel de acceso de {$user->name} se actualizó a ".self::roleLabel($newRole).'.',
+            'user' => $this->presentUser($user, $currentUser),
         ]);
     }
 
     /**
-     * Desactiva (SoftDelete) un usuario del sistema, revocando todas sus sesiones activas
-     * y protegiendo al último SuperAdmin.
+     * Desactiva (SoftDelete) un usuario del sistema, revocando todas sus sesiones activas.
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
-        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
 
-        if (! $currentUser->can('manage-users')) {
-            return response()->json([
-                'message' => 'No tienes permisos suficientes para desactivar cuentas de usuario.',
-            ], 403);
-        }
-
-        // Ocultar existencia de cuentas SuperAdmin (404 idéntico a inexistente)
-        $this->ensureTargetIsVisible($user, $isSuperAdmin);
-
-        if ($user->id === $currentUser->id) {
-            return response()->json([
-                'message' => 'Operación denegada: No puedes desactivar tu propia cuenta desde el panel de administración.',
-            ], 422);
-        }
-
-        if ($user->hasRole('SuperAdmin')) {
-            $otherSuperAdminsCount = User::role('SuperAdmin')
-                ->where('id', '!=', $user->id)
-                ->count();
-
-            if ($otherSuperAdminsCount === 0) {
-                return response()->json([
-                    'message' => 'Operación denegada: No es posible desactivar al único Superadministrador del sistema.',
-                ], 422);
-            }
-        }
+        Gate::authorize('delete', $user);
 
         $userName = $user->name;
         $userEmail = $user->email;
@@ -218,18 +155,7 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => "La cuenta de {$userName} fue desactivada y sus sesiones activas fueron cerradas.",
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->roles->first()?->name ?? 'User',
-                'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
-                'deleted_at' => now()->toISOString(),
-                'is_active' => false,
-                'email_verified_at' => $user->email_verified_at?->toISOString(),
-                'is_verified' => ! is_null($user->email_verified_at),
-                'can_edit' => $isSuperAdmin || ! $user->hasRole('SuperAdmin'),
-            ],
+            'user' => $this->presentUser($user, $currentUser),
         ]);
     }
 
@@ -240,17 +166,10 @@ class UserController extends Controller
     public function restore(Request $request, int|string $id): JsonResponse
     {
         $currentUser = $request->user();
-        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
-
-        if (! $currentUser->can('manage-users')) {
-            return response()->json([
-                'message' => 'No tienes permisos suficientes para reactivar usuarios.',
-            ], 403);
-        }
 
         $user = User::onlyTrashed()->with('roles:id,name')->findOrFail($id);
 
-        $this->ensureTargetIsVisible($user, $isSuperAdmin);
+        Gate::authorize('restore', $user);
 
         $user->restore();
 
@@ -263,43 +182,43 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => "La cuenta de {$user->name} fue reactivada correctamente.",
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->roles->first()?->name ?? 'User',
-                'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
-                'deleted_at' => null,
-                'is_active' => true,
-                'email_verified_at' => $user->email_verified_at?->toISOString(),
-                'is_verified' => ! is_null($user->email_verified_at),
-                'can_edit' => $isSuperAdmin || ! $user->hasRole('SuperAdmin'),
-            ],
+            'user' => $this->presentUser($user, $currentUser),
         ]);
     }
 
     /**
      * Reenvía la notificación de verificación de correo electrónico para un usuario no verificado.
-     * Registra el reenvío en la bitácora de auditoría.
+     * N9: máximo 3 reenvíos por hora por usuario destino. Registra el reenvío (y los bloqueos) en la bitácora.
      */
     public function resendVerification(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
-        $isSuperAdmin = $currentUser?->hasRole('SuperAdmin') ?? false;
 
-        if (! $currentUser->can('manage-users')) {
-            return response()->json([
-                'message' => 'No tienes permisos suficientes para reenviar correos de verificación.',
-            ], 403);
-        }
-
-        $this->ensureTargetIsVisible($user, $isSuperAdmin);
+        Gate::authorize('resendVerification', $user);
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([
                 'message' => "La cuenta de {$user->name} ya se encuentra verificada.",
             ], 422);
         }
+
+        $throttleKey = 'resend-verification:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($throttleKey, self::RESEND_VERIFICATION_MAX_ATTEMPTS)) {
+            $minutes = max(1, (int) ceil(RateLimiter::availableIn($throttleKey) / 60));
+
+            activity('security')
+                ->causedBy($currentUser)
+                ->performedOn($user)
+                ->withProperties(['email' => $user->email, 'ip' => $request->ip()])
+                ->log("Reenvío de verificación a '{$user->email}' bloqueado por exceder el límite (máximo ".self::RESEND_VERIFICATION_MAX_ATTEMPTS.' por hora).');
+
+            return response()->json([
+                'message' => 'Se alcanzó el límite de '.self::RESEND_VERIFICATION_MAX_ATTEMPTS." reenvíos por hora para {$user->email}. Intenta de nuevo en {$minutes} minutos.",
+            ], 429);
+        }
+
+        RateLimiter::hit($throttleKey, self::RESEND_VERIFICATION_DECAY_SECONDS);
 
         $user->sendEmailVerificationNotification();
 
@@ -313,5 +232,30 @@ class UserController extends Controller
             'success' => true,
             'message' => "Se ha reenviado el enlace de verificación a {$user->email}.",
         ]);
+    }
+
+    /**
+     * Representación de un usuario para la isla Vue.
+     *
+     * `can_edit` sale de UserPolicy (N8/H7) para que la interfaz nunca ofrezca una acción que el
+     * servidor rechazaría; `is_self` marca la fila del operador conectado (UX-09).
+     *
+     * @return array<string, mixed>
+     */
+    private function presentUser(User $user, User $currentUser): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->roles->first()?->name ?? 'User',
+            'created_at' => $user->created_at?->format('d/m/Y H:i') ?? '',
+            'deleted_at' => $user->deleted_at?->toISOString(),
+            'is_active' => is_null($user->deleted_at),
+            'email_verified_at' => $user->email_verified_at?->toISOString(),
+            'is_verified' => ! is_null($user->email_verified_at),
+            'is_self' => $user->id === $currentUser->id,
+            'can_edit' => Gate::forUser($currentUser)->allows('updateRole', $user),
+        ];
     }
 }

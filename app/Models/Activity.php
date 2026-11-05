@@ -2,15 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Builders\ImmutableActivityQueryBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Spatie\Activitylog\Models\Activity as SpatieActivity;
 
+/**
+ * Bitácora de auditoría inmutable (S4), blindada en tres capas:
+ *
+ *  1. Modelo: los eventos updating/deleting, los métodos delete()/forceDelete() de instancia
+ *     (que atrapan también deleteQuietly()/forceDeleteQuietly(), que no disparan eventos)
+ *     y truncate() estático.
+ *  2. Query Builder base: ImmutableActivityQueryBuilder bloquea delete/update/truncate/upsert en
+ *     cualquier consulta que nazca del modelo (query(), getQuery(), toBase(), increment(), ...).
+ *  3. Base de datos: triggers BEFORE DELETE / BEFORE UPDATE sobre la tabla
+ *     (migración 2026_11_05_000001), que cubren DB::table(...) y el SQL directo.
+ */
 class Activity extends SpatieActivity
 {
-    /**
-     * Blindaje de inmutabilidad (S4):
-     * Impide cualquier modificación, eliminación directa o truncado masivo de los registros de auditoría.
-     */
     protected static function booted(): void
     {
         parent::booted();
@@ -49,20 +57,16 @@ class Activity extends SpatieActivity
     }
 
     /**
-     * Bloquea eliminaciones masivas y actualizaciones directas a nivel de Query Builder.
+     * Toda consulta del modelo usa el builder base inmutable (capa 2).
      */
-    public function newEloquentBuilder($query): Builder
+    protected function newBaseQueryBuilder(): QueryBuilder
     {
-        return new class($query) extends Builder {
-            public function delete()
-            {
-                throw new \LogicException('Los registros de auditoría son inmutables y no pueden eliminarse masivamente.');
-            }
+        $connection = $this->getConnection();
 
-            public function update(array $values)
-            {
-                throw new \LogicException('Los registros de auditoría son inmutables y no pueden modificarse masivamente.');
-            }
-        };
+        return new ImmutableActivityQueryBuilder(
+            $connection,
+            $connection->getQueryGrammar(),
+            $connection->getPostProcessor()
+        );
     }
 }

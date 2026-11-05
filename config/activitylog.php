@@ -49,4 +49,12 @@ return [
      * Laravel's database.default will be used instead.
      */
     'database_connection' => env('ACTIVITY_LOGGER_DB_CONNECTION'),
+
+    /*
+     * S4: triggers de base de datos que impiden borrar o modificar la bitácora
+     * (migración 2026_11_05_000001). Activados por defecto. Ponerlo en false solo
+     * si el hosting no permite crear triggers: la protección queda entonces en el
+     * modelo y en los privilegios del usuario de BD. Se lee al correr la migración.
+     */
+    'database_triggers' => (bool) env('ACTIVITY_LOG_DB_TRIGGERS', true),
 ];

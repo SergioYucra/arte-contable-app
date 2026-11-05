@@ -199,5 +199,30 @@ class SecondReviewSecurityTest extends TestCase
         } catch (\LogicException $e) {
             $this->assertStringContainsString('inmutables', $e->getMessage());
         }
+
+        // Tercera revisión (S4): vías que antes borraban o alteraban la bitácora completa
+        $bypasses = [
+            'query()->forceDelete()' => fn () => Activity::query()->forceDelete(),
+            'query()->truncate()' => fn () => Activity::query()->truncate(),
+            'getQuery()->delete()' => fn () => Activity::query()->getQuery()->delete(),
+            'toBase()->update()' => fn () => Activity::query()->toBase()->update(['description' => 'Alterada']),
+            'query()->increment()' => fn () => Activity::query()->increment('id'),
+            'upsert()' => fn () => Activity::upsert(
+                [['id' => 1, 'log_name' => 'test', 'description' => 'Alterada']],
+                ['id'],
+                ['description']
+            ),
+        ];
+
+        foreach ($bypasses as $label => $bypass) {
+            try {
+                $bypass();
+                $this->fail("Activity {$label} should have thrown a LogicException");
+            } catch (\LogicException $e) {
+                $this->assertStringContainsString('inmutables', $e->getMessage());
+            }
+        }
+
+        $this->assertDatabaseHas('activity_log', ['log_name' => 'test', 'description' => 'Test entry']);
     }
 }

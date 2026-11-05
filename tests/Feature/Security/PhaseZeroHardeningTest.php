@@ -185,6 +185,10 @@ class PhaseZeroHardeningTest extends TestCase
         $landingResponse = $this->get('/');
         $landingResponse->assertOk();
         $landingResponse->assertDontSeeText('Panel de Control');
+        // N4: la portada no promete funciones que todavía no existen
+        $landingResponse->assertDontSeeText('100% Interactivo');
+        $landingResponse->assertDontSeeText('Ejercicios Paso a Paso');
+        $landingResponse->assertDontSeeText('ejercicios prácticos');
         $this->assertSame(1, substr_count($landingResponse->getContent(), '<title>'));
         $this->assertStringNotContainsString('noindex', $landingResponse->getContent());
 

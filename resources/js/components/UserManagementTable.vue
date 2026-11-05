@@ -161,6 +161,41 @@ function roleLabel(role) {
     return ROLE_LABELS[role] || role;
 }
 
+// -------------------------------------------------------------
+// UX-08: prevención del error "único Superadministrador activo".
+// Los operadores que no son SuperAdmin nunca reciben cuentas SuperAdmin, así que el conteo
+// en cliente solo aplica a quien sí puede verlas. El servidor (UserPolicy) sigue siendo la última palabra.
+// -------------------------------------------------------------
+const activeSuperAdminCount = computed(
+    () => users.value.filter((u) => !u.deleted_at && u.role === 'SuperAdmin').length
+);
+
+function isLastSuperAdmin(user) {
+    return !!user && !user.deleted_at && user.role === 'SuperAdmin' && activeSuperAdminCount.value === 1;
+}
+
+const activeUserIsLastSuperAdmin = computed(() => isLastSuperAdmin(activeUser.value));
+
+function isRoleOptionDisabled(role) {
+    return activeUserIsLastSuperAdmin.value && role !== 'SuperAdmin';
+}
+
+// Motivo visible cuando una fila no admite acciones (H7: la policy reserva los Administradores al SuperAdmin)
+function protectedReason(user) {
+    return user.role === 'Admin'
+        ? 'Solo un Superadministrador puede gestionar a otro Administrador'
+        : 'Cuenta protegida';
+}
+
+// Sincroniza la fila con la representación que devuelve el servidor (rol, can_edit, estado)
+function applyServerUser(userId, serverUser, fallback) {
+    const userIndex = users.value.findIndex((u) => u.id === userId);
+    if (userIndex === -1) return;
+
+    Object.assign(users.value[userIndex], serverUser ?? fallback);
+    setupFuse();
+}
+
 function getRoleBadgeClass(role) {
     switch (role) {
         case 'SuperAdmin':
@@ -200,12 +235,7 @@ async function saveRoleChange() {
             role: targetRole.value,
         });
 
-        const userIndex = users.value.findIndex((u) => u.id === activeUser.value.id);
-        if (userIndex !== -1) {
-            users.value[userIndex].role = targetRole.value;
-        }
-
-        setupFuse();
+        applyServerUser(activeUser.value.id, response.data.user, { role: targetRole.value });
 
         notification.value = {
             type: 'success',
@@ -241,13 +271,10 @@ async function executeDeactivateUser() {
     try {
         const response = await window.axios.delete(url);
 
-        const userIndex = users.value.findIndex((u) => u.id === userToDeactivate.value.id);
-        if (userIndex !== -1) {
-            users.value[userIndex].deleted_at = new Date().toISOString();
-            users.value[userIndex].is_active = false;
-        }
-
-        setupFuse();
+        applyServerUser(userToDeactivate.value.id, response.data.user, {
+            deleted_at: new Date().toISOString(),
+            is_active: false,
+        });
 
         notification.value = {
             type: 'success',
@@ -283,13 +310,10 @@ async function executeRestoreUser() {
     try {
         const response = await window.axios.post(url);
 
-        const userIndex = users.value.findIndex((u) => u.id === userToRestore.value.id);
-        if (userIndex !== -1) {
-            users.value[userIndex].deleted_at = null;
-            users.value[userIndex].is_active = true;
-        }
-
-        setupFuse();
+        applyServerUser(userToRestore.value.id, response.data.user, {
+            deleted_at: null,
+            is_active: true,
+        });
 
         notification.value = {
             type: 'success',
@@ -455,11 +479,15 @@ async function handleResendVerification(user) {
             </span>
         </div>
 
-        <!-- Tabla interactiva con contenedor overflow-x-auto estricto para 390px (UX-07) -->
+        <!--
+            Tabla interactiva (UX-07): debajo de `sm` cada fila se presenta como tarjeta apilada
+            (thead oculto, celdas en bloque con su etiqueta) para que acciones y verificación queden
+            siempre a la vista a 390 px. Desde `sm` vuelve a ser una tabla con scroll horizontal.
+        -->
         <div class="bg-surface border border-border rounded-brand shadow-xs overflow-hidden">
             <div class="w-full overflow-x-auto">
-                <table class="min-w-[720px] w-full text-left text-sm divide-y divide-border">
-                    <thead class="bg-background text-xs uppercase font-semibold text-muted tracking-wider">
+                <table class="block sm:table w-full sm:min-w-[720px] text-left text-sm sm:divide-y sm:divide-border">
+                    <thead class="hidden sm:table-header-group bg-background text-xs uppercase font-semibold text-muted tracking-wider">
                         <tr>
                             <th class="px-5 py-3.5">Usuario</th>
                             <th class="px-5 py-3.5">Nivel de acceso</th>
@@ -468,15 +496,15 @@ async function handleResendVerification(user) {
                             <th class="px-5 py-3.5 text-right">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-border bg-surface">
+                    <tbody class="block sm:table-row-group divide-y divide-border bg-surface">
                         <tr
                             v-for="user in filteredUsers"
                             :key="user.id"
-                            class="hover:bg-background/60 transition-colors"
+                            class="block sm:table-row p-4 sm:p-0 space-y-3 sm:space-y-0 hover:bg-background/60 transition-colors"
                             :class="{ 'opacity-65 bg-background/30': !!user.deleted_at }"
                         >
                             <!-- Columna Usuario -->
-                            <td class="px-5 py-4">
+                            <td class="block sm:table-cell sm:px-5 sm:py-4">
                                 <div class="flex items-center gap-3">
                                     <div
                                         class="h-9 w-9 shrink-0 rounded-full flex items-center justify-center font-semibold text-sm border"
@@ -489,6 +517,8 @@ async function handleResendVerification(user) {
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
                                             <span class="font-medium text-foreground truncate">{{ user.name }}</span>
+                                            <!-- UX-09: la fila del operador conectado se distingue -->
+                                            <span v-if="user.is_self" class="shrink-0 text-xs font-medium text-muted">(tú)</span>
                                             <span
                                                 v-if="user.deleted_at"
                                                 class="px-2 py-0.2 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
@@ -502,7 +532,8 @@ async function handleResendVerification(user) {
                             </td>
 
                             <!-- Columna Rol Actual -->
-                            <td class="px-5 py-4 whitespace-nowrap">
+                            <td class="flex sm:table-cell items-center justify-between gap-3 sm:px-5 sm:py-4 sm:whitespace-nowrap">
+                                <span class="sm:hidden text-[10px] font-semibold uppercase tracking-wider text-muted">Nivel de acceso</span>
                                 <span
                                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
                                     :class="getRoleBadgeClass(user.role)"
@@ -513,7 +544,8 @@ async function handleResendVerification(user) {
                             </td>
 
                             <!-- Columna Estado de Verificación (N6) -->
-                            <td class="px-5 py-4 whitespace-nowrap">
+                            <td class="flex sm:table-cell items-center justify-between gap-3 sm:px-5 sm:py-4 sm:whitespace-nowrap">
+                                <span class="sm:hidden text-[10px] font-semibold uppercase tracking-wider text-muted">Verificación</span>
                                 <div class="flex items-center gap-2">
                                     <span
                                         v-if="user.email_verified_at"
@@ -543,42 +575,55 @@ async function handleResendVerification(user) {
                                 </div>
                             </td>
 
-                            <!-- Columna Fecha -->
-                            <td class="px-5 py-4 text-xs text-muted whitespace-nowrap hidden lg:table-cell">
+                            <!-- Columna Fecha: visible en la tarjeta móvil y en la tabla desde `lg` -->
+                            <td class="flex sm:hidden lg:table-cell items-center justify-between gap-3 text-xs text-muted lg:px-5 lg:py-4 lg:whitespace-nowrap">
+                                <span class="sm:hidden text-[10px] font-semibold uppercase tracking-wider text-muted">Registrado</span>
                                 {{ user.created_at }}
                             </td>
 
-                            <!-- Columna Acciones (UX-05, UX-07) -->
-                            <td class="px-5 py-4 text-right whitespace-nowrap">
-                                <div class="flex items-center justify-end gap-1.5">
+                            <!-- Columna Acciones (UX-05, UX-07, UX-08, UX-09). can_edit sale de UserPolicy. -->
+                            <td class="block sm:table-cell pt-1 sm:px-5 sm:py-4 sm:text-right sm:whitespace-nowrap">
+                                <div class="flex flex-wrap items-center justify-start sm:justify-end gap-1.5">
                                     <!-- Si el usuario está activo -->
                                     <template v-if="!user.deleted_at">
-                                        <button
-                                            v-if="user.can_edit !== false"
-                                            type="button"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-brand text-xs font-medium bg-surface border border-border text-foreground hover:bg-background hover:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
-                                            @click="openRoleModal(user)"
-                                            title="Modificar rol y nivel de acceso"
-                                        >
-                                            <Shield class="h-3.5 w-3.5 text-primary" />
-                                            Nivel
-                                        </button>
+                                        <template v-if="user.can_edit !== false">
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-brand text-xs font-medium bg-surface border border-border text-foreground hover:bg-background hover:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                                                @click="openRoleModal(user)"
+                                                title="Modificar rol y nivel de acceso"
+                                            >
+                                                <Shield class="h-3.5 w-3.5 text-primary" />
+                                                Nivel
+                                            </button>
 
-                                        <button
-                                            v-if="user.can_edit !== false"
-                                            type="button"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-brand text-xs font-medium bg-surface border border-border text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/40 focus:ring-2 focus:ring-rose-500/20 transition-all"
-                                            @click="confirmDeactivateUser(user)"
-                                            title="Desactivar cuenta del usuario"
-                                        >
-                                            <UserX class="h-3.5 w-3.5" />
-                                            Desactivar
-                                        </button>
+                                            <!-- UX-08: el único SuperAdmin activo no se puede desactivar; se explica en lugar de fallar -->
+                                            <span
+                                                v-if="isLastSuperAdmin(user)"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-brand text-xs text-muted bg-background border border-border/80 cursor-not-allowed"
+                                                title="Único Superadministrador activo: no se puede desactivar"
+                                            >
+                                                <Shield class="h-3 w-3 text-muted/60" />
+                                                Protegido
+                                            </span>
+
+                                            <!-- UX-09: nadie se desactiva a sí mismo desde el panel -->
+                                            <button
+                                                v-else-if="!user.is_self"
+                                                type="button"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-brand text-xs font-medium bg-surface border border-border text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/40 focus:ring-2 focus:ring-rose-500/20 transition-all"
+                                                @click="confirmDeactivateUser(user)"
+                                                title="Desactivar cuenta del usuario"
+                                            >
+                                                <UserX class="h-3.5 w-3.5" />
+                                                Desactivar
+                                            </button>
+                                        </template>
 
                                         <span
                                             v-else
                                             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-brand text-xs text-muted bg-background border border-border/80 cursor-not-allowed"
-                                            title="Cuenta protegida de Superadministrador"
+                                            :title="protectedReason(user)"
                                         >
                                             <Shield class="h-3 w-3 text-muted/60" />
                                             Protegido
@@ -588,6 +633,7 @@ async function handleResendVerification(user) {
                                     <!-- Si el usuario está desactivado (SoftDelete) -->
                                     <template v-else>
                                         <button
+                                            v-if="user.can_edit !== false"
                                             type="button"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-brand text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                                             @click="confirmRestoreUser(user)"
@@ -596,14 +642,23 @@ async function handleResendVerification(user) {
                                             <RotateCcw class="h-3.5 w-3.5" />
                                             Reactivar
                                         </button>
+
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-brand text-xs text-muted bg-background border border-border/80 cursor-not-allowed"
+                                            :title="protectedReason(user)"
+                                        >
+                                            <Shield class="h-3 w-3 text-muted/60" />
+                                            Protegido
+                                        </span>
                                     </template>
                                 </div>
                             </td>
                         </tr>
 
                         <!-- Estado vacío si los filtros no arrojan resultados -->
-                        <tr v-if="filteredUsers.length === 0">
-                            <td colspan="5" class="px-6 py-12 text-center">
+                        <tr v-if="filteredUsers.length === 0" class="block sm:table-row">
+                            <td colspan="5" class="block sm:table-cell px-6 py-12 text-center">
                                 <div class="max-w-xs mx-auto space-y-3">
                                     <div class="h-10 w-10 mx-auto rounded-full bg-muted/10 text-muted flex items-center justify-center">
                                         <Search class="h-5 w-5" />
@@ -638,6 +693,18 @@ async function handleResendVerification(user) {
                     Selecciona el nuevo nivel de acceso para <strong class="text-foreground">{{ activeUser.name }}</strong> ({{ activeUser.email }}):
                 </p>
 
+                <!-- UX-08: se explica antes de elegir, en lugar de fallar al confirmar -->
+                <BaseAlert v-if="activeUserIsLastSuperAdmin" type="info" title="Nivel bloqueado">
+                    Esta cuenta es el único Superadministrador activo. Para cambiar su nivel, primero asigna
+                    Superadministrador a otra cuenta.
+                </BaseAlert>
+
+                <!-- UX-09: aviso al cambiar el propio nivel -->
+                <BaseAlert v-else-if="activeUser.is_self" type="warning" title="Es tu propia cuenta">
+                    Estás cambiando tu propio nivel de acceso. Si eliges un nivel sin permisos de gestión,
+                    perderás el acceso a este panel.
+                </BaseAlert>
+
                 <BaseAlert v-if="modalError" type="error" title="Operación no permitida">
                     {{ modalError }}
                 </BaseAlert>
@@ -646,30 +713,27 @@ async function handleResendVerification(user) {
                     <label
                         v-for="role in availableRoles"
                         :key="role"
-                        class="flex items-center justify-between p-3 rounded-brand border cursor-pointer transition-all"
-                        :class="targetRole === role
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                            : 'border-border hover:bg-background'"
+                        class="flex items-center gap-3 p-3 rounded-brand border transition-all"
+                        :class="[
+                            targetRole === role
+                                ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                : 'border-border',
+                            isRoleOptionDisabled(role)
+                                ? 'opacity-60 cursor-not-allowed'
+                                : 'cursor-pointer hover:bg-background',
+                        ]"
                     >
-                        <div class="flex items-center gap-3">
-                            <input
-                                v-model="targetRole"
-                                type="radio"
-                                :value="role"
-                                class="text-primary focus:ring-primary border-border"
-                            />
-                            <div>
-                                <span class="block text-sm font-semibold text-foreground">{{ roleLabel(role) }}</span>
-                                <span class="block text-xs text-muted">{{ ROLE_DESCRIPTIONS[role] || '' }}</span>
-                            </div>
+                        <input
+                            v-model="targetRole"
+                            type="radio"
+                            :value="role"
+                            :disabled="isRoleOptionDisabled(role)"
+                            class="text-primary focus:ring-primary border-border disabled:cursor-not-allowed"
+                        />
+                        <div>
+                            <span class="block text-sm font-semibold text-foreground">{{ roleLabel(role) }}</span>
+                            <span class="block text-xs text-muted">{{ ROLE_DESCRIPTIONS[role] || '' }}</span>
                         </div>
-
-                        <span
-                            class="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
-                            :class="getRoleBadgeClass(role)"
-                        >
-                            {{ roleLabel(role) }}
-                        </span>
                     </label>
                 </div>
             </div>

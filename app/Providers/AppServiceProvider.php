@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -33,9 +34,17 @@ class AppServiceProvider extends ServiceProvider
                 : $rule;
         });
 
-        // SuperAdmin: acceso implícito a todos los permisos/policies.
+        // SuperAdmin: acceso implícito a todos los permisos/policies, con una excepción (N8):
+        // las habilidades sobre App\Models\User las decide siempre UserPolicy, porque sus reglas
+        // (último SuperAdmin activo, auto-desactivación) existen para proteger al propio SuperAdmin.
         // Devuelve null (no false) para el resto, dejando decidir a Spatie/Policies.
-        Gate::before(function ($user, $ability) {
+        Gate::before(function ($user, string $ability, array $arguments = []) {
+            $target = $arguments[0] ?? null;
+
+            if ($target instanceof User || $target === User::class) {
+                return null;
+            }
+
             return $user->hasRole('SuperAdmin') ? true : null;
         });
     }
