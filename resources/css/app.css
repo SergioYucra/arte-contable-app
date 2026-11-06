@@ -8,6 +8,17 @@
 |
 */
 
+/*
+ * P15 (A08/A03:2025): la tipografía Inter se sirve desde la propia app (paquete @fontsource/inter,
+ * empaquetado por Vite) en lugar de fonts.bunny.net: no depende de un tercero sin control de
+ * integridad y permite una CSP con font-src 'self'.
+ */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

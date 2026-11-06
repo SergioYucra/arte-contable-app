@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 
@@ -45,6 +46,10 @@ class EmailVerificationNotificationController extends Controller
                 'max:255',
                 Rule::unique(User::class)->ignore($user->id),
             ],
+            // V4 (H2): igual que en el perfil, cambiar el correo exige la contraseña actual.
+            'current_password' => ['required', 'string', 'current_password'],
+        ], [
+            'current_password.required' => 'Para cambiar el correo, escribe tu contraseña actual.',
         ]);
 
         $newEmail = $validated['email'];
@@ -55,16 +60,19 @@ class EmailVerificationNotificationController extends Controller
             $throttleKey = 'email-change:'.$user->id;
 
             if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
-                $seconds = RateLimiter::availableIn($throttleKey);
+                $seconds = max(1, RateLimiter::availableIn($throttleKey));
                 $hours = ceil($seconds / 3600);
 
-                activity('security')
-                    ->causedBy($user)
-                    ->withProperties([
-                        'attempted_email' => $newEmail,
-                        'ip' => $request->ip(),
-                    ])
-                    ->log("Intento de cambio de correo bloqueado por exceder el límite diario (máximo 3 por día).");
+                // P9: la bitácora es inmutable; solo se registra el primer bloqueo de cada ventana.
+                if (Cache::add($throttleKey.':blocked-logged', true, $seconds)) {
+                    activity('security')
+                        ->causedBy($user)
+                        ->withProperties([
+                            'attempted_email' => $newEmail,
+                            'ip' => $request->ip(),
+                        ])
+                        ->log('Intento de cambio de correo bloqueado por exceder el límite diario (máximo 3 por día).');
+                }
 
                 return back()->withErrors([
                     'email' => __("Has alcanzado el límite máximo de 3 solicitudes de cambio de correo por día. Intenta de nuevo en {$hours} horas."),

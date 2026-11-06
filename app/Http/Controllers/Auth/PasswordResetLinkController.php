@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Rules\Turnstile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class PasswordResetLinkController extends Controller
 {
+    /**
+     * V2 (A07:2025): respuesta única, exista o no una cuenta activa con ese correo.
+     */
+    public const NEUTRAL_STATUS = 'Si el correo pertenece a una cuenta activa, te enviamos un enlace para restablecer la contraseña. Revisa tu bandeja de entrada y la carpeta de spam.';
+
     /**
      * Display the password reset link request view.
      */
@@ -22,24 +29,30 @@ class PasswordResetLinkController extends Controller
     /**
      * Handle an incoming password reset link request.
      *
+     * V2: antes la pantalla mostraba el estado del broker tal cual ("Hemos enviado…" frente a
+     * "No encontramos ningún usuario…") y delataba qué correos tienen cuenta. Ahora la respuesta es
+     * siempre la misma y el envío ocurre después de responder (defer), para que tampoco lo delate
+     * el tiempo que tarda el servidor de correo.
+     *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'email' => ['required', 'email'],
+            ...Turnstile::rules(),
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        $email = (string) $validated['email'];
 
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+        defer(function () use ($email): void {
+            try {
+                Password::sendResetLink(['email' => $email]);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        });
+
+        return back()->with('status', self::NEUTRAL_STATUS);
     }
 }

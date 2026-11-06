@@ -27,6 +27,7 @@
                 data-props="{{ json_encode([
                     'initialUsers' => $users,
                     'availableRoles' => $availableRoles,
+                    'assignableRoles' => $assignableRoles,
                     'updateRoleUrlTemplate' => route('admin.users.update-role', ':id'),
                     'deleteUserUrlTemplate' => route('admin.users.destroy', ':id'),
                     'restoreUserUrlTemplate' => route('admin.users.restore', ':id'),

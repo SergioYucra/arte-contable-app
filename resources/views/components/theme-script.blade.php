@@ -1,4 +1,4 @@
-<script>
+<script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
     /**
      * Prevención de FOUC (Flash of Unstyled Content) y sincronización de tema.
      * Se ejecuta de forma síncrona en el <head> antes de que el navegador pinte el DOM.

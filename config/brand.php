@@ -20,7 +20,7 @@ return [
 
     'description' => env(
         'BRAND_DESCRIPTION',
-        'Domina los principios contables con ejercicios prácticos, balances interactivos y la metodología del libro "El Arte de Contabilizar desde 0".'
+        'Domina los principios contables con la metodología del libro "El Arte de Contabilizar desde 0", en tu propio espacio de estudio.'
     ),
 
     // Ruta al logotipo oficial
@@ -28,7 +28,7 @@ return [
 
     'features' => [
         'Acompañamiento didáctico basado en el libro "El Arte de Contabilizar desde 0"',
-        'Práctica contable en tiempo real: asientos, libros mayores y balances',
+        'Contenido organizado por módulos, siguiendo el plan de estudios del libro',
         'Plataforma segura, accesible y optimizada para estudiantes y profesionales',
     ],
 

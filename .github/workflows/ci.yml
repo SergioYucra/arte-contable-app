@@ -1,0 +1,61 @@
+# P11 (H11, A03:2025): en cada PR y en cada push a main se corren los tests y las auditorías de
+# dependencias. Las acciones van fijadas por commit (no por etiqueta), para que una etiqueta movida
+# en el repositorio de la acción no cambie lo que corre aquí; Dependabot las mantiene al día.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests y auditorías
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, zip, intl, fileinfo
+          coverage: none
+
+      - name: Instalar dependencias PHP
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Auditoría de dependencias PHP
+        run: composer audit --locked
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias npm
+        run: npm ci
+
+      - name: Auditoría de dependencias npm
+        run: npm audit --audit-level=moderate
+
+      - name: Compilar assets
+        run: npm run build
+
+      - name: Preparar entorno
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Tests
+        run: php artisan test

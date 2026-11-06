@@ -1,6 +1,6 @@
 <x-guest-layout :title="__('Verificar correo electrónico')">
     <div
-        x-data="{ editing: {{ $errors->has('email') ? 'true' : 'false' }} }"
+        x-data="{ editing: {{ $errors->hasAny(['email', 'current_password']) ? 'true' : 'false' }} }"
         class="space-y-6"
     >
         {{-- Cabecera: icono + título --}}
@@ -90,6 +90,20 @@
                             x-effect="if (editing) $nextTick(() => $el.focus())"
                         />
                         <x-input-error :messages="$errors->first('email')" class="mt-1.5" />
+                    </div>
+
+                    {{-- V4: cambiar el correo pide la contraseña actual --}}
+                    <div>
+                        <x-input-label for="change_current_password" :value="__('Contraseña actual')" class="text-xs font-medium text-foreground" />
+                        <x-text-input
+                            id="change_current_password"
+                            type="password"
+                            name="current_password"
+                            class="mt-1.5 block w-full text-sm"
+                            required
+                            autocomplete="current-password"
+                        />
+                        <x-input-error :messages="$errors->first('current_password')" class="mt-1.5" />
                     </div>
 
                     <x-primary-button class="w-full justify-center py-2.5">

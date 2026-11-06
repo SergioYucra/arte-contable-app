@@ -13,7 +13,8 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-5">
+    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-5"
+          x-data="{ email: @js(old('email', $user->email)), original: @js($user->email), forcePassword: @js($errors->has('current_password')) }">
         @csrf
         @method('patch')
 
@@ -25,8 +26,16 @@
 
         <div>
             <x-input-label for="email" :value="__('Correo Electrónico')" class="text-xs font-medium text-foreground" />
-            <x-text-input id="email" name="email" type="email" class="mt-1.5 block w-full text-sm font-sans" :value="old('email', $user->email)" required autocomplete="username" />
+            <x-text-input id="email" name="email" type="email" class="mt-1.5 block w-full text-sm font-sans" :value="old('email', $user->email)" x-model="email" required autocomplete="username" />
             <x-input-error class="mt-1.5" :messages="$errors->first('email')" />
+
+            {{-- V4: cambiar el correo pide la contraseña actual; el correo anterior recibe un aviso para revertirlo --}}
+            <div x-show="forcePassword || email !== original" x-cloak class="mt-4 rounded-brand border border-border bg-background/60 p-3">
+                <x-input-label for="profile_current_password" :value="__('Contraseña actual')" class="text-xs font-medium text-foreground" />
+                <x-text-input id="profile_current_password" name="current_password" type="password" class="mt-1.5 block w-full text-sm font-sans" autocomplete="current-password" />
+                <p class="mt-1.5 text-xs text-muted leading-relaxed">{{ __('Para cambiar el correo necesitamos tu contraseña. Avisaremos al correo anterior, con un enlace para deshacer el cambio si no fuiste tú.') }}</p>
+                <x-input-error class="mt-1.5" :messages="$errors->first('current_password')" />
+            </div>
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div class="mt-3 p-3 rounded-brand bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">

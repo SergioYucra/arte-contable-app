@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -47,6 +48,13 @@ class NewPasswordController extends Controller
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                // V3: restablecer la contraseña cierra TODAS las sesiones abiertas de la cuenta. Es lo que
+                // hace alguien que sospecha que otra persona entró. authenticateSessions() (bootstrap/app.php)
+                // también las invalida por el cambio de hash; borrar las filas lo hace inmediato.
+                DB::table(config('session.table', 'sessions'))
+                    ->where('user_id', $user->getKey())
+                    ->delete();
 
                 event(new PasswordReset($user));
             }

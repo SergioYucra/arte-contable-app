@@ -65,6 +65,8 @@
             </label>
         </div>
 
+        <x-turnstile />
+
         <div class="pt-2">
             <x-primary-button class="w-full py-2.5">
                 {{ __('Ingresar a la plataforma') }}

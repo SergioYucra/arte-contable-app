@@ -4,6 +4,7 @@ namespace Tests\Feature\Security;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use Database\Seeders\CoreSecuritySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -108,6 +109,7 @@ class SecondReviewSecurityTest extends TestCase
             $response = $this->actingAs($user)->patch(route('profile.update'), [
                 'name' => $user->name,
                 'email' => "change{$i}@test.com",
+                'current_password' => 'password',
             ]);
             $response->assertSessionHasNoErrors();
             $user->refresh();
@@ -118,10 +120,11 @@ class SecondReviewSecurityTest extends TestCase
         $blockedResponse = $this->actingAs($user)->patch(route('profile.update'), [
             'name' => $user->name,
             'email' => 'change4@test.com',
+            'current_password' => 'password',
         ]);
 
         $blockedResponse->assertSessionHasErrors('email');
-        $this->assertEquals("change3@test.com", $user->fresh()->email);
+        $this->assertEquals('change3@test.com', $user->fresh()->email);
 
         // Se verifica que el intento bloqueado fue registrado en la bitácora de seguridad
         $this->assertDatabaseHas('activity_log', [
@@ -163,7 +166,7 @@ class SecondReviewSecurityTest extends TestCase
         $superAdmin = User::role('SuperAdmin')->first();
         $this->assertNotNull($superAdmin);
 
-        $policy = new \App\Policies\UserPolicy();
+        $policy = new UserPolicy;
 
         // 1. No se puede autoeliminar
         $deleteSelf = $policy->delete($superAdmin, $superAdmin);
@@ -199,5 +202,30 @@ class SecondReviewSecurityTest extends TestCase
         } catch (\LogicException $e) {
             $this->assertStringContainsString('inmutables', $e->getMessage());
         }
+
+        // Tercera revisión (S4): vías que antes borraban o alteraban la bitácora completa
+        $bypasses = [
+            'query()->forceDelete()' => fn () => Activity::query()->forceDelete(),
+            'query()->truncate()' => fn () => Activity::query()->truncate(),
+            'getQuery()->delete()' => fn () => Activity::query()->getQuery()->delete(),
+            'toBase()->update()' => fn () => Activity::query()->toBase()->update(['description' => 'Alterada']),
+            'query()->increment()' => fn () => Activity::query()->increment('id'),
+            'upsert()' => fn () => Activity::upsert(
+                [['id' => 1, 'log_name' => 'test', 'description' => 'Alterada']],
+                ['id'],
+                ['description']
+            ),
+        ];
+
+        foreach ($bypasses as $label => $bypass) {
+            try {
+                $bypass();
+                $this->fail("Activity {$label} should have thrown a LogicException");
+            } catch (\LogicException $e) {
+                $this->assertStringContainsString('inmutables', $e->getMessage());
+            }
+        }
+
+        $this->assertDatabaseHas('activity_log', ['log_name' => 'test', 'description' => 'Test entry']);
     }
 }

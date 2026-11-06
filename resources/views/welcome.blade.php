@@ -18,10 +18,6 @@
         @endphp
         {!! seo($seoData) !!}
 
-        <!-- Tipografía Inter oficial -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
-
         <!-- Estilos y Scripts compilados con Tailwind Dual Tokens -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -114,13 +110,13 @@
                             <svg class="h-4 w-4 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                             </svg>
-                            <span>100% Interactivo</span>
+                            <span>Basado en el libro guía oficial</span>
                         </div>
                         <div class="flex items-center gap-2 justify-center lg:justify-start">
                             <svg class="h-4 w-4 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                             </svg>
-                            <span>Ejercicios Paso a Paso</span>
+                            <span>Aprende a tu ritmo</span>
                         </div>
                         <div class="flex items-center gap-2 justify-center lg:justify-start">
                             <svg class="h-4 w-4 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">

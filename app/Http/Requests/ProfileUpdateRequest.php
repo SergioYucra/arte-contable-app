@@ -26,6 +26,29 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            // V4 (H2): cambiar el correo exige la contraseña actual. Una sesión abierta sola no alcanza
+            // para quedarse con la cuenta, porque el correo es lo que recibe "Olvidé mi contraseña".
+            'current_password' => [
+                Rule::requiredIf(fn (): bool => $this->wantsToChangeEmail()),
+                'nullable',
+                'string',
+                'current_password',
+            ],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'current_password.required' => 'Para cambiar el correo, escribe tu contraseña actual.',
+        ];
+    }
+
+    public function wantsToChangeEmail(): bool
+    {
+        return $this->input('email') !== $this->user()->email;
     }
 }

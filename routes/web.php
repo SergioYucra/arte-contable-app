@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -8,9 +9,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// P4: 'two-factor' exige la verificación en dos pasos a Administradores y Superadministradores.
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified', 'two-factor'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -18,7 +20,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Módulo Base: Administración de Usuarios y Roles (Capa Core)
-Route::middleware(['auth', 'verified', 'permission:manage-users'])
+Route::middleware(['auth', 'verified', 'two-factor', 'permission:manage-users'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -27,6 +29,14 @@ Route::middleware(['auth', 'verified', 'permission:manage-users'])
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
         Route::post('/users/{user}/resend-verification', [UserController::class, 'resendVerification'])->name('users.resend-verification');
+    });
+
+// P8 (MVP 2.4): bitácora de auditoría. Solo para quien tiene 'view-audit-logs' (Superadministradores).
+Route::middleware(['auth', 'verified', 'two-factor', 'permission:view-audit-logs'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     });
 
 require __DIR__.'/auth.php';
