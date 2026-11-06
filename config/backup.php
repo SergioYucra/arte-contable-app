@@ -174,7 +174,7 @@ return [
              * sumar un disco remoto (por ejemplo s3). `php artisan security:check` avisa si solo hay
              * discos locales.
              */
-            'disks' => array_values(array_filter(array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'backups'))))),
+            'disks' => array_values(array_filter(array_map('trim', explode(',', (string) (env('BACKUP_DISKS') ?: 'backups'))))),
 
             /*
              * Determines whether to allow backups to continue when some targets fail instead of failing completely.
@@ -239,7 +239,7 @@ return [
 
         'mail' => [
             // P6: los avisos de backup (fallido, sano, limpieza) van al responsable técnico.
-            'to' => env('BACKUP_NOTIFICATION_EMAIL', env('SUPERADMIN_EMAIL', 'your@example.com')),
+            'to' => env('BACKUP_NOTIFICATION_EMAIL') ?: env('SUPERADMIN_EMAIL') ?: 'your@example.com',
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
@@ -283,7 +283,7 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => array_values(array_filter(array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'backups'))))),
+            'disks' => array_values(array_filter(array_map('trim', explode(',', (string) (env('BACKUP_DISKS') ?: 'backups'))))),
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,
