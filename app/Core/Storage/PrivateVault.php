@@ -31,14 +31,29 @@ class PrivateVault
     ];
 
     /**
-     * Extensiones activas o ejecutables bloqueadas de forma absoluta en almacenamiento.
+     * P10 (H9, A06:2025): lista BLANCA de formatos aceptados, extensión => tipos MIME reales posibles.
      *
-     * @var list<string>
+     * Antes había una lista negra de extensiones peligrosas, y una lista negra siempre deja alguna
+     * afuera. Ahora un archivo se acepta solo si su extensión está aquí Y el tipo detectado en su
+     * contenido (finfo) es uno de los de esa extensión. Para sumar un formato hay que agregarlo
+     * a propósito; nunca agregar svg, html, xml ni nada que el navegador pueda ejecutar.
+     *
+     * Los documentos de Office (docx/xlsx) son ZIP por dentro y algunas versiones de libmagic los
+     * reportan como application/zip; se guardan igual con su extensión y siempre se descargan como
+     * adjunto con nosniff.
+     *
+     * @var array<string, list<string>>
      */
-    private const FORBIDDEN_EXTENSIONS = [
-        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar',
-        'html', 'htm', 'xhtml', 'svg', 'svgz', 'xml',
-        'js', 'mjs', 'cjs', 'sh', 'bash', 'exe', 'bat', 'cmd', 'msi',
+    public const ALLOWED_TYPES = [
+        'pdf' => ['application/pdf'],
+        'png' => ['image/png'],
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'webp' => ['image/webp'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+        'csv' => ['text/csv', 'text/plain'],
+        'txt' => ['text/plain'],
     ];
 
     /**
@@ -109,21 +124,14 @@ class PrivateVault
             abort(422, 'El tipo de archivo no coincide con los formatos permitidos.');
         }
 
-        // Usar exclusivamente la extensión derivada del contenido binario real (finfo) cuando exista
-        $finfoExtension = strtolower((string) $file->extension());
-        $safeExtension = preg_replace('/[^a-z0-9]/', '', $finfoExtension) ?? '';
+        // P10: la extensión declarada debe estar en la lista blanca y el contenido real debe coincidir.
+        $extension = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $file->getClientOriginalExtension()));
 
-        if (in_array($safeExtension, self::FORBIDDEN_EXTENSIONS, true)) {
+        if (! in_array($detectedMime, self::ALLOWED_TYPES[$extension] ?? [], true)) {
             abort(422, 'El formato del archivo subido no está permitido por políticas de seguridad.');
         }
 
-        // También rechazar si el nombre original declaraba una extensión ejecutable prohibida
-        $clientExtension = strtolower((string) preg_replace('/[^a-z0-9]/i', '', $file->getClientOriginalExtension()));
-        if (in_array($clientExtension, self::FORBIDDEN_EXTENSIONS, true)) {
-            abort(422, 'El formato del archivo subido no está permitido por políticas de seguridad.');
-        }
-
-        $randomFileName = Str::uuid()->toString().($safeExtension !== '' ? '.'.$safeExtension : '');
+        $randomFileName = Str::uuid()->toString().'.'.$extension;
 
         $path = $safeSubfolder !== ''
             ? $safeSubfolder.'/'.$randomFileName
@@ -137,10 +145,23 @@ class PrivateVault
 
         return [
             'path' => $path,
-            'original_name' => basename($file->getClientOriginalName()),
+            'original_name' => self::safeFileName($file->getClientOriginalName()),
             'mime_type' => $detectedMime,
             'size_bytes' => $file->getSize() ?: 0,
         ];
+    }
+
+    /**
+     * P10: nombre de archivo apto para mostrar y para la cabecera de descarga. Quita la ruta, los
+     * caracteres de control (saltos de línea incluidos) y las barras, y lo acorta.
+     */
+    public static function safeFileName(string $name, string $fallback = 'archivo'): string
+    {
+        $clean = basename(str_replace('\\', '/', $name));
+        $clean = (string) preg_replace('/[\x00-\x1F\x7F"]/u', '', $clean);
+        $clean = trim(Str::limit($clean, 150, ''));
+
+        return $clean !== '' && $clean !== '.' && $clean !== '..' ? $clean : $fallback;
     }
 
     /**
@@ -158,13 +179,13 @@ class PrivateVault
             abort(404, 'El archivo solicitado no existe en la bóveda privada.');
         }
 
-        $fallbackName = basename($validatedPath);
-        $finalName = $downloadName ? basename($downloadName) : $fallbackName;
+        $finalName = self::safeFileName($downloadName ?? basename($validatedPath), basename($validatedPath));
         $mimeType = Storage::disk(self::DISK)->mimeType($validatedPath) ?: 'application/octet-stream';
 
+        // P10: Content-Disposition lo arma Laravel (HeaderUtils::makeDisposition, con nombre de
+        // respaldo ASCII y codificación RFC 6266). Antes se armaba a mano con addslashes().
         $headers = [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'attachment; filename="'.addslashes($finalName).'"',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'no-store, no-cache, must-revalidate, private',
             'Pragma' => 'no-cache',
@@ -193,8 +214,7 @@ class PrivateVault
             abort(415, 'Este tipo de archivo no puede visualizarse directamente en el navegador.');
         }
 
-        $fallbackName = basename($validatedPath);
-        $finalName = $inlineName ? basename($inlineName) : $fallbackName;
+        $finalName = self::safeFileName($inlineName ?? basename($validatedPath), basename($validatedPath));
 
         // Para PDF se habilita object-src 'self' sin 'sandbox' vacío para no bloquear el visor nativo en Chromium/Edge;
         // para imágenes rasterizadas se aplica sandbox estricto sin ejecución de scripts.
@@ -204,7 +224,6 @@ class PrivateVault
 
         $headers = [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="'.addslashes($finalName).'"',
             'X-Content-Type-Options' => 'nosniff',
             'X-Frame-Options' => 'SAMEORIGIN',
             'Content-Security-Policy' => $cspHeader,

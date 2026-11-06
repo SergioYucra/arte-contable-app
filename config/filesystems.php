@@ -38,6 +38,15 @@ return [
             'report' => false,
         ],
 
+        // P6 (H12): destino local de spatie/laravel-backup. Nunca se sirve por HTTP.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'serve' => false,
+            'throw' => true,
+            'report' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

@@ -72,6 +72,8 @@
             <x-input-error :messages="$errors->first('password_confirmation')" class="mt-1.5" />
         </div>
 
+        <x-turnstile />
+
         <div class="pt-2">
             <x-primary-button class="w-full py-2.5">
                 {{ __('Registrarme') }}

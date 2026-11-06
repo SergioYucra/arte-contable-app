@@ -19,6 +19,34 @@
             <div class="p-6 sm:p-8 bg-surface border border-border rounded-brand shadow-xs">
                 @include('profile.partials.update-password-form')
             </div>
+
+            {{-- P4: verificación en dos pasos --}}
+            <div class="p-6 sm:p-8 bg-surface border border-border rounded-brand shadow-xs">
+                <header class="border-b border-border/60 pb-4">
+                    <h2 class="text-base font-semibold text-foreground tracking-tight">{{ __('Verificación en dos pasos') }}</h2>
+                    <p class="mt-1 text-xs text-muted leading-relaxed">
+                        {{ __('Un código de tu teléfono, además de la contraseña, para que nadie más pueda entrar a tu cuenta.') }}
+                    </p>
+                </header>
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-sm text-foreground">
+                        @if ($user->hasEnabledTwoFactorAuthentication())
+                            {{ __('Estado: activa.') }}
+                        @elseif ($user->requiresTwoFactorAuthentication())
+                            {{ __('Estado: inactiva. Tu nivel de acceso la exige para usar el panel.') }}
+                        @else
+                            {{ __('Estado: inactiva (opcional para tu nivel de acceso).') }}
+                        @endif
+                    </p>
+                    @if ($user->hasVerifiedEmail())
+                        <a href="{{ route('two-factor.show') }}" class="text-xs font-semibold text-primary hover:text-primary-hover">
+                            {{ $user->hasEnabledTwoFactorAuthentication() ? __('Administrar') : __('Activar') }} &rarr;
+                        </a>
+                    @else
+                        <span class="text-xs text-muted">{{ __('Verifica tu correo para activarla.') }}</span>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>

@@ -99,6 +99,7 @@ class PhaseZeroHardeningTest extends TestCase
         $response = $this->actingAs($user)->patch(route('profile.update'), [
             'name' => $user->name,
             'email' => 'nuevo@ejemplo.com',
+            'current_password' => 'password',
         ]);
 
         $response->assertRedirect(route('profile.edit'));

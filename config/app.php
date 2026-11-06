@@ -144,4 +144,21 @@ return [
         'password' => env('SUPERADMIN_PASSWORD'),
     ],
 
+    /*
+     * P3 (H5): redirigir http:// a https:// (App\Http\Middleware\ForceHttps). Activo por defecto en producción.
+     */
+    'force_https' => (bool) env('FORCE_HTTPS', env('APP_ENV') === 'production'),
+
+    /*
+     * P14: proxies de confianza (App\Http\Middleware\TrustProxies). Vacío si no hay proxy delante;
+     * IPs o rangos separados por coma si hay un CDN o proxy; '*' solo si la app no es accesible sin él.
+     */
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+     * P17 (A10:2025): si el servicio de contraseñas filtradas (HIBP) no responde, rechazar la contraseña
+     * en lugar de aceptarla sin comprobar (falla cerrada). Solo aplica en producción, donde se usa la regla.
+     */
+    'pwned_passwords_fail_closed' => (bool) env('PWNED_PASSWORDS_FAIL_CLOSED', true),
+
 ];

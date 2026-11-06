@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    /*
+     * P5 (H3): captcha Cloudflare Turnstile en login, registro y "Olvidé mi contraseña".
+     * En desarrollo se usan las claves de prueba de Cloudflare, que siempre aprueban
+     * (sitio 1x00000000000000000000AA, secreto 1x0000000000000000000000000000000AA).
+     * En producción van las claves reales del panel de Cloudflare: `php artisan security:check`
+     * falla si siguen las de prueba. Si la verificación no responde, el formulario se rechaza.
+     */
+    'turnstile' => [
+        'enabled' => (bool) env('TURNSTILE_ENABLED', true),
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+        'timeout' => (int) env('TURNSTILE_TIMEOUT', 5),
+    ],
+
 ];

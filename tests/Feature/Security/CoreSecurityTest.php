@@ -32,12 +32,13 @@ class CoreSecurityTest extends TestCase
             'password_confirmation' => 'Password123!#$',
         ]);
 
-        $this->assertAuthenticated();
+        // V2/V3: el registro ya no inicia sesión; hay que confirmar el correo y entrar.
+        $this->assertGuest();
         $user = User::where('email', 'publico@example.com')->first();
         $this->assertNotNull($user);
         $this->assertTrue($user->hasRole('User'));
         $this->assertNull($user->email_verified_at);
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('login'));
     }
 
     /**

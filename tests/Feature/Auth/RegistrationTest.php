@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -26,6 +29,10 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    /**
+     * V2/V3: el registro crea la cuenta con el rol base, pero ya no inicia sesión: responde con el
+     * mensaje neutro y manda a confirmar el correo.
+     */
     public function test_new_users_can_register_and_receive_default_user_role(): void
     {
         Event::fake([Registered::class]);
@@ -37,7 +44,7 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'Password123!#$',
         ]);
 
-        $this->assertAuthenticated();
+        $this->assertGuest();
 
         $user = User::where('email', 'carlos@example.com')->first();
         $this->assertNotNull($user);
@@ -45,7 +52,8 @@ class RegistrationTest extends TestCase
         $this->assertNull($user->email_verified_at);
 
         Event::assertDispatched(Registered::class);
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('status', RegisteredUserController::NEUTRAL_STATUS);
     }
 
     public function test_new_user_cannot_access_dashboard_without_email_verification(): void
@@ -60,7 +68,7 @@ class RegistrationTest extends TestCase
 
     public function test_unverified_user_can_update_email_address(): void
     {
-        \Illuminate\Support\Facades\Notification::fake();
+        Notification::fake();
 
         $user = User::factory()->unverified()->create([
             'email' => 'erroneo@example.com',
@@ -68,15 +76,16 @@ class RegistrationTest extends TestCase
 
         $response = $this->actingAs($user)->put(route('verification.update'), [
             'email' => 'correcto@example.com',
+            'current_password' => 'password',
         ]);
 
         $response->assertSessionHas('status', 'email-updated');
         $this->assertEquals('correcto@example.com', $user->fresh()->email);
         $this->assertNull($user->fresh()->email_verified_at);
 
-        \Illuminate\Support\Facades\Notification::assertSentTo(
+        Notification::assertSentTo(
             $user->fresh(),
-            \Illuminate\Auth\Notifications\VerifyEmail::class
+            VerifyEmail::class
         );
     }
 

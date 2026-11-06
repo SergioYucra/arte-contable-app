@@ -76,7 +76,11 @@
                                 </span>
                                 <div>
                                     <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Seguridad y auditoría') }}</p>
-                                    <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{{ __('Bitácora inmutable activa') }}</p>
+                                    <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                                        <a href="{{ route('admin.audit-logs.index') }}" class="hover:underline decoration-dotted">
+                                            {{ __('Revisar la bitácora') }} &rarr;
+                                        </a>
+                                    </p>
                                 </div>
                             </div>
                         </article>

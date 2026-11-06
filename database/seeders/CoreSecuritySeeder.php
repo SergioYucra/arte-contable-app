@@ -18,7 +18,13 @@ use Spatie\Permission\PermissionRegistrar;
  */
 class CoreSecuritySeeder extends Seeder
 {
-    /** Permisos base del núcleo. */
+    /**
+     * Permisos base del núcleo.
+     *
+     * P16: los nombres siguen la convención "verbo-recurso" con guion. Un permiso con el mismo nombre
+     * que un método de una policy (view, delete, updateRole…) haría que el Gate::before de Spatie lo
+     * conceda sin consultar la policy. Lo comprueba PermissionNamingTest.
+     */
     public const PERMISSIONS = [
         'access-dashboard',
         'manage-users',
@@ -73,13 +79,22 @@ class CoreSecuritySeeder extends Seeder
             return;
         }
 
-        $existing = User::where('email', $email)->first();
+        $existing = User::withTrashed()->where('email', $email)->first();
 
         if ($existing) {
-            $existing->assignRole('SuperAdmin');
-            $this->command?->info("SuperAdmin existente [{$email}]: rol verificado (contraseña sin cambios).");
+            // Revisión de seguridad: el seeder ya no asciende a SuperAdmin una cuenta que existía antes
+            // con ese correo (por ejemplo, una registrada por el formulario público con un correo de
+            // ejemplo que quedó en el .env). Volver a correrlo sobre el SuperAdmin ya creado no cambia nada.
+            if ($existing->hasRole('SuperAdmin') && ! $existing->trashed()) {
+                $this->command?->info("SuperAdmin existente [{$email}]: rol verificado (contraseña sin cambios).");
 
-            return;
+                return;
+            }
+
+            throw new \RuntimeException(
+                "Ya existe una cuenta con SUPERADMIN_EMAIL [{$email}] que no es SuperAdmin activo. "
+                .'Por seguridad no se asciende de forma automática: usa otro correo o revisa esa cuenta a mano.'
+            );
         }
 
         $password = config('app.superadmin.password');

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Policies\UserPolicy;
+use App\Support\Security\SecurityAlert;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -105,23 +107,44 @@ class UserController extends Controller
         // SuperAdmin no debe responder 422 y delatar que la cuenta existe.
         Gate::authorize('view', $user);
 
+        // V1: el nombre del nivel se compara en PHP, exacto y distinguiendo mayúsculas. 'exists:roles,name'
+        // consultaba la base de datos, y MySQL (utf8mb4_unicode_ci) no distingue mayúsculas: 'superadmin'
+        // pasaba la validación, esquivaba la regla de la policy y syncRoles() asignaba igual el nivel real.
         $validated = $request->validate([
-            'role' => ['required', 'string', 'exists:roles,name'],
+            'role' => ['required', 'string', Rule::in(Role::query()->where('guard_name', 'web')->pluck('name')->all())],
         ]);
 
-        $newRole = $validated['role'];
+        // Desde aquí se trabaja con el nivel canónico de la base de datos, nunca con el texto recibido.
+        $role = Role::findByName($validated['role'], 'web');
+        $newRole = $role->name;
 
         Gate::authorize('updateRole', [$user, $newRole]);
 
         $previousRole = $user->roles->first()?->name ?? 'Ninguno';
-        $user->syncRoles([$newRole]);
+
+        // P18: el cambio y su registro van en la misma transacción. Si la bitácora no se puede escribir,
+        // el cambio tampoco se aplica (falla cerrada): nunca queda una acción hecha sin rastro.
+        DB::transaction(function () use ($user, $role, $currentUser, $previousRole, $newRole): void {
+            $user->syncRoles([$role]);
+
+            activity('users')
+                ->causedBy($currentUser)
+                ->performedOn($user)
+                ->withProperties(['old_role' => $previousRole, 'new_role' => $newRole])
+                ->log("Rol de usuario modificado a '{$newRole}'");
+        });
+
         $user->load('roles:id,name');
 
-        activity('users')
-            ->causedBy($currentUser)
-            ->performedOn($user)
-            ->withProperties(['old_role' => $previousRole, 'new_role' => $newRole])
-            ->log("Rol de usuario modificado a '{$newRole}'");
+        // P8: subir o bajar a alguien de un nivel de administración se avisa a los Superadministradores.
+        if (in_array($newRole, UserPolicy::SUPERADMIN_ONLY_ROLES, true) || in_array($previousRole, UserPolicy::SUPERADMIN_ONLY_ROLES, true)) {
+            SecurityAlert::send(
+                'Cambio de nivel de administración',
+                "{$currentUser->name} ({$currentUser->email}) cambió el nivel de {$user->name} ({$user->email}) de "
+                    .self::roleLabel($previousRole).' a '.self::roleLabel($newRole).'.',
+                ['IP' => (string) $request->ip()],
+            );
+        }
 
         return response()->json([
             'success' => true,
@@ -141,8 +164,10 @@ class UserController extends Controller
 
         $userName = $user->name;
         $userEmail = $user->email;
+        $wasAdministrator = $user->hasAnyRole(UserPolicy::SUPERADMIN_ONLY_ROLES);
 
-        DB::transaction(function () use ($user): void {
+        // P18: desactivación y registro en la misma transacción (falla cerrada).
+        DB::transaction(function () use ($user, $currentUser, $userName, $userEmail): void {
             // 1. Revocar token "Recordarme" sin disparar logs intermedios
             $user->forceFill(['remember_token' => null])->saveQuietly();
 
@@ -153,13 +178,21 @@ class UserController extends Controller
 
             // 3. Desactivación lógica (SoftDelete). Los módulos de negocio reaccionan vía eventos de modelo si lo requieren.
             $user->delete();
+
+            activity('users')
+                ->causedBy($currentUser)
+                ->performedOn($user)
+                ->withProperties(['name' => $userName, 'email' => $userEmail])
+                ->log("Usuario '{$userName}' ({$userEmail}) desactivado (SoftDelete)");
         });
 
-        activity('users')
-            ->causedBy($currentUser)
-            ->performedOn($user)
-            ->withProperties(['name' => $userName, 'email' => $userEmail])
-            ->log("Usuario '{$userName}' ({$userEmail}) desactivado (SoftDelete)");
+        if ($wasAdministrator) {
+            SecurityAlert::send(
+                'Cuenta de administración desactivada',
+                "{$currentUser->name} ({$currentUser->email}) desactivó la cuenta de {$userName} ({$userEmail}).",
+                ['IP' => (string) $request->ip()],
+            );
+        }
 
         return response()->json([
             'success' => true,
@@ -180,13 +213,24 @@ class UserController extends Controller
 
         Gate::authorize('restore', $user);
 
-        $user->restore();
+        // P18: reactivación y registro en la misma transacción (falla cerrada).
+        DB::transaction(function () use ($user, $currentUser): void {
+            $user->restore();
 
-        activity('users')
-            ->causedBy($currentUser)
-            ->performedOn($user)
-            ->withProperties(['name' => $user->name, 'email' => $user->email])
-            ->log("Usuario '{$user->name}' ({$user->email}) reactivado exitosamente");
+            activity('users')
+                ->causedBy($currentUser)
+                ->performedOn($user)
+                ->withProperties(['name' => $user->name, 'email' => $user->email])
+                ->log("Usuario '{$user->name}' ({$user->email}) reactivado exitosamente");
+        });
+
+        if ($user->hasAnyRole(UserPolicy::SUPERADMIN_ONLY_ROLES)) {
+            SecurityAlert::send(
+                'Cuenta de administración reactivada',
+                "{$currentUser->name} ({$currentUser->email}) reactivó la cuenta de {$user->name} ({$user->email}).",
+                ['IP' => (string) $request->ip()],
+            );
+        }
 
         return response()->json([
             'success' => true,

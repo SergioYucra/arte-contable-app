@@ -47,7 +47,8 @@ return [
     |
     */
 
-    'encrypt' => env('SESSION_ENCRYPT', false),
+    // P3 (H5): en producción la sesión se cifra por defecto (la tabla sessions guarda datos de la cuenta).
+    'encrypt' => (bool) env('SESSION_ENCRYPT', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
@@ -169,7 +170,8 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // P3 (H5): en producción la cookie de sesión solo viaja por HTTPS, salvo que se indique lo contrario.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

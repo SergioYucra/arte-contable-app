@@ -24,9 +24,20 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $pendingTwoFactorUser = $request->authenticate();
 
         $request->session()->regenerate();
+
+        // P4: contraseña correcta y 2FA activo: la sesión todavía no se inicia, falta el código.
+        if ($pendingTwoFactorUser) {
+            $request->session()->put(TwoFactorChallengeController::SESSION_KEY, [
+                'id' => $pendingTwoFactorUser->getKey(),
+                'remember' => $request->boolean('remember'),
+                'expires_at' => now()->addMinutes(TwoFactorChallengeController::PENDING_MINUTES)->getTimestamp(),
+            ]);
+
+            return redirect()->route('two-factor.challenge');
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
