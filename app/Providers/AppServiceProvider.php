@@ -36,7 +36,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->isProduction()) {
-            self::refuseDangerousProductionConfiguration();
+            // Solo en peticiones web: ahí está el riesgo (trazas a visitantes, enlaces de recuperación al log).
+            // En consola debe seguir funcionando composer install (sin .env, Laravel asume production y
+            // MAIL_MAILER=log) y `php artisan security:check`, que es justamente la herramienta para diagnosticarlo.
+            if (! $this->app->runningInConsole()) {
+                self::refuseDangerousProductionConfiguration();
+            }
 
             // P3: los enlaces generados (correos, redirecciones) siempre salen con https://.
             URL::forceScheme('https');
