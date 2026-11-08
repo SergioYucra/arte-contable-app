@@ -131,15 +131,16 @@
 
                     <article class="rounded-brand border border-border bg-surface p-5 shadow-xs">
                         <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+                            <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $user->hasActiveSubscription() ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-primary/10 text-primary' }}">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
                             </span>
-                            <div>
-                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Espacio de estudio') }}</p>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-semibold text-foreground">{{ __('Libro Oficial') }}</span>
-                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">Próximamente</span>
-                                </div>
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-semibold uppercase tracking-wider text-muted">{{ __('Membresía de lectura') }}</p>
+                                <p class="text-sm font-semibold {{ $user->hasActiveSubscription() ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground' }}">
+                                    <a href="{{ route('membership.index') }}" class="hover:underline">
+                                        {{ $user->hasActiveSubscription() ? __('Membresía activa') : __('Ver planes y canjear') }} &rarr;
+                                    </a>
+                                </p>
                             </div>
                         </div>
                     </article>

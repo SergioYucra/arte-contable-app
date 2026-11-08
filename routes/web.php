@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BookController;
 use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Student\MembershipController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -17,6 +18,14 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+});
+
+// Portal de Membresía del Alumno: Planes, Pago QR y Canje de Códigos
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/membresia', [MembershipController::class, 'index'])->name('membership.index');
+    Route::post('/membresia/pago', [MembershipController::class, 'storePayment'])->middleware('throttle:10,1')->name('membership.payment.store');
+    Route::post('/membresia/canjear', [MembershipController::class, 'redeemCode'])->middleware('throttle:10,1')->name('membership.redeem');
+    Route::get('/membresia/solicitudes/{paymentRequest}/comprobante', [MembershipController::class, 'streamProof'])->middleware('throttle:60,1')->name('membership.proof');
 });
 
 // Módulo Base: Administración de Usuarios y Roles (Capa Core)

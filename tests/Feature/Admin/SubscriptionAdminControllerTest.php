@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Database\Seeders\CoreSecuritySeeder;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
@@ -144,6 +145,57 @@ class SubscriptionAdminControllerTest extends TestCase
             'payment_request_id' => $paymentRequest->id,
             'status' => Subscription::STATUS_ACTIVE,
         ]);
+    }
+
+    public function test_admin_approving_payment_request_extends_existing_active_subscription(): void
+    {
+        $student = User::factory()->create();
+        $plan = SubscriptionPlan::create([
+            'name' => 'Plan Anual',
+            'price' => 200.00,
+            'duration_days' => 365,
+        ]);
+
+        // Suscripción activa previa con vencimiento a 30 días
+        $currentExpiry = Carbon::now()->addDays(30);
+        $existingSub = Subscription::create([
+            'user_id' => $student->id,
+            'subscription_plan_id' => $plan->id,
+            'starts_at' => Carbon::now()->subDays(10),
+            'expires_at' => $currentExpiry,
+            'status' => Subscription::STATUS_ACTIVE,
+        ]);
+
+        $newPlan = SubscriptionPlan::create([
+            'name' => 'Plan Semestral',
+            'price' => 120.00,
+            'duration_days' => 180,
+        ]);
+
+        $paymentRequest = PaymentRequest::create([
+            'user_id' => $student->id,
+            'subscription_plan_id' => $newPlan->id,
+            'amount' => 120.00,
+            'reference_text' => 'BNB-EXT-123456',
+            'proof_vault_path' => 'receipts/ext-proof.jpg',
+            'status' => PaymentRequest::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($this->admin)->postJson(route('admin.subscriptions.requests.approve', $paymentRequest->id));
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+
+        // Se mantiene un único registro de suscripción y su vencimiento suma los 180 días a los 30 existentes
+        $this->assertDatabaseCount('subscriptions', 1);
+        $updatedSub = $existingSub->fresh();
+        $this->assertEquals(Subscription::STATUS_ACTIVE, $updatedSub->status);
+        $this->assertEquals($newPlan->id, $updatedSub->subscription_plan_id);
+        $this->assertEquals($paymentRequest->id, $updatedSub->payment_request_id);
+
+        // Vencimiento acumulativo: 30 + 180 = 210 días
+        $expectedExpiry = $currentExpiry->copy()->addDays(180);
+        $this->assertEquals($expectedExpiry->toDateTimeString(), $updatedSub->expires_at->toDateTimeString());
     }
 
     public function test_admin_can_reject_payment_request_with_notes(): void
