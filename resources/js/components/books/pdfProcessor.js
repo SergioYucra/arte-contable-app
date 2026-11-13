@@ -103,13 +103,18 @@ export async function convertAndUploadPdfBatches({
             const scale = Math.min(2.2, targetWidth / Math.max(1, baseViewport.width));
             const viewport = page.getViewport({ scale });
 
-            canvas.width = Math.max(1, Math.round(viewport.width));
-            canvas.height = Math.max(1, Math.round(viewport.height));
+            canvas.width = Math.max(1, Math.ceil(viewport.width));
+            canvas.height = Math.max(1, Math.ceil(viewport.height));
 
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            await page.render({ canvasContext: ctx, viewport }).promise;
+            await page.render({
+                canvasContext: ctx,
+                viewport,
+                intent: 'display',
+            }).promise;
             page.cleanup();
 
             const blob = await canvasToWebpBlob(canvas, quality);

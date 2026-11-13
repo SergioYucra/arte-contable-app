@@ -56,6 +56,12 @@
                 </x-slot:icon>
             </x-sidebar-link>
 
+            <x-sidebar-link :href="route('library.index')" :label="__('Biblioteca de estudio')" :active="request()->routeIs('library.*')">
+                <x-slot:icon>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /><path d="M8 7h6" /><path d="M8 11h8" /></svg>
+                </x-slot:icon>
+            </x-sidebar-link>
+
             <x-sidebar-link :href="route('membership.index')" :label="__('Membresía y planes')" :active="request()->routeIs('membership.*')">
                 <x-slot:icon>
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>

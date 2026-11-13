@@ -885,11 +885,20 @@ async function saveToc() {
 const isPreviewModalOpen = ref(false);
 const previewPageNumber = ref(1);
 const isPreviewImageLoading = ref(false);
+const isPreviewFitPage = ref(true);
+const previewScrollContainer = ref(null);
 
 const previewImageUrl = computed(() => {
     if (!isPreviewModalOpen.value || !selectedEdition.value) return '';
     return selectedEdition.value.preview_page_url_template.replace('__PAGE__', String(previewPageNumber.value));
 });
+
+function resetPreviewScroll() {
+    if (previewScrollContainer.value) {
+        previewScrollContainer.value.scrollTop = 0;
+        previewScrollContainer.value.scrollLeft = 0;
+    }
+}
 
 function openPagePreview(page = 1) {
     if (!selectedEdition.value || selectedEdition.value.stored_pages_count < 1) return;
@@ -897,6 +906,7 @@ function openPagePreview(page = 1) {
     previewPageNumber.value = clamped;
     isPreviewImageLoading.value = true;
     isPreviewModalOpen.value = true;
+    resetPreviewScroll();
 }
 
 function stepPreviewPage(delta) {
@@ -905,6 +915,7 @@ function stepPreviewPage(delta) {
     if (next < 1 || next > selectedEdition.value.stored_pages_count) return;
     isPreviewImageLoading.value = true;
     previewPageNumber.value = next;
+    resetPreviewScroll();
 }
 
 // --- Protección contra cierre accidental durante subida ---
@@ -2243,68 +2254,144 @@ onBeforeUnmount(() => {
             :title="selectedEdition ? `Vista previa · ${selectedEdition.edition_name}` : 'Vista previa'"
             max-width="2xl"
         >
-            <div v-if="selectedEdition" class="space-y-3 sm:space-y-4">
-                <div class="flex items-center justify-between gap-2 bg-background border border-border rounded-brand px-2.5 py-2 sm:px-3">
-                    <button
-                        type="button"
-                        :disabled="previewPageNumber <= 1"
-                        class="inline-flex items-center justify-center gap-1 h-9 w-9 sm:h-auto sm:w-auto sm:px-2.5 sm:py-1 rounded-brand text-xs font-medium text-foreground hover:bg-surface disabled:opacity-40 shrink-0"
-                        aria-label="Página anterior"
-                        @click="stepPreviewPage(-1)"
-                    >
-                        <ChevronLeft class="h-4 w-4" />
-                        <span class="hidden sm:inline">Anterior</span>
-                    </button>
-
-                    <div class="flex items-center gap-1.5 sm:gap-2 text-xs text-foreground">
-                        <span class="hidden xs:inline">Pág.</span>
-                        <input
-                            v-model.number="previewPageNumber"
-                            type="number"
-                            inputmode="numeric"
-                            min="1"
-                            :max="selectedEdition.stored_pages_count"
-                            aria-label="Número de página"
-                            class="w-14 sm:w-16 px-2 py-1.5 sm:py-1 text-center bg-surface border border-border rounded-brand text-xs font-semibold"
-                            @change="openPagePreview(previewPageNumber)"
-                        />
-                        <span class="text-muted">de {{ selectedEdition.stored_pages_count }}</span>
-                        <span
-                            v-if="previewPageNumber <= selectedEdition.sample_pages_count"
-                            class="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary"
+            <div v-if="selectedEdition" class="space-y-3">
+                <!-- Barra de control estilo plataforma de lectura -->
+                <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-100 px-3 py-2">
+                    <div class="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            :disabled="previewPageNumber <= 1"
+                            class="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-200 disabled:opacity-40 transition"
+                            aria-label="Página anterior"
+                            @click="stepPreviewPage(-1)"
                         >
-                            Muestra gratuita
-                        </span>
+                            <ChevronLeft class="h-4 w-4" />
+                            <span class="hidden sm:inline">Anterior</span>
+                        </button>
+
+                        <div class="flex items-center gap-1.5 text-xs px-1">
+                            <span class="text-slate-400 hidden xs:inline">Pág.</span>
+                            <input
+                                v-model.number="previewPageNumber"
+                                type="number"
+                                inputmode="numeric"
+                                min="1"
+                                :max="selectedEdition.stored_pages_count"
+                                aria-label="Número de página"
+                                class="w-14 px-2 py-1 text-center bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-white focus:border-sky-400 focus:outline-none"
+                                @change="openPagePreview(previewPageNumber)"
+                            />
+                            <span class="text-slate-400">/ {{ selectedEdition.stored_pages_count }}</span>
+                        </div>
+
+                        <button
+                            type="button"
+                            :disabled="previewPageNumber >= selectedEdition.stored_pages_count"
+                            class="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-200 disabled:opacity-40 transition"
+                            aria-label="Página siguiente"
+                            @click="stepPreviewPage(1)"
+                        >
+                            <span class="hidden sm:inline">Siguiente</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </button>
                     </div>
 
-                    <button
-                        type="button"
-                        :disabled="previewPageNumber >= selectedEdition.stored_pages_count"
-                        class="inline-flex items-center justify-center gap-1 h-9 w-9 sm:h-auto sm:w-auto sm:px-2.5 sm:py-1 rounded-brand text-xs font-medium text-foreground hover:bg-surface disabled:opacity-40 shrink-0"
-                        aria-label="Página siguiente"
-                        @click="stepPreviewPage(1)"
-                    >
-                        <span class="hidden sm:inline">Siguiente</span>
-                        <ChevronRight class="h-4 w-4" />
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <span
+                            v-if="previewPageNumber <= selectedEdition.sample_pages_count"
+                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300"
+                        >
+                            Muestra gratis
+                        </span>
+                        <span
+                            v-else
+                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                        >
+                            Requiere membresía
+                        </span>
+
+                        <div class="inline-flex rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+                            <button
+                                type="button"
+                                class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors"
+                                :class="
+                                    isPreviewFitPage
+                                        ? 'bg-sky-500 text-slate-950'
+                                        : 'text-slate-400 hover:text-white'
+                                "
+                                @click="
+                                    isPreviewFitPage = true;
+                                    resetPreviewScroll();
+                                "
+                            >
+                                Página entera
+                            </button>
+                            <button
+                                type="button"
+                                class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors"
+                                :class="
+                                    !isPreviewFitPage
+                                        ? 'bg-sky-500 text-slate-950'
+                                        : 'text-slate-400 hover:text-white'
+                                "
+                                @click="
+                                    isPreviewFitPage = false;
+                                    resetPreviewScroll();
+                                "
+                            >
+                                Ancho 100%
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div
-                    class="min-h-[260px] sm:min-h-[360px] max-h-[65dvh] sm:max-h-[62vh] overflow-auto rounded-brand border border-border bg-background flex items-center justify-center p-1.5 sm:p-2 relative select-none"
-                    @contextmenu.prevent
-                >
-                    <span v-if="isPreviewImageLoading" class="text-xs text-muted absolute">
-                        Cargando página {{ previewPageNumber }}...
-                    </span>
-                    <img
-                        :key="previewImageUrl"
-                        :src="previewImageUrl"
-                        :alt="`Página ${previewPageNumber}`"
-                        class="max-w-full h-auto rounded shadow-sm relative z-10"
-                        draggable="false"
-                        @load="isPreviewImageLoading = false"
-                        @error="isPreviewImageLoading = false"
+                <!-- Escenario de hoja de libro con sombra editorial realista -->
+                <div class="relative">
+                    <div
+                        ref="previewScrollContainer"
+                        class="min-h-[340px] sm:min-h-[440px] max-h-[68dvh] sm:max-h-[64vh] overflow-auto rounded-xl border border-slate-800 bg-[#090d16] flex items-start justify-center p-3 sm:p-5 relative select-none"
+                        @contextmenu.prevent
+                    >
+                        <span v-if="isPreviewImageLoading" class="text-xs text-slate-400 m-auto py-16">
+                            Cargando página {{ previewPageNumber }}...
+                        </span>
+                        <div
+                            v-show="!isPreviewImageLoading"
+                            class="relative m-auto rounded overflow-hidden shadow-[0_18px_45px_rgba(0,0,0,0.65)] ring-1 ring-white/10 bg-white"
+                            :class="isPreviewFitPage ? 'max-w-full' : 'w-full'"
+                        >
+                            <img
+                                :key="previewImageUrl"
+                                :src="previewImageUrl"
+                                :alt="`Página ${previewPageNumber}`"
+                                :class="
+                                    isPreviewFitPage
+                                        ? 'max-h-[60dvh] sm:max-h-[56vh] w-auto max-w-full object-contain block'
+                                        : 'w-full h-auto block'
+                                "
+                                draggable="false"
+                                @load="isPreviewImageLoading = false"
+                                @error="isPreviewImageLoading = false"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deslizador inferior rápido de páginas -->
+                <div class="flex items-center gap-3 px-2 pt-1">
+                    <span class="text-[11px] font-mono text-muted shrink-0">Pág. 1</span>
+                    <input
+                        type="range"
+                        min="1"
+                        :max="selectedEdition.stored_pages_count"
+                        :value="previewPageNumber"
+                        aria-label="Deslizador de vista previa de páginas"
+                        class="w-full h-1.5 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
+                        @input="openPagePreview(Number($event.target.value))"
                     />
+                    <span class="text-[11px] font-mono text-muted shrink-0">
+                        Pág. {{ selectedEdition.stored_pages_count }}
+                    </span>
                 </div>
             </div>
         </BaseModal>
