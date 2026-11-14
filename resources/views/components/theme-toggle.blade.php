@@ -1,15 +1,15 @@
 @props([
-    'variant' => 'segmented', // 'segmented' (cápsula directa de 3 opciones) o 'dropdown' (botón único con menú)
+    'variant' => 'segmented', // 'segmented' (cápsula directa de 2 opciones) o 'dropdown' (botón único con menú)
     'align' => 'right',
 ])
 
 <div
     x-data="{
-        theme: localStorage.getItem('theme') || 'system',
+        theme: localStorage.getItem('theme') === 'dark' ? 'dark' : 'light',
         open: false,
         setTheme(val) {
-            this.theme = val;
-            localStorage.setItem('theme', val);
+            this.theme = val === 'dark' ? 'dark' : 'light';
+            localStorage.setItem('theme', this.theme);
             this.applyTheme();
             this.open = false;
         },
@@ -19,7 +19,7 @@
             this.setTheme(isCurrentlyDark ? 'light' : 'dark');
         },
         applyTheme() {
-            const isDark = this.theme === 'dark' || (this.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            const isDark = this.theme === 'dark';
             if (isDark) {
                 document.documentElement.classList.add('dark');
                 document.documentElement.setAttribute('data-theme', 'dark');
@@ -28,13 +28,6 @@
                 document.documentElement.setAttribute('data-theme', 'light');
             }
             window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme: this.theme, isDark } }));
-        },
-        init() {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                if (this.theme === 'system') {
-                    this.applyTheme();
-                }
-            });
         }
     }"
     class="relative inline-flex items-center"
@@ -85,26 +78,6 @@
                 </svg>
                 <span class="sr-only">Modo Oscuro</span>
             </button>
-
-            {{-- Opción: Automático / Sistema --}}
-            <button
-                type="button"
-                @click="setTheme('system')"
-                :aria-checked="theme === 'system'"
-                role="radio"
-                title="Automático (Según el sistema)"
-                class="group relative flex h-7 w-8 items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-90"
-                :class="theme === 'system' 
-                    ? 'bg-primary/15 text-primary shadow-2xs font-bold border border-primary/30' 
-                    : 'text-muted hover:text-foreground hover:bg-background/80'"
-            >
-                <svg class="h-4 w-4 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="2" y="3" width="20" height="14" rx="2" />
-                    <path d="M8 21h8M12 17v4" />
-                    <path d="M2 13h20" stroke-opacity="0.35" />
-                </svg>
-                <span class="sr-only">Automático</span>
-            </button>
         </div>
 
     @else
@@ -130,14 +103,10 @@
                         <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" fill="currentColor" fill-opacity="0.25" />
                         <path d="M19 3v3M20.5 4.5h-3" stroke-width="1.75" />
                     </svg>
-                    <svg x-show="theme === 'system'" x-cloak class="h-4 w-4 text-muted transition-transform duration-500 group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2" />
-                        <path d="M8 21h8M12 17v4" />
-                    </svg>
                 </span>
 
                 {{-- Texto del modo actual --}}
-                <span class="text-xs font-semibold tracking-tight hidden sm:inline" x-text="theme === 'light' ? 'Claro' : (theme === 'dark' ? 'Oscuro' : 'Auto')"></span>
+                <span class="text-xs font-semibold tracking-tight hidden sm:inline" x-text="theme === 'dark' ? 'Oscuro' : 'Claro'"></span>
 
                 {{-- Chevron indicador --}}
                 <svg class="h-3.5 w-3.5 text-muted transition-transform duration-200" :class="open ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
@@ -200,28 +169,6 @@
                         </span>
                     </span>
                     <span x-show="theme === 'dark'" class="text-primary font-bold text-xs">✓</span>
-                </button>
-
-                <button
-                    type="button"
-                    @click="setTheme('system')"
-                    class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-xs font-medium text-foreground hover:bg-background/80 transition-colors mt-0.5"
-                    :class="{ 'bg-primary/10 text-primary font-semibold': theme === 'system' }"
-                    role="menuitem"
-                >
-                    <span class="flex items-center gap-2.5">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-muted/15 text-muted">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="3" width="20" height="14" rx="2" />
-                                <path d="M8 21h8M12 17v4" />
-                            </svg>
-                        </span>
-                        <span class="flex flex-col text-start">
-                            <span class="font-semibold">Automático</span>
-                            <span class="text-[10px] text-muted font-normal">Sincronizado con el sistema</span>
-                        </span>
-                    </span>
-                    <span x-show="theme === 'system'" class="text-primary font-bold text-xs">✓</span>
                 </button>
             </div>
         </div>

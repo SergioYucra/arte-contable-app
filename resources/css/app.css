@@ -23,10 +23,13 @@
         --color-secondary-foreground: 248 250 252;/* Blanco suave */
 
         --color-accent: 20 184 166;               /* Acento esmeralda/teal */
+        --color-gold: 222 184 115;                /* Dorado editorial (#deb873) */
+        --color-gold-foreground: 15 23 42;        /* Texto sobre dorado */
 
         /* --- Superficies y Texto: Modo Claro ------------------------- */
         --color-background: 248 250 252;          /* Gris tenue de fondo (#f8fafc) */
         --color-surface: 255 255 255;             /* Blanco limpio (#ffffff) */
+        --color-paper: 247 241 229;               /* Papel editorial cálido (#f7f1e5) */
         --color-foreground: 15 23 42;             /* Pizarra oscuro (#0f172a) */
         --color-text-main: 15 23 42;              /* Pizarra oscuro (#0f172a) */
         --color-muted: 100 116 139;               /* Gris pizarra medio (#64748b) */
@@ -34,6 +37,8 @@
 
         /* --- Tipografía y Forma -------------------------------------- */
         --font-sans: 'Inter';
+        --font-serif: 'Newsreader';
+        --font-mono: 'JetBrains Mono';
         --radius: 0.75rem;
     }
 
@@ -47,10 +52,13 @@
         --color-secondary-foreground: 248 250 252;/* Blanco suave */
 
         --color-accent: 56 189 248;               /* Cian de acento */
+        --color-gold: 232 197 132;                /* Dorado editorial luminoso (#e8c584) */
+        --color-gold-foreground: 15 23 42;        /* Texto sobre dorado */
 
         /* --- Superficies y Texto: Modo Oscuro ------------------------ */
         --color-background: 3 7 18;               /* Fondo noche profundo (#030712) */
         --color-surface: 15 23 42;                /* Pizarra muy oscuro (#0f172a) */
+        --color-paper: 23 32 51;                  /* Papel nocturno cálido (#172033) */
         --color-foreground: 248 250 252;          /* Blanco suave (#f8fafc) */
         --color-text-main: 248 250 252;           /* Blanco suave (#f8fafc) */
         --color-muted: 148 163 184;               /* Pizarra claro (#94a3b8) */
@@ -87,6 +95,28 @@
     /* Efecto de relieve y libro 3D para la portada */
     .book-spine-shadow {
         box-shadow: -6px 0 12px -3px rgba(0, 0, 0, 0.4), inset 3px 0 6px -2px rgba(255, 255, 255, 0.25);
+    }
+
+    /* Sombras editoriales escalables para tarjetas y libros */
+    .sheet-shadow {
+        box-shadow: 0 4px 20px -2px rgb(19 62 84 / 0.08), 0 2px 6px -1px rgb(0 0 0 / 0.04);
+    }
+
+    .dark .sheet-shadow {
+        box-shadow: 0 8px 28px -4px rgb(0 0 0 / 0.45), 0 2px 8px -2px rgb(0 0 0 / 0.3);
+    }
+
+    .book-shadow {
+        box-shadow: -8px 10px 25px -4px rgb(15 23 42 / 0.16), -2px 2px 6px -2px rgb(0 0 0 / 0.08);
+    }
+
+    .dark .book-shadow {
+        box-shadow: -10px 14px 32px -4px rgb(0 0 0 / 0.6), -2px 2px 8px -2px rgb(0 0 0 / 0.4);
+    }
+
+    .vertical-rl {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
     }
 
     /* --- Menú lateral del sistema interno ------------------------------ */

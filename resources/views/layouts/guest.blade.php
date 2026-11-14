@@ -20,94 +20,115 @@
         @endphp
         {!! seo($seoData) !!}
 
-        <!-- Fonts -->
+        {{-- Tipografías oficiales: Inter (Sans), Newsreader (Serif Editorial), JetBrains Mono (Mono) --}}
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800|newsreader:400,400i,500,600,700|jetbrains-mono:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="h-full font-sans antialiased bg-background text-foreground">
+    <body class="h-full font-sans antialiased bg-background text-foreground selection:bg-accent/25 selection:text-foreground">
         <div class="min-h-screen flex">
 
-            {{-- ============ Panel de marca (izquierda, solo desktop) ============ --}}
-            <aside class="relative hidden lg:flex lg:w-1/2 xl:w-[52%] flex-col justify-between overflow-hidden bg-secondary text-secondary-foreground p-10 xl:p-14">
-                {{-- Fondo decorativo --}}
-                <div class="pointer-events-none absolute inset-0 bg-brand-grid [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"></div>
-                <div class="pointer-events-none absolute -top-32 -left-24 h-[28rem] w-[28rem] rounded-full bg-primary/40 blur-3xl animate-float-slow"></div>
-                <div class="pointer-events-none absolute -bottom-40 right-[-6rem] h-[30rem] w-[30rem] rounded-full bg-accent/25 blur-3xl animate-float-slower"></div>
+            {{-- ============ Panel editorial de marca (izquierda, solo desktop) ============ --}}
+            <aside class="relative hidden lg:flex lg:w-[46%] xl:w-[48%] flex-col justify-between overflow-hidden bg-secondary text-secondary-foreground border-r border-border/20 p-10 xl:p-14">
+                {{-- Sutil textura editorial de líneas de cuaderno --}}
+                <div class="pointer-events-none absolute inset-0 opacity-[0.06]" style="background-image: linear-gradient(to bottom, transparent 31px, rgba(255,255,255,0.6) 32px); background-size: 100% 32px;"></div>
 
-                {{-- Logo --}}
-                <a href="/" class="relative z-10 inline-flex items-center gap-3 group">
-                    <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-white/10 ring-1 ring-white/20 backdrop-blur transition group-hover:bg-white/15 overflow-hidden">
-                        <x-application-logo class="h-8 w-8 object-contain" />
-                    </span>
-                    <span class="text-lg font-semibold tracking-tight">{{ config('brand.name') }}</span>
-                </a>
+                {{-- Marca + Volver al inicio --}}
+                <div class="relative z-10 flex items-center justify-between gap-4">
+                    <a href="{{ url('/') }}" class="inline-flex items-center gap-3 group">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 border border-white/15 overflow-hidden transition group-hover:bg-white/15">
+                            <x-application-logo class="h-8 w-8 object-contain" />
+                        </span>
+                        <span class="flex flex-col leading-tight">
+                            <span class="font-serif text-lg font-medium tracking-tight text-white">{{ config('brand.name') }}</span>
+                            <span class="font-mono text-[10px] tracking-wider text-slate-300">ESPACIO DE ESTUDIO</span>
+                        </span>
+                    </a>
 
-                {{-- Mensaje principal --}}
-                <div class="relative z-10 max-w-xl animate-fade-up">
-                    <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium ring-1 ring-white/15 backdrop-blur">
-                        <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
-                        {{ config('brand.name') }}
-                    </span>
+                    <a href="{{ url('/') }}" class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-white/10 hover:text-white">
+                        <span aria-hidden="true">←</span>
+                        <span>Inicio</span>
+                    </a>
+                </div>
 
-                    <h2 class="mt-6 text-4xl xl:text-5xl font-semibold leading-tight tracking-tight">
-                        {{ config('brand.tagline') }}
+                {{-- Mensaje editorial principal --}}
+                <div class="relative z-10 max-w-lg animate-fade-up">
+                    <div class="mb-6 flex items-center gap-3">
+                        <div class="h-px w-10 bg-gold"></div>
+                        <span class="font-mono text-[10px] tracking-[0.2em] text-gold">BIBLIOTECA DIGITAL</span>
+                    </div>
+
+                    <h2 class="font-serif text-4xl xl:text-[44px] font-normal leading-[1.08] tracking-tight text-white">
+                        Aprender contabilidad <em class="italic text-[#e5c887]">con calma</em> y claridad.
                     </h2>
 
-                    <p class="mt-4 text-base leading-relaxed text-secondary-foreground/70">
+                    <p class="mt-4 text-sm leading-[1.8] text-slate-300">
                         {{ config('brand.description') }}
                     </p>
 
-                    <ul class="mt-10 space-y-4">
+                    <ul class="mt-8 space-y-3.5">
                         @foreach (config('brand.features', []) as $feature)
-                            <li class="flex items-center gap-3 text-sm text-secondary-foreground/90">
-                                <span class="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary/30 ring-1 ring-primary/50">
-                                    <svg class="h-3.5 w-3.5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <li class="flex items-start gap-3 text-xs sm:text-sm text-slate-200">
+                                <span class="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-gold/20 text-[#e5c887] border border-gold/40">
+                                    <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" />
                                     </svg>
                                 </span>
-                                {{ $feature }}
+                                <span class="leading-relaxed">{{ $feature }}</span>
                             </li>
                         @endforeach
                     </ul>
+
+                    {{-- Nota editorial al pie del mensaje --}}
+                    <div class="mt-9 inline-flex items-center gap-3.5 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3">
+                        <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#e5c887]/50 bg-white/10 p-1">
+                            <img src="{{ asset('images/inicio/arte_contable.webp') }}" alt="Emblema {{ config('brand.name') }}" class="h-full w-full object-contain" />
+                        </div>
+                        <div class="text-xs leading-snug">
+                            <p class="font-serif italic text-white">“Todo tiene que estar en equilibrio.”</p>
+                            <span class="font-mono text-[10px] tracking-wider text-slate-300">ACTIVO = PASIVO + PATRIMONIO</span>
+                        </div>
+                    </div>
                 </div>
 
-                <p class="relative z-10 text-xs text-secondary-foreground/50">
-                    &copy; {{ date('Y') }} {{ config('brand.name') }}. {{ __('Todos los derechos reservados.') }}
-                </p>
+                <div class="relative z-10 flex items-center justify-between text-xs text-slate-400">
+                    <span>&copy; {{ date('Y') }} {{ config('brand.name') }}</span>
+                    <span class="font-serif italic text-slate-300">Lee. Comprende. Practica.</span>
+                </div>
             </aside>
 
             {{-- ============ Panel de formulario (derecha) ============ --}}
-            <main class="relative flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10">
-                {{-- Selector de tema superior derecho --}}
-                <div class="absolute top-6 end-6 z-20">
+            <main class="relative flex flex-1 flex-col items-center justify-center px-5 py-12 sm:px-10">
+                {{-- Controles superiores (Volver en mobile + Tema) --}}
+                <div class="absolute top-5 inset-x-5 z-20 flex items-center justify-between lg:justify-end sm:top-6 sm:inset-x-8">
+                    <a href="{{ url('/') }}" class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-foreground transition hover:border-primary/40 lg:hidden">
+                        <span aria-hidden="true">←</span>
+                        <span>Inicio</span>
+                    </a>
                     <x-theme-toggle />
                 </div>
 
-                {{-- Glow sutil en mobile/tablet --}}
-                <div class="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary/10 to-transparent lg:hidden"></div>
-
-                <div class="relative w-full max-w-lg animate-fade-up">
+                <div class="relative w-full max-w-[460px] animate-fade-up pt-8 lg:pt-0">
                     {{-- Logo mobile --}}
-                    <a href="/" class="mb-10 inline-flex items-center gap-3 lg:hidden">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-brand bg-primary/10 text-primary overflow-hidden">
-                            <x-application-logo class="h-8 w-8 object-contain" />
+                    <a href="{{ url('/') }}" class="mb-7 inline-flex items-center gap-3 lg:hidden">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface overflow-hidden">
+                            <x-application-logo class="h-7 w-7 object-contain" />
                         </span>
-                        <span class="text-lg font-semibold tracking-tight">{{ config('brand.name') }}</span>
+                        <span class="font-serif text-lg font-medium tracking-tight text-foreground">{{ config('brand.name') }}</span>
                     </a>
 
                     @isset($heading)
-                        <div class="mb-8">
-                            <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">{{ $heading }}</h1>
+                        <div class="mb-6">
+                            <h1 class="font-serif text-3xl sm:text-[34px] font-normal leading-tight tracking-tight text-foreground">{{ $heading }}</h1>
                             @isset($subheading)
                                 <p class="mt-2 text-sm text-muted">{{ $subheading }}</p>
                             @endisset
                         </div>
                     @endisset
 
-                    <div class="rounded-brand border border-border bg-surface p-6 sm:p-8 shadow-xl shadow-secondary/5">
+                    <div class="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-sm">
                         {{ $slot }}
                     </div>
 

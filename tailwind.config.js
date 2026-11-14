@@ -22,6 +22,8 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
+                serif: ['var(--font-serif)', ...defaultTheme.fontFamily.serif],
+                mono: ['var(--font-mono)', ...defaultTheme.fontFamily.mono],
             },
             colors: {
                 primary: {
@@ -34,8 +36,13 @@ export default {
                     foreground: themeColor('--color-secondary-foreground'),
                 },
                 accent: themeColor('--color-accent'),
+                gold: {
+                    DEFAULT: themeColor('--color-gold'),
+                    foreground: themeColor('--color-gold-foreground'),
+                },
                 background: themeColor('--color-background'),
                 surface: themeColor('--color-surface'),
+                paper: themeColor('--color-paper'),
                 foreground: themeColor('--color-foreground'),
                 'text-main': themeColor('--color-text-main'),
                 muted: themeColor('--color-muted'),

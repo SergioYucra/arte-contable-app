@@ -5,10 +5,9 @@
      */
     (function() {
         try {
-            const savedTheme = localStorage.getItem('theme') || 'system';
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            
-            if (savedTheme === 'dark' || (savedTheme === 'system' && systemPrefersDark)) {
+            const savedTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+
+            if (savedTheme === 'dark') {
                 document.documentElement.classList.add('dark');
                 document.documentElement.setAttribute('data-theme', 'dark');
             } else {
