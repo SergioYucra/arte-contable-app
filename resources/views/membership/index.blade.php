@@ -40,6 +40,7 @@
                     'initialRecentCodes' => $initialRecentCodes,
                     'storePaymentUrl' => $storePaymentUrl,
                     'redeemCodeUrl' => $redeemCodeUrl,
+                    'libraryUrl' => route('library.index'),
                     'userName' => auth()->user()->name,
                     'userEmail' => auth()->user()->email,
                 ]) }}"
