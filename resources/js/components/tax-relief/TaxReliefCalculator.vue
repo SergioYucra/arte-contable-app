@@ -24,11 +24,13 @@ const TAXES = ['IVA', 'IT', 'IUE', 'RC-IVA', 'Otro'];
 
 let nextKey = 1;
 function newDebt() {
-    return { key: nextKey++, impuesto: 'IVA', periodo: '', nit_digito: '', fecha_vencimiento: '', tributo_omitido: '', dueSuggested: false, dueLookup: '', lookupSeq: 0 };
+    return { key: nextKey++, impuesto: 'IVA', periodo: '', fecha_vencimiento: '', tributo_omitido: '', dueSuggested: false, dueLookup: '', lookupSeq: 0 };
 }
 
 const form = reactive({
     fecha_solicitud: props.today,
+    // Un solo NIT para todas las deudas (es la misma persona). Solo se guarda el último dígito.
+    nit_digito: '',
     garantia: 'efectivo',
     cuotas: Math.min(12, props.maxInstallments),
     deudas: [newDebt()],
@@ -60,11 +62,18 @@ function removeDebt(index) {
     if (form.deudas.length > 1) form.deudas.splice(index, 1);
 }
 
-function onNitInput(debt, event) {
-    debt.nit_digito = String(event.target.value).replace(/\D/g, '').slice(-1);
-    event.target.value = debt.nit_digito;
-    scheduleDueLookup(debt);
+function onNitInput(event) {
+    form.nit_digito = String(event.target.value).replace(/\D/g, '').slice(-1);
+    event.target.value = form.nit_digito;
+    form.deudas.forEach(scheduleDueLookup);
 }
+
+// IVA, IT y RC-IVA vencen según el último dígito del NIT; el IUE no depende de él.
+const NIT_DEPENDENT = ['IVA', 'IT', 'RC-IVA'];
+const hasPeriod = (debt) => /^\d{4}-\d{2}$/.test(debt.periodo);
+const needsNit = (debt) => NIT_DEPENDENT.includes(debt.impuesto) && form.nit_digito === '';
+// Alguna deuda espera el NIT para llenar su fecha: se resalta el campo.
+const nitMissing = computed(() => form.deudas.some((d) => hasPeriod(d) && needsNit(d) && !d.fecha_vencimiento));
 
 function onDueDateInput(debt) {
     // Lo que escribe la persona gana a una búsqueda que todavía no volvió.
@@ -72,8 +81,9 @@ function onDueDateInput(debt) {
     debt.dueSuggested = false;
 }
 
-// Vencimiento sugerido según el calendario del SIN (solo con el último dígito del NIT).
-// Igual que la página original: al cambiar impuesto, periodo o NIT, la fecha se reemplaza.
+// Vencimiento sugerido según el calendario del SIN (solo con el último dígito del NIT;
+// el IUE no lo necesita). Igual que la página original: al cambiar impuesto, periodo o
+// NIT, la fecha se reemplaza.
 // Cada búsqueda lleva un número; si la persona cambia algo antes de que vuelva la
 // respuesta, esa respuesta vieja se descarta (si no, podía quedar la fecha de otro periodo).
 const lookupTimers = new Map();
@@ -86,16 +96,17 @@ function cancelDueLookup(debt) {
 
 function scheduleDueLookup(debt) {
     cancelDueLookup(debt);
-    if (debt.impuesto === 'Otro' || !/^\d{4}-\d{2}$/.test(debt.periodo) || !/^\d$/.test(debt.nit_digito)) return;
+    if (debt.impuesto === 'Otro' || !hasPeriod(debt) || needsNit(debt)) return;
     const seq = debt.lookupSeq;
     debt.dueLookup = 'loading';
     lookupTimers.set(debt.key, setTimeout(() => lookupDueDate(debt, seq), 300));
 }
 
-async function lookupDueDate(debt, seq) {
+async function lookupDueDate(debt, seq, attempt = 1) {
     try {
         const { data } = await axios.get(props.dueDateUrl, {
-            params: { impuesto: debt.impuesto, periodo: debt.periodo, nit_digito: debt.nit_digito },
+            // Para el IUE el dígito no cambia la fecha: si no hay NIT se manda 0.
+            params: { impuesto: debt.impuesto, periodo: debt.periodo, nit_digito: form.nit_digito === '' ? 0 : form.nit_digito },
         });
         if (seq !== debt.lookupSeq) return;
         if (data.data?.date) {
@@ -105,8 +116,17 @@ async function lookupDueDate(debt, seq) {
         } else {
             debt.dueLookup = 'none';
         }
-    } catch {
-        if (seq === debt.lookupSeq) debt.dueLookup = 'error';
+    } catch (e) {
+        if (seq !== debt.lookupSeq) return;
+        const status = e.response?.status;
+        // Un corte o un error del servidor: se reintenta una vez antes de rendirse.
+        if (attempt === 1 && (!status || status >= 500)) {
+            lookupTimers.set(debt.key, setTimeout(() => lookupDueDate(debt, seq, 2), 600));
+            return;
+        }
+        // La fecha que queda es la anterior: ya no se presenta como "según el calendario".
+        debt.dueSuggested = false;
+        debt.dueLookup = 'error';
     }
 }
 
@@ -220,11 +240,34 @@ function openBreakdown(index) {
             </div>
 
             <div class="space-y-5 p-5">
-                <div>
-                    <label for="tr-request-date" class="block text-sm font-medium text-foreground">Fecha en que pagarías o pedirías el plan</label>
-                    <input id="tr-request-date" v-model="form.fecha_solicitud" type="date" class="mt-1.5 block w-full rounded-lg border-border bg-background text-sm text-foreground focus:border-primary focus:ring-primary" :aria-invalid="!!err('fecha_solicitud')" />
-                    <p v-if="err('fecha_solicitud')" class="mt-1 text-xs text-rose-600 dark:text-rose-400">{{ err('fecha_solicitud') }}</p>
+                <div class="grid grid-cols-[1fr_7.5rem] items-end gap-3">
+                    <div>
+                        <label for="tr-request-date" class="block text-sm font-medium text-foreground">Fecha en que pagarías o pedirías el plan</label>
+                        <input id="tr-request-date" v-model="form.fecha_solicitud" type="date" class="mt-1.5 block w-full rounded-lg border-border bg-background text-sm text-foreground focus:border-primary focus:ring-primary" :aria-invalid="!!err('fecha_solicitud')" />
+                    </div>
+                    <div>
+                        <label for="tr-nit" class="block text-sm font-medium text-foreground">Último dígito de tu NIT</label>
+                        <input
+                            id="tr-nit"
+                            :value="form.nit_digito"
+                            type="text"
+                            inputmode="numeric"
+                            maxlength="1"
+                            autocomplete="off"
+                            placeholder="0 a 9"
+                            aria-describedby="tr-nit-help"
+                            class="mt-1.5 block w-full rounded-lg bg-background text-center text-sm text-foreground focus:border-primary focus:ring-primary"
+                            :class="nitMissing ? 'border-amber-500 ring-2 ring-amber-400/40' : 'border-border'"
+                            @input="onNitInput($event)"
+                        />
+                    </div>
                 </div>
+                <p v-if="err('fecha_solicitud')" class="-mt-3 text-xs text-rose-600 dark:text-rose-400">{{ err('fecha_solicitud') }}</p>
+                <p id="tr-nit-help" class="-mt-3 text-[11px] leading-snug" :class="nitMissing ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-muted'" aria-live="polite">
+                    {{ nitMissing
+                        ? 'Escribe el último dígito de tu NIT para que la fecha de vencimiento se llene sola.'
+                        : 'Con este dígito llenamos la fecha de vencimiento según el calendario del SIN. Solo usamos ese dígito.' }}
+                </p>
 
                 <!-- Deudas -->
                 <fieldset v-for="(debt, i) in form.deudas" :key="debt.key" class="rounded-brand border border-border bg-background/60 p-4">
@@ -254,12 +297,16 @@ function openBreakdown(index) {
                             <p v-if="err(`deudas.${i}.periodo`)" class="mt-1 text-xs text-rose-600 dark:text-rose-400">{{ err(`deudas.${i}.periodo`) }}</p>
                         </div>
                         <div>
-                            <label :for="`tr-nit-${debt.key}`" class="block text-xs font-medium text-foreground">Último dígito del NIT</label>
-                            <input :id="`tr-nit-${debt.key}`" :value="debt.nit_digito" type="text" inputmode="numeric" maxlength="1" autocomplete="off" placeholder="Opcional" class="mt-1 block w-full rounded-lg border-border bg-surface text-sm text-foreground focus:border-primary focus:ring-primary" :disabled="debt.impuesto === 'Otro'" @input="onNitInput(debt, $event)" />
-                        </div>
-                        <div>
                             <label :for="`tr-due-${debt.key}`" class="block text-xs font-medium text-foreground">Fecha de vencimiento</label>
                             <input :id="`tr-due-${debt.key}`" v-model="debt.fecha_vencimiento" type="date" :max="form.fecha_solicitud || undefined" class="mt-1 block w-full rounded-lg border-border bg-surface text-sm text-foreground focus:border-primary focus:ring-primary" :aria-invalid="!!err(`deudas.${i}.fecha_vencimiento`)" @input="onDueDateInput(debt)" />
+                        </div>
+                        <div>
+                            <label :for="`tr-amount-${debt.key}`" class="block text-xs font-medium text-foreground">Tributo omitido</label>
+                            <div class="relative mt-1">
+                                <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-sm text-muted">Bs</span>
+                                <input :id="`tr-amount-${debt.key}`" v-model="debt.tributo_omitido" type="text" inputmode="decimal" placeholder="10.000" autocomplete="off" class="block w-full rounded-lg border-border bg-surface ps-10 text-sm text-foreground tabular-nums focus:border-primary focus:ring-primary" :aria-invalid="!!err(`deudas.${i}.tributo_omitido`)" />
+                            </div>
+                            <p v-if="err(`deudas.${i}.tributo_omitido`)" class="mt-1 text-xs text-rose-600 dark:text-rose-400">{{ err(`deudas.${i}.tributo_omitido`) }}</p>
                         </div>
                     </div>
                     <p class="mt-1.5 min-h-[1rem] text-[11px] leading-snug" aria-live="polite">
@@ -267,18 +314,11 @@ function openBreakdown(index) {
                         <span v-else-if="debt.dueLookup === 'loading'" class="text-muted">Buscando la fecha en el calendario del SIN…</span>
                         <span v-else-if="debt.dueSuggested" class="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400"><CalendarCheck class="h-3 w-3" aria-hidden="true" /> Fecha según el calendario del SIN</span>
                         <span v-else-if="debt.dueLookup === 'none'" class="text-muted">No encontramos la fecha: escríbela tú.</span>
-                        <span v-else-if="debt.dueLookup === 'error'" class="text-muted">No pudimos buscar la fecha ahora: escríbela tú.</span>
-                        <span v-else-if="debt.impuesto !== 'Otro'" class="text-muted">Con el último dígito del NIT te sugerimos la fecha. Solo usamos ese dígito.</span>
+                        <span v-else-if="debt.dueLookup === 'error'" class="font-medium text-amber-700 dark:text-amber-400">No pudimos buscar la fecha ahora: revísala o escríbela tú.</span>
+                        <span v-else-if="debt.impuesto === 'Otro'" class="text-muted">Para «Otro» no hay calendario: escribe la fecha de vencimiento.</span>
+                        <span v-else-if="hasPeriod(debt) && needsNit(debt) && !debt.fecha_vencimiento" class="font-medium text-amber-700 dark:text-amber-400">Falta el último dígito de tu NIT (arriba) para llenar esta fecha.</span>
+                        <span v-else-if="!hasPeriod(debt)" class="text-muted">Elige el periodo y la fecha de vencimiento se llena sola.</span>
                     </p>
-
-                    <div class="mt-2">
-                        <label :for="`tr-amount-${debt.key}`" class="block text-xs font-medium text-foreground">Tributo omitido (lo que no se pagó)</label>
-                        <div class="relative mt-1">
-                            <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-sm text-muted">Bs</span>
-                            <input :id="`tr-amount-${debt.key}`" v-model="debt.tributo_omitido" type="text" inputmode="decimal" placeholder="10.000" autocomplete="off" class="block w-full rounded-lg border-border bg-surface ps-10 text-sm text-foreground tabular-nums focus:border-primary focus:ring-primary" :aria-invalid="!!err(`deudas.${i}.tributo_omitido`)" />
-                        </div>
-                        <p v-if="err(`deudas.${i}.tributo_omitido`)" class="mt-1 text-xs text-rose-600 dark:text-rose-400">{{ err(`deudas.${i}.tributo_omitido`) }}</p>
-                    </div>
                 </fieldset>
 
                 <button
