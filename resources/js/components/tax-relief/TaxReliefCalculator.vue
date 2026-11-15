@@ -189,6 +189,8 @@ const sums = computed(() => {
     return { tax: total('omitted_tax'), adjustment: total('value_adjustment'), interest: total('interest'), eligibleTax };
 });
 
+const installmentsLabel = (n) => (n === 1 ? '1 cuota' : `${n} cuotas`);
+
 // El resultado en pantalla ya no corresponde a lo que dice el formulario.
 const isStale = computed(() => !!plan.value && !!sentRequest.value
     && JSON.stringify(buildPayload()) !== JSON.stringify(sentRequest.value));
@@ -316,7 +318,8 @@ function openBreakdown(index) {
                     </label>
                     <input id="tr-installments" v-model.number="form.cuotas" type="range" min="1" :max="sliderMax" class="mt-2 w-full h-1.5 cursor-pointer appearance-none rounded-lg bg-border accent-primary" @change="onInstallmentsChange" />
                     <p class="mt-1 text-[11px] text-muted">
-                        <template v-if="plan && sliderMax < maxInstallments">Hasta {{ sliderMax }}: cada cuota debe ser de al menos {{ bs(plan.min_installment_bs) }}.</template>
+                        <template v-if="plan && sliderMax === 1">Solo alcanza para 1 cuota: cada cuota debe ser de al menos {{ bs(plan.min_installment_bs) }}.</template>
+                        <template v-else-if="plan && sliderMax < maxInstallments">Hasta {{ sliderMax }}: cada cuota debe ser de al menos {{ bs(plan.min_installment_bs) }}.</template>
                         <template v-else>Hasta {{ sliderMax }} cuotas mensuales.</template>
                     </p>
                 </div>
@@ -362,10 +365,12 @@ function openBreakdown(index) {
             <div v-if="plan" class="space-y-5 motion-safe:transition-opacity" :class="isStale && 'opacity-50'">
                 <!-- Todo perdonado -->
                 <div v-if="allForgiven" class="rounded-brand border border-emerald-600/30 bg-emerald-500/10 p-6 sm:p-8">
-                    <h2 class="font-serif text-2xl leading-tight text-foreground">No pagas nada: la ley perdona estas deudas completas</h2>
+                    <h2 class="font-serif text-2xl leading-tight text-foreground">
+                        No pagas nada: la ley perdona {{ plan.debts.length === 1 ? 'esta deuda completa' : 'estas deudas completas' }}
+                    </h2>
                     <p class="mt-2 text-sm leading-relaxed text-muted">
                         Sin la ley deberías {{ bs(plan.total_without_relief) }}. La ley perdona al 100% las deudas de ciertos periodos,
-                        y las tuyas están entre ellas.
+                        y {{ plan.debts.length === 1 ? 'la tuya está' : 'las tuyas están' }} entre ellas.
                     </p>
                 </div>
 
@@ -404,7 +409,7 @@ function openBreakdown(index) {
                         <!-- En cuotas -->
                         <div>
                             <div class="flex items-baseline justify-between text-sm">
-                                <span class="font-medium text-primary">En {{ plan.installments }} cuotas, sumando todo</span>
+                                <span class="font-medium text-primary">En {{ installmentsLabel(plan.installments) }}, sumando todo</span>
                                 <span class="tabular-nums font-semibold text-primary">{{ bs(plan.plan_final_total) }}</span>
                             </div>
                             <div class="mt-1.5 flex h-3.5 overflow-hidden rounded-full bg-border/50" role="img" :aria-label="`En cuotas: ${bs(plan.plan_final_total)}`">
@@ -451,7 +456,9 @@ function openBreakdown(index) {
                     <article class="rounded-brand border border-primary/30 bg-surface p-5">
                         <h3 class="font-semibold text-foreground">En cuotas</h3>
                         <p class="mt-1 font-serif text-3xl text-primary tabular-nums">{{ bs(plan.plan_base) }}</p>
-                        <p class="text-xs text-muted">al empezar, en {{ plan.installments }} cuotas de unos {{ bs(plan.average_installment) }}</p>
+                        <p class="text-xs text-muted">
+                            al empezar, {{ plan.installments === 1 ? `en 1 cuota de ${bs(plan.average_installment)}` : `en ${plan.installments} cuotas de unos ${bs(plan.average_installment)}` }}
+                        </p>
                         <dl class="mt-4 space-y-1.5 text-sm tabular-nums">
                             <div class="flex justify-between gap-3"><dt class="text-muted">Pago inicial ({{ decimals(plan.down_payment_pct, 0) }}%)</dt><dd class="whitespace-nowrap text-foreground">{{ bs(plan.down_payment) }}</dd></div>
                             <div class="flex justify-between gap-3">
@@ -477,8 +484,8 @@ function openBreakdown(index) {
                         @click="showSchedule = !showSchedule"
                     >
                         <span>
-                            <span class="block font-semibold text-foreground">Ver las {{ plan.schedule.length }} cuotas</span>
-                            <span class="block text-xs text-muted">Cada una vence el último día hábil del mes y sube un poco con la UFV.</span>
+                            <span class="block font-semibold text-foreground">{{ plan.schedule.length === 1 ? 'Ver la cuota' : `Ver las ${plan.schedule.length} cuotas` }}</span>
+                            <span class="block text-xs text-muted">{{ plan.schedule.length === 1 ? 'Vence' : 'Cada una vence' }} el último día hábil del mes y sube un poco con la UFV.</span>
                         </span>
                         <ChevronDown class="h-5 w-5 shrink-0 text-muted transition-transform" :class="showSchedule && 'rotate-180'" aria-hidden="true" />
                     </button>
