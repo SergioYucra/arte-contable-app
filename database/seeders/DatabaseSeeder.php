@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CoreSecuritySeeder::class,
             MvpCatalogSeeder::class,
+            QuickLinksSeeder::class,
         ]);
     }
 }
