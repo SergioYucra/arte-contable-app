@@ -24,7 +24,7 @@ const TAXES = ['IVA', 'IT', 'IUE', 'RC-IVA', 'Otro'];
 
 let nextKey = 1;
 function newDebt() {
-    return { key: nextKey++, impuesto: 'IVA', periodo: '', nit_digito: '', fecha_vencimiento: '', tributo_omitido: '', dueSuggested: false, dueLookup: '' };
+    return { key: nextKey++, impuesto: 'IVA', periodo: '', nit_digito: '', fecha_vencimiento: '', tributo_omitido: '', dueSuggested: false, dueLookup: '', lookupSeq: 0 };
 }
 
 const form = reactive({
@@ -67,37 +67,51 @@ function onNitInput(debt, event) {
 }
 
 function onDueDateInput(debt) {
+    // Lo que escribe la persona gana a una búsqueda que todavía no volvió.
+    cancelDueLookup(debt);
     debt.dueSuggested = false;
 }
 
 // Vencimiento sugerido según el calendario del SIN (solo con el último dígito del NIT).
+// Igual que la página original: al cambiar impuesto, periodo o NIT, la fecha se reemplaza.
+// Cada búsqueda lleva un número; si la persona cambia algo antes de que vuelva la
+// respuesta, esa respuesta vieja se descarta (si no, podía quedar la fecha de otro periodo).
 const lookupTimers = new Map();
-function scheduleDueLookup(debt) {
+
+function cancelDueLookup(debt) {
     clearTimeout(lookupTimers.get(debt.key));
+    debt.lookupSeq += 1;
     debt.dueLookup = '';
-    if (debt.impuesto === 'Otro' || !/^\d{4}-\d{2}$/.test(debt.periodo) || !/^\d$/.test(debt.nit_digito)) return;
-    lookupTimers.set(debt.key, setTimeout(() => lookupDueDate(debt), 400));
 }
 
-async function lookupDueDate(debt) {
+function scheduleDueLookup(debt) {
+    cancelDueLookup(debt);
+    if (debt.impuesto === 'Otro' || !/^\d{4}-\d{2}$/.test(debt.periodo) || !/^\d$/.test(debt.nit_digito)) return;
+    const seq = debt.lookupSeq;
     debt.dueLookup = 'loading';
+    lookupTimers.set(debt.key, setTimeout(() => lookupDueDate(debt, seq), 300));
+}
+
+async function lookupDueDate(debt, seq) {
     try {
         const { data } = await axios.get(props.dueDateUrl, {
             params: { impuesto: debt.impuesto, periodo: debt.periodo, nit_digito: debt.nit_digito },
         });
+        if (seq !== debt.lookupSeq) return;
         if (data.data?.date) {
-            if (!debt.fecha_vencimiento || debt.dueSuggested) {
-                debt.fecha_vencimiento = data.data.date;
-                debt.dueSuggested = true;
-            }
+            debt.fecha_vencimiento = data.data.date;
+            debt.dueSuggested = true;
             debt.dueLookup = '';
         } else {
             debt.dueLookup = 'none';
         }
     } catch {
-        debt.dueLookup = 'error';
+        if (seq === debt.lookupSeq) debt.dueLookup = 'error';
     }
 }
+
+// Mientras se busca una fecha no se calcula: se usaría la fecha anterior.
+const lookingUpDueDate = computed(() => form.deudas.some((d) => d.dueLookup === 'loading'));
 
 function buildPayload() {
     return {
@@ -115,7 +129,7 @@ function buildPayload() {
 }
 
 async function calculate({ scroll = true } = {}) {
-    if (loading.value) return;
+    if (loading.value || lookingUpDueDate.value) return;
     loading.value = true;
     errorMessage.value = '';
     errorDetail.value = '';
@@ -310,10 +324,10 @@ function openBreakdown(index) {
                 <button
                     type="submit"
                     class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
-                    :disabled="loading"
+                    :disabled="loading || lookingUpDueDate"
                 >
-                    <Loader2 v-if="loading" class="h-4 w-4 animate-spin" aria-hidden="true" />
-                    {{ loading ? 'Calculando…' : 'Calcular' }}
+                    <Loader2 v-if="loading || lookingUpDueDate" class="h-4 w-4 animate-spin" aria-hidden="true" />
+                    {{ loading ? 'Calculando…' : lookingUpDueDate ? 'Buscando la fecha…' : 'Calcular' }}
                 </button>
             </div>
         </form>
