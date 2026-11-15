@@ -10,6 +10,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\MembershipService;
 use App\Services\SubscriptionStorageService;
+use App\Support\HumanDate;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -111,10 +112,16 @@ class MembershipController extends Controller
 
         $uploaded = $this->storageService->storePaymentProof($request->file('proof_file'));
 
+        // El monto se fija al enviar el comprobante: con precio especial vigente, se registra ese precio
+        // y el nombre de la promoción, para que quien revisa sepa con qué precio se pagó.
+        $amount = $plan->currentPrice();
+        $specialLabel = $plan->hasActiveSpecialPrice() ? ($plan->special_label ?: 'Precio especial') : null;
+
         $paymentRequest = PaymentRequest::create([
             'user_id' => $request->user()->id,
             'subscription_plan_id' => $plan->id,
-            'amount' => $plan->price,
+            'amount' => $amount,
+            'special_price_label' => $specialLabel,
             'reference_text' => ! empty($validated['student_notes']) ? trim($validated['student_notes']) : "Pago QR {$plan->name}",
             'proof_vault_path' => $uploaded['path'],
             'status' => PaymentRequest::STATUS_PENDING,
@@ -126,9 +133,10 @@ class MembershipController extends Controller
             ->withProperties([
                 'plan_id' => $plan->id,
                 'plan_name' => $plan->name,
-                'amount' => $plan->price,
+                'amount' => $amount,
+                'special_price_label' => $specialLabel,
             ])
-            ->log("El alumno '{$request->user()->name}' envió comprobante para '{$plan->name}' ({$plan->price} BOB)");
+            ->log("El alumno '{$request->user()->name}' envió comprobante para '{$plan->name}' ({$amount} BOB)");
 
         $paymentRequest->load('plan');
 
@@ -285,14 +293,24 @@ class MembershipController extends Controller
      */
     private function formatPlan(SubscriptionPlan $plan): array
     {
+        // price, price_formatted y qr_image_url son siempre los de "ahora": con precio especial vigente
+        // la vista existente ya muestra el monto y el QR correctos sin cambios.
+        $special = $plan->hasActiveSpecialPrice();
+        $format = fn (float $value) => number_format($value, 2, '.', ',').' BOB';
+
         return [
             'id' => $plan->id,
             'name' => $plan->name,
-            'price' => (float) $plan->price,
-            'price_formatted' => number_format((float) $plan->price, 2, '.', ',').' BOB',
+            'price' => $plan->currentPrice(),
+            'price_formatted' => $format($plan->currentPrice()),
             'duration_days' => (int) $plan->duration_days,
             'description' => $plan->description ?? '',
-            'qr_image_url' => $plan->qr_image_url,
+            'qr_image_url' => $plan->currentQrImageUrl(),
+            'special' => $special ? [
+                'label' => $plan->special_label ?: 'Precio especial',
+                'regular_price_formatted' => $format((float) $plan->price),
+                'ends_label' => HumanDate::long($plan->special_ends_at),
+            ] : null,
         ];
     }
 

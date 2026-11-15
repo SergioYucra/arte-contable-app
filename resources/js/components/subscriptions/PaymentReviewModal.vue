@@ -147,6 +147,9 @@ async function reject() {
                     <div>
                         <dt class="text-xs text-muted">Monto</dt>
                         <dd class="font-serif text-2xl text-foreground tabular-nums">{{ payment.amount_formatted }}</dd>
+                        <dd v-if="payment.special_price_label" class="text-xs text-amber-800 dark:text-amber-300">
+                            Pagó con precio especial: {{ payment.special_price_label }}
+                        </dd>
                     </div>
                     <div v-if="payment.student_note">
                         <dt class="text-xs text-muted">Nota de la persona</dt>

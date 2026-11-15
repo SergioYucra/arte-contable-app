@@ -167,22 +167,23 @@ class SubscriptionAdminController extends Controller
     {
         $validated = $this->validatePlanPayload($request);
 
-        $qrPath = null;
-        if ($request->hasFile('qr_image')) {
-            $qrPath = $this->storageService->storePlanQr($request->file('qr_image'));
-        }
+        $qrPath = $request->hasFile('qr_image') ? $this->storageService->storePlanQr($request->file('qr_image')) : null;
+        $specialQrPath = $validated['special_enabled'] && $request->hasFile('special_qr_image')
+            ? $this->storageService->storePlanQr($request->file('special_qr_image'))
+            : null;
 
         try {
-            $plan = DB::transaction(function () use ($validated, $qrPath, $request): SubscriptionPlan {
+            $plan = DB::transaction(function () use ($validated, $qrPath, $specialQrPath, $request): SubscriptionPlan {
                 $created = SubscriptionPlan::create([
                     'name' => $validated['name'],
                     'price' => $validated['price'],
                     'duration_days' => $validated['duration_days'],
                     'qr_image_path' => $qrPath,
+                    'special_qr_image_path' => $specialQrPath,
                     'description' => $validated['description'],
                     'is_active' => $validated['is_active'],
                     'sort_order' => $validated['sort_order'],
-                ]);
+                ] + $validated['special']);
 
                 activity('subscription_plans')
                     ->causedBy($request->user())
@@ -192,9 +193,8 @@ class SubscriptionAdminController extends Controller
                 return $created;
             });
         } catch (\Throwable $e) {
-            if ($qrPath !== null) {
-                $this->storageService->deletePlanQr($qrPath);
-            }
+            $this->storageService->deletePlanQr($qrPath);
+            $this->storageService->deletePlanQr($specialQrPath);
             throw $e;
         }
 
@@ -213,19 +213,20 @@ class SubscriptionAdminController extends Controller
         $plan = SubscriptionPlan::withTrashed()->findOrFail($id);
         $validated = $this->validatePlanPayload($request, $plan->id);
 
+        // QR normal: se reemplaza, se quita o se deja como está.
         $oldQrPath = $plan->qr_image_path;
-        $newQrPath = null;
-        $deleteOldQr = false;
+        $newQrPath = $request->hasFile('qr_image') ? $this->storageService->storePlanQr($request->file('qr_image')) : null;
+        $dropOldQr = $newQrPath !== null || $validated['remove_qr'];
 
-        if ($request->hasFile('qr_image')) {
-            $newQrPath = $this->storageService->storePlanQr($request->file('qr_image'));
-            $deleteOldQr = true;
-        } elseif ($validated['remove_qr']) {
-            $deleteOldQr = true;
-        }
+        // QR del precio especial: además se borra si se desactiva el precio especial.
+        $oldSpecialQrPath = $plan->special_qr_image_path;
+        $newSpecialQrPath = $validated['special_enabled'] && $request->hasFile('special_qr_image')
+            ? $this->storageService->storePlanQr($request->file('special_qr_image'))
+            : null;
+        $dropOldSpecialQr = $newSpecialQrPath !== null || $validated['remove_special_qr'] || ! $validated['special_enabled'];
 
         try {
-            DB::transaction(function () use ($plan, $validated, $newQrPath, $request): void {
+            DB::transaction(function () use ($plan, $validated, $newQrPath, $dropOldQr, $newSpecialQrPath, $dropOldSpecialQr, $request): void {
                 $attributes = [
                     'name' => $validated['name'],
                     'price' => $validated['price'],
@@ -233,12 +234,13 @@ class SubscriptionAdminController extends Controller
                     'description' => $validated['description'],
                     'is_active' => $validated['is_active'],
                     'sort_order' => $validated['sort_order'],
-                ];
+                ] + $validated['special'];
 
-                if ($newQrPath !== null) {
+                if ($dropOldQr) {
                     $attributes['qr_image_path'] = $newQrPath;
-                } elseif ($validated['remove_qr']) {
-                    $attributes['qr_image_path'] = null;
+                }
+                if ($dropOldSpecialQr) {
+                    $attributes['special_qr_image_path'] = $newSpecialQrPath;
                 }
 
                 $plan->update($attributes);
@@ -249,14 +251,16 @@ class SubscriptionAdminController extends Controller
                     ->log("Plan '{$plan->name}' actualizado ({$plan->price} BOB)");
             });
         } catch (\Throwable $e) {
-            if ($newQrPath !== null) {
-                $this->storageService->deletePlanQr($newQrPath);
-            }
+            $this->storageService->deletePlanQr($newQrPath);
+            $this->storageService->deletePlanQr($newSpecialQrPath);
             throw $e;
         }
 
-        if ($deleteOldQr && $oldQrPath !== $newQrPath) {
+        if ($dropOldQr && $oldQrPath !== $newQrPath) {
             $this->storageService->deletePlanQr($oldQrPath);
+        }
+        if ($dropOldSpecialQr && $oldSpecialQrPath !== $newSpecialQrPath) {
+            $this->storageService->deletePlanQr($oldSpecialQrPath);
         }
 
         return response()->json([
@@ -632,7 +636,17 @@ class SubscriptionAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => filter_var($request->input('is_active', true), FILTER_VALIDATE_BOOLEAN),
             'remove_qr' => filter_var($request->input('remove_qr', false), FILTER_VALIDATE_BOOLEAN),
+            'special_enabled' => filter_var($request->input('special_enabled', false), FILTER_VALIDATE_BOOLEAN),
+            'remove_special_qr' => filter_var($request->input('remove_special_qr', false), FILTER_VALIDATE_BOOLEAN),
         ]);
+
+        $specialRules = $request->boolean('special_enabled') ? [
+            'special_price' => ['required', 'numeric', 'min:1', 'lt:price'],
+            'special_label' => ['nullable', 'string', 'max:60'],
+            'special_starts_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
+            'special_ends_at' => ['required', 'date_format:Y-m-d\TH:i'],
+            'special_qr_image' => ['nullable', 'file', 'mimetypes:image/webp,image/jpeg,image/png', 'mimes:webp,jpg,jpeg,png', 'max:2048'],
+        ] : [];
 
         $validated = $request->validate([
             'name' => [
@@ -650,7 +664,9 @@ class SubscriptionAdminController extends Controller
             'sort_order' => ['required', 'integer', 'min:0', 'max:999'],
             'remove_qr' => ['required', 'boolean'],
             'qr_image' => ['nullable', 'file', 'mimetypes:image/webp,image/jpeg,image/png', 'mimes:webp,jpg,jpeg,png', 'max:2048'],
-        ], [
+            'special_enabled' => ['required', 'boolean'],
+            'remove_special_qr' => ['required', 'boolean'],
+        ] + $specialRules, [
             'name.required' => 'Ingresa el nombre del plan.',
             'name.unique' => 'Ya existe un plan con ese mismo nombre.',
             'price.required' => 'Indica el precio del plan en Bolivianos.',
@@ -658,7 +674,49 @@ class SubscriptionAdminController extends Controller
             'duration_days.required' => 'Indica los días de duración del plan.',
             'qr_image.mimetypes' => 'La imagen del QR debe estar en formato WebP, JPG o PNG.',
             'qr_image.max' => 'La imagen del QR no debe superar los 2 MB.',
+            'special_price.required' => 'Escribe el precio especial.',
+            'special_price.min' => 'El precio especial debe ser de al menos Bs 1.',
+            'special_price.lt' => 'El precio especial tiene que ser menor que el precio normal.',
+            'special_ends_at.required' => 'Elige hasta cuándo dura el precio especial.',
+            'special_ends_at.date_format' => 'La fecha de fin no es válida.',
+            'special_starts_at.date_format' => 'La fecha de inicio no es válida.',
+            'special_qr_image.mimetypes' => 'El QR del precio especial debe ser WebP, JPG o PNG.',
+            'special_qr_image.max' => 'El QR del precio especial no debe superar los 2 MB.',
         ]);
+
+        // Las fechas llegan en hora de Bolivia (campo datetime-local) y se guardan en UTC.
+        $special = [
+            'special_price' => null,
+            'special_label' => null,
+            'special_starts_at' => null,
+            'special_ends_at' => null,
+        ];
+
+        if ($validated['special_enabled']) {
+            $startsAt = filled($validated['special_starts_at'] ?? null)
+                ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['special_starts_at'], HumanDate::TIMEZONE)->utc()
+                : null;
+            $endsAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['special_ends_at'], HumanDate::TIMEZONE)->utc();
+
+            if ($endsAt->lte(Carbon::now())) {
+                throw ValidationException::withMessages([
+                    'special_ends_at' => 'Esa fecha ya pasó. Elige una fecha futura o desactiva el precio especial.',
+                ]);
+            }
+            if ($startsAt !== null && $startsAt->gte($endsAt)) {
+                throw ValidationException::withMessages([
+                    'special_starts_at' => 'El inicio tiene que ser antes del fin.',
+                ]);
+            }
+
+            $label = trim((string) ($validated['special_label'] ?? ''));
+            $special = [
+                'special_price' => (float) $validated['special_price'],
+                'special_label' => $label !== '' ? $label : null,
+                'special_starts_at' => $startsAt,
+                'special_ends_at' => $endsAt,
+            ];
+        }
 
         return [
             'name' => (string) $validated['name'],
@@ -668,6 +726,9 @@ class SubscriptionAdminController extends Controller
             'is_active' => (bool) $validated['is_active'],
             'sort_order' => (int) $validated['sort_order'],
             'remove_qr' => (bool) $validated['remove_qr'],
+            'special_enabled' => (bool) $validated['special_enabled'],
+            'remove_special_qr' => (bool) $validated['remove_special_qr'],
+            'special' => $special,
         ];
     }
 
@@ -688,11 +749,39 @@ class SubscriptionAdminController extends Controller
             'is_active' => (bool) $plan->is_active,
             'sort_order' => (int) $plan->sort_order,
             'is_archived' => $plan->trashed(),
+            'special' => $this->formatSpecialPrice($plan),
             'active_subscriptions_count' => (int) ($plan->active_subscriptions_count ?? 0),
             'pending_requests_count' => (int) ($plan->pending_requests_count ?? 0),
             'update_url' => route('admin.subscriptions.plans.update', $plan->id),
             'destroy_url' => route('admin.subscriptions.plans.destroy', $plan->id),
             'restore_url' => route('admin.subscriptions.plans.restore', $plan->id),
+        ];
+    }
+
+    /**
+     * Precio especial del plan para el panel: estado, textos y valores para rellenar el formulario.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function formatSpecialPrice(SubscriptionPlan $plan): ?array
+    {
+        $status = $plan->specialPriceStatus();
+        if ($status === SubscriptionPlan::SPECIAL_NONE) {
+            return null;
+        }
+
+        $toInput = fn ($date) => $date?->copy()->setTimezone(HumanDate::TIMEZONE)->format('Y-m-d\TH:i');
+
+        return [
+            'status' => $status,
+            'price' => (float) $plan->special_price,
+            'price_formatted' => HumanDate::money((float) $plan->special_price),
+            'label' => $plan->special_label ?? '',
+            'starts_label' => HumanDate::long($plan->special_starts_at),
+            'ends_label' => HumanDate::dateTime($plan->special_ends_at),
+            'starts_at_input' => $toInput($plan->special_starts_at),
+            'ends_at_input' => $toInput($plan->special_ends_at),
+            'qr_image_url' => $plan->special_qr_image_url,
         ];
     }
 
@@ -732,6 +821,7 @@ class SubscriptionAdminController extends Controller
             ] : null,
             'amount' => (float) $request->amount,
             'amount_formatted' => HumanDate::money((float) $request->amount),
+            'special_price_label' => $request->special_price_label,
             'student_note' => $studentNote,
             'status' => $request->status,
             'status_label' => match ($request->status) {

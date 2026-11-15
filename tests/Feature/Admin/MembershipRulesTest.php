@@ -260,7 +260,8 @@ class MembershipRulesTest extends TestCase
 
     public function test_migration_backfills_history_for_existing_subscriptions(): void
     {
-        $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+        // Deshace el precio especial y el historial (las dos últimas migraciones) para crear datos "de antes".
+        $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
 
         $student = User::factory()->create();
         $payment = PaymentRequest::factory()->approved()->create(['user_id' => $student->id, 'reviewed_by' => $this->admin->id]);

@@ -82,6 +82,7 @@ const statusStyle = {
                         <p class="mt-2 text-sm text-foreground">
                             <span class="font-semibold">{{ payment.plan?.name || 'Sin plan' }}</span>
                             <span class="text-muted"> · {{ payment.amount_formatted }}</span>
+                            <span v-if="payment.special_price_label" class="text-amber-800 dark:text-amber-300"> ({{ payment.special_price_label }})</span>
                             <span v-if="payment.plan" class="text-muted"> · {{ payment.plan.duration_label }}</span>
                         </p>
                         <p v-if="payment.student_note" class="mt-1 text-sm text-muted line-clamp-2">

@@ -520,9 +520,15 @@ function toggleExtendPlans() {
                                     </span>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-background border border-border flex items-baseline gap-2">
-                                    <span class="text-2xl sm:text-3xl font-black text-foreground">{{ plan.price_formatted }}</span>
-                                    <span class="text-xs text-muted">/ +{{ plan.duration_days }} días acumulados</span>
+                                <div class="p-3 rounded-xl bg-background border border-border space-y-1">
+                                    <p v-if="plan.special" class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                        {{ plan.special.label }} · hasta el {{ plan.special.ends_label }}
+                                    </p>
+                                    <div class="flex flex-wrap items-baseline gap-x-2">
+                                        <span class="text-2xl sm:text-3xl font-black text-foreground">{{ plan.price_formatted }}</span>
+                                        <s v-if="plan.special" class="text-sm text-muted">{{ plan.special.regular_price_formatted }}</s>
+                                        <span class="text-xs text-muted">/ +{{ plan.duration_days }} días acumulados</span>
+                                    </div>
                                 </div>
 
                                 <p class="text-xs text-muted leading-relaxed">
@@ -823,10 +829,14 @@ function toggleExtendPlans() {
                             </div>
 
                             <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-background border border-border space-y-1">
+                                <p v-if="plan.special" class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                    {{ plan.special.label }} · hasta el {{ plan.special.ends_label }}
+                                </p>
                                 <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                                     <span class="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
                                         {{ plan.price_formatted }}
                                     </span>
+                                    <s v-if="plan.special" class="text-sm text-muted">{{ plan.special.regular_price_formatted }}</s>
                                     <span class="text-xs text-muted font-medium">
                                         / {{ plan.duration_days }} días
                                     </span>
@@ -1098,6 +1108,9 @@ function toggleExtendPlans() {
                     </div>
                     <div class="text-left sm:text-right">
                         <div class="text-2xl font-black text-primary">{{ selectedPlanForPayment.price_formatted }}</div>
+                        <p v-if="selectedPlanForPayment.special" class="text-xs text-muted">
+                            Antes <s>{{ selectedPlanForPayment.special.regular_price_formatted }}</s> · {{ selectedPlanForPayment.special.label }} hasta el {{ selectedPlanForPayment.special.ends_label }}
+                        </p>
                         <span class="text-[10px] text-muted font-medium">Pago único en moneda nacional</span>
                     </div>
                 </div>

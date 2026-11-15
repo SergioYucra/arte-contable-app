@@ -97,6 +97,28 @@ async function restore(plan) {
 
                 <p v-if="plan.description" class="text-sm text-muted">{{ plan.description }}</p>
 
+                <div
+                    v-if="plan.special && plan.special.status !== 'ended'"
+                    class="rounded-brand border border-gold/60 bg-gold/10 p-3 text-sm space-y-1"
+                >
+                    <p class="font-semibold text-foreground">
+                        {{ plan.special.status === 'active' ? 'Precio especial vigente' : 'Precio especial programado' }}:
+                        <span class="font-serif text-base tabular-nums">{{ plan.special.price_formatted }}</span>
+                        <span v-if="plan.special.label" class="font-normal text-foreground/75"> · {{ plan.special.label }}</span>
+                    </p>
+                    <p class="text-foreground/75">
+                        <template v-if="plan.special.status === 'scheduled'">Empieza el {{ plan.special.starts_label }} · </template>
+                        Termina el {{ plan.special.ends_label }}
+                    </p>
+                    <p v-if="!plan.special.qr_image_url" class="text-amber-800 dark:text-amber-300 inline-flex items-center gap-1.5">
+                        <AlertTriangle class="h-4 w-4 shrink-0" aria-hidden="true" />
+                        Falta el QR del precio especial
+                    </p>
+                </div>
+                <p v-else-if="plan.special?.status === 'ended'" class="text-xs text-muted">
+                    El precio especial terminó el {{ plan.special.ends_label }}.
+                </p>
+
                 <div class="flex items-center gap-3 rounded-brand bg-background border border-border p-3">
                     <div class="h-14 w-14 rounded-lg bg-white border border-border flex items-center justify-center overflow-hidden shrink-0">
                         <img v-if="plan.qr_image_url" :src="plan.qr_image_url" :alt="`QR de pago de ${plan.name}`" width="56" height="56" class="h-full w-full object-contain" />

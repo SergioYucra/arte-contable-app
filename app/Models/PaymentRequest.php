@@ -28,6 +28,7 @@ class PaymentRequest extends Model
         'user_id',
         'subscription_plan_id',
         'amount',
+        'special_price_label',
         'reference_text',
         'proof_vault_path',
         'status',
