@@ -462,32 +462,33 @@ function openBreakdown(index) {
                             <table class="w-full text-sm tabular-nums">
                                 <thead class="bg-background text-xs text-muted">
                                     <tr>
-                                        <th scope="col" class="px-4 py-2 text-left font-medium">N.º</th>
-                                        <th scope="col" class="px-4 py-2 text-left font-medium">Vence</th>
-                                        <th scope="col" class="px-4 py-2 text-right font-medium">Cuota</th>
-                                        <th scope="col" class="px-4 py-2 text-right font-medium">Capital</th>
-                                        <th scope="col" class="px-4 py-2 text-right font-medium">Subida UFV</th>
-                                        <th scope="col" class="px-4 py-2 text-right font-medium">Interés</th>
+                                        <th scope="col" class="px-3 py-2 text-left font-medium">N.º</th>
+                                        <th scope="col" class="px-3 py-2 text-left font-medium">Vence</th>
+                                        <th scope="col" class="px-3 py-2 text-right font-medium">Cuota (Bs)</th>
+                                        <th scope="col" class="px-3 py-2 text-right font-medium">Capital</th>
+                                        <th scope="col" class="px-3 py-2 text-right font-medium">Subida UFV</th>
+                                        <th scope="col" class="px-3 py-2 text-right font-medium">Interés</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border">
                                     <tr v-for="row in plan.schedule" :key="row.number">
-                                        <td class="px-4 py-2 text-muted">{{ row.number }}</td>
-                                        <td class="px-4 py-2 whitespace-nowrap text-foreground">
+                                        <td class="px-3 py-2 text-muted">{{ row.number }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-foreground">
                                             {{ shortDate(row.due_date) }}
                                             <span v-if="row.projected" class="ms-1 rounded bg-gold/25 px-1.5 py-0.5 text-[10px] text-foreground" title="Usa una UFV estimada">estimada</span>
                                             <span v-else-if="row.overdue" class="ms-1 rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] text-rose-700 dark:text-rose-300">ya venció</span>
                                         </td>
-                                        <td class="px-4 py-2 text-right font-semibold text-foreground">{{ bs(row.total) }}</td>
-                                        <td class="px-4 py-2 text-right text-muted">{{ bs(row.capital) }}</td>
-                                        <td class="px-4 py-2 text-right text-muted">{{ bs(row.value_adjustment) }}</td>
-                                        <td class="px-4 py-2 text-right text-muted">{{ bs(row.interest) }}</td>
+                                        <!-- Sin "Bs" en cada celda (va en el encabezado) para que las cifras no se partan en dos líneas. -->
+                                        <td class="px-3 py-2 text-right whitespace-nowrap font-semibold text-foreground">{{ decimals(row.total) }}</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap text-muted">{{ decimals(row.capital) }}</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap text-muted">{{ decimals(row.value_adjustment) }}</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap text-muted">{{ decimals(row.interest) }}</td>
                                     </tr>
                                 </tbody>
                                 <tfoot class="bg-background font-semibold text-foreground">
                                     <tr>
-                                        <td colspan="2" class="px-4 py-2">Total de las cuotas</td>
-                                        <td class="px-4 py-2 text-right">{{ bs(plan.schedule_total) }}</td>
+                                        <td colspan="2" class="px-3 py-2">Total de las cuotas</td>
+                                        <td class="px-3 py-2 text-right whitespace-nowrap">{{ decimals(plan.schedule_total) }}</td>
                                         <td colspan="3"></td>
                                     </tr>
                                 </tfoot>
