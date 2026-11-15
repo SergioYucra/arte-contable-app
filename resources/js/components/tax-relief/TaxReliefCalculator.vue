@@ -125,11 +125,11 @@ async function calculate({ scroll = true } = {}) {
     try {
         const { data } = await axios.post(props.calculateUrl, payload);
         plan.value = data.data;
-        sentRequest.value = payload;
         // Mostrar siempre las cuotas con las que REALMENTE se calculó.
         if (plan.value.eligible_count > 0 && plan.value.installments !== Number(form.cuotas)) {
             form.cuotas = plan.value.installments;
         }
+        sentRequest.value = { ...payload, cuotas: Number(form.cuotas) };
         if (scroll) {
             await nextTick();
             const top = resultsRef.value?.getBoundingClientRect().top ?? 0;
@@ -145,9 +145,11 @@ async function calculate({ scroll = true } = {}) {
             errorMessage.value = 'Revisa los datos marcados en rojo.';
         } else if (status === 419 || status === 401) {
             errorMessage.value = 'Tu sesión expiró. Recarga la página para seguir calculando.';
+        } else if (!e.response) {
+            errorMessage.value = 'No hay conexión con el sistema. Revisa tu internet y vuelve a calcular.';
         } else {
-            errorMessage.value = e.response?.data?.message || 'No se pudo calcular. Revisa tu conexión e intenta de nuevo.';
-            errorDetail.value = e.response?.data?.detail || '';
+            errorMessage.value = e.response.data?.message || 'El sistema tuvo un problema al calcular. Intenta de nuevo en unos minutos.';
+            errorDetail.value = e.response.data?.detail || '';
         }
     } finally {
         loading.value = false;
@@ -172,6 +174,10 @@ const sums = computed(() => {
     const eligibleTax = debts.filter((d) => d.treatment !== 'condonado').reduce((acc, d) => acc + (Number(d.omitted_tax) || 0), 0);
     return { tax: total('omitted_tax'), adjustment: total('value_adjustment'), interest: total('interest'), eligibleTax };
 });
+
+// El resultado en pantalla ya no corresponde a lo que dice el formulario.
+const isStale = computed(() => !!plan.value && !!sentRequest.value
+    && JSON.stringify(buildPayload()) !== JSON.stringify(sentRequest.value));
 
 const allForgiven = computed(() => plan.value && plan.value.eligible_count === 0);
 const scaleMax = computed(() => Math.max(1, plan.value?.total_without_relief ?? 0, plan.value?.plan_final_total ?? 0));
@@ -237,14 +243,15 @@ function openBreakdown(index) {
                         </div>
                         <div>
                             <label :for="`tr-due-${debt.key}`" class="block text-xs font-medium text-foreground">Fecha de vencimiento</label>
-                            <input :id="`tr-due-${debt.key}`" v-model="debt.fecha_vencimiento" type="date" class="mt-1 block w-full rounded-lg border-border bg-surface text-sm text-foreground focus:border-primary focus:ring-primary" :aria-invalid="!!err(`deudas.${i}.fecha_vencimiento`)" @input="onDueDateInput(debt)" />
+                            <input :id="`tr-due-${debt.key}`" v-model="debt.fecha_vencimiento" type="date" :max="form.fecha_solicitud || undefined" class="mt-1 block w-full rounded-lg border-border bg-surface text-sm text-foreground focus:border-primary focus:ring-primary" :aria-invalid="!!err(`deudas.${i}.fecha_vencimiento`)" @input="onDueDateInput(debt)" />
                         </div>
                     </div>
                     <p class="mt-1.5 min-h-[1rem] text-[11px] leading-snug" aria-live="polite">
                         <span v-if="err(`deudas.${i}.fecha_vencimiento`)" class="text-rose-600 dark:text-rose-400">{{ err(`deudas.${i}.fecha_vencimiento`) }}</span>
                         <span v-else-if="debt.dueLookup === 'loading'" class="text-muted">Buscando la fecha en el calendario del SIN…</span>
                         <span v-else-if="debt.dueSuggested" class="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400"><CalendarCheck class="h-3 w-3" aria-hidden="true" /> Fecha según el calendario del SIN</span>
-                        <span v-else-if="debt.dueLookup === 'none' || debt.dueLookup === 'error'" class="text-muted">No encontramos la fecha: escríbela tú.</span>
+                        <span v-else-if="debt.dueLookup === 'none'" class="text-muted">No encontramos la fecha: escríbela tú.</span>
+                        <span v-else-if="debt.dueLookup === 'error'" class="text-muted">No pudimos buscar la fecha ahora: escríbela tú.</span>
                         <span v-else-if="debt.impuesto !== 'Otro'" class="text-muted">Con el último dígito del NIT te sugerimos la fecha. Solo usamos ese dígito.</span>
                     </p>
 
@@ -334,7 +341,11 @@ function openBreakdown(index) {
                 <p class="mt-5 text-sm text-muted">Completa los datos de tu deuda y presiona <strong class="text-foreground">Calcular</strong> para ver cuánto pagarías en cada caso.</p>
             </div>
 
-            <template v-else>
+            <BaseAlert v-if="isStale && !loading" type="warning" title="Cambiaste los datos">
+                Lo que ves abajo es del cálculo anterior. Presiona <strong class="text-foreground">Calcular</strong> para actualizarlo.
+            </BaseAlert>
+
+            <div v-if="plan" class="space-y-5 motion-safe:transition-opacity" :class="isStale && 'opacity-50'">
                 <!-- Todo perdonado -->
                 <div v-if="allForgiven" class="rounded-brand border border-emerald-600/30 bg-emerald-500/10 p-6 sm:p-8">
                     <h2 class="font-serif text-2xl leading-tight text-foreground">No pagas nada: la ley perdona estas deudas completas</h2>
@@ -529,7 +540,7 @@ function openBreakdown(index) {
                     <a href="https://boliviaimpuestos.com/maletin/fap-alivio.php" target="_blank" rel="noopener noreferrer" class="text-primary underline-offset-2 hover:underline">boliviaimpuestos.com</a>.
                     El monto oficial te lo da el SIN al momento de pagar.
                 </p>
-            </template>
+            </div>
         </section>
 
         <DebtBreakdown
