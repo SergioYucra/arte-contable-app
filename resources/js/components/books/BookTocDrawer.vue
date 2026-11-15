@@ -11,9 +11,11 @@ import {
     Play,
     Search,
     Sparkles,
+    StickyNote,
     Unlock,
     X,
 } from 'lucide-vue-next';
+import StudyNotebookPanel from '../notes/StudyNotebookPanel.vue';
 
 const props = defineProps({
     modelValue: {
@@ -36,11 +38,32 @@ const props = defineProps({
         type: String,
         default: '/membresia',
     },
+    initialTab: {
+        type: String,
+        default: 'toc',
+    },
 });
 
-const emit = defineEmits(['update:modelValue', 'open-reader']);
+const emit = defineEmits(['update:modelValue', 'open-reader', 'notes-count-changed']);
 
 const tocSearch = ref('');
+const activeTab = ref('toc');
+
+const hasNotesAccess = computed(() => {
+    if (typeof props.edition?.can_access_notes === 'boolean') {
+        return props.edition.can_access_notes;
+    }
+    return Boolean(props.hasActiveMembership);
+});
+
+function handleJumpToNotePage(page) {
+    emit('open-reader', {
+        book: props.book,
+        edition: props.edition,
+        page: Math.max(1, Number(page || 1)),
+    });
+    closeDrawer();
+}
 
 function closeDrawer() {
     emit('update:modelValue', false);
@@ -57,6 +80,7 @@ watch(
     (isOpen) => {
         if (isOpen) {
             tocSearch.value = '';
+            activeTab.value = props.initialTab === 'notes' ? 'notes' : 'toc';
             document.body.classList.add('overflow-hidden');
         } else {
             document.body.classList.remove('overflow-hidden');
@@ -222,8 +246,58 @@ function handleSelectChapter(item) {
                             </button>
                         </div>
 
-                        <!-- Buscador interno y resumen de acceso -->
-                        <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900">
+                        <!-- Pestañas: Índice Temático | Mi cuaderno -->
+                        <div
+                            class="px-5 pt-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 bg-slate-50/40 dark:bg-slate-950/30 shrink-0"
+                            role="tablist"
+                        >
+                            <button
+                                type="button"
+                                role="tab"
+                                :aria-selected="activeTab === 'toc'"
+                                class="inline-flex items-center gap-1.5 border-b-2 px-3 pb-2.5 text-xs font-semibold transition-colors"
+                                :class="
+                                    activeTab === 'toc'
+                                        ? 'border-sky-500 text-sky-600 dark:text-sky-400'
+                                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                                "
+                                @click="activeTab = 'toc'"
+                            >
+                                <ListTree class="h-3.5 w-3.5" />
+                                <span>Índice Temático</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                role="tab"
+                                :aria-selected="activeTab === 'notes'"
+                                class="inline-flex items-center gap-1.5 border-b-2 px-3 pb-2.5 text-xs font-semibold transition-colors"
+                                :class="
+                                    activeTab === 'notes'
+                                        ? 'border-sky-500 text-sky-600 dark:text-sky-400'
+                                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                                "
+                                @click="activeTab = 'notes'"
+                            >
+                                <StickyNote class="h-3.5 w-3.5" />
+                                <span>Mi cuaderno</span>
+                                <Lock
+                                    v-if="!hasNotesAccess"
+                                    class="h-3 w-3 text-amber-500"
+                                />
+                                <span
+                                    v-else-if="edition?.notes_count > 0"
+                                    class="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 dark:text-sky-400 leading-none"
+                                >
+                                    {{ edition.notes_count }}
+                                </span>
+                            </button>
+                        </div>
+
+                        <!-- Pestaña 1: Índice Temático -->
+                        <template v-if="activeTab === 'toc'">
+                            <!-- Buscador interno y resumen de acceso -->
+                            <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900">
                             <div class="relative">
                                 <Search class="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <input
@@ -325,6 +399,23 @@ function handleSelectChapter(item) {
                                     }}
                                 </p>
                             </div>
+                        </div>
+                        </template>
+
+                        <!-- Pestaña 2: Mi cuaderno (StudyNotebookPanel) -->
+                        <div v-else-if="edition" class="flex-1 min-h-0 flex flex-col overflow-hidden">
+                            <StudyNotebookPanel
+                                :edition-id="edition.id"
+                                :current-page="edition.last_page > 0 ? edition.last_page : 0"
+                                :total-pages="totalPages || 1"
+                                :has-active-subscription="hasNotesAccess"
+                                :membership-url="membershipUrl"
+                                :notes-index-url="edition.notes_index_url || ''"
+                                :notes-store-url="edition.notes_store_url || ''"
+                                theme="surface"
+                                @jump-to-page="handleJumpToNotePage"
+                                @notes-count-changed="(payload) => emit('notes-count-changed', payload)"
+                            />
                         </div>
 
                         <!-- Footer con CTA Paywall-Aware -->

@@ -137,11 +137,14 @@ class User extends Authenticatable implements MustVerifyEmail
      * Si la relación 'subscriptions' ya está cargada en memoria, evalúa la colección
      * para evitar consultas N+1 en listados administrativos.
      */
-    public function hasActiveSubscription(): bool
+    public function hasActiveSubscription(?int $editionId = null): bool
     {
         if ($this->relationLoaded('subscriptions')) {
             return $this->subscriptions->contains(
                 fn (Subscription $subscription): bool => $subscription->isActive()
+                    && ($editionId === null
+                        || $subscription->book_edition_id === null
+                        || (int) $subscription->book_edition_id === $editionId)
             );
         }
 
@@ -151,7 +154,22 @@ class User extends Authenticatable implements MustVerifyEmail
             ->where('status', Subscription::STATUS_ACTIVE)
             ->where('starts_at', '<=', $now)
             ->where('expires_at', '>', $now)
+            ->when($editionId !== null, fn ($query) => $query->where(
+                fn ($scoped) => $scoped->whereNull('book_edition_id')->orWhere('book_edition_id', $editionId)
+            ))
             ->exists();
+    }
+
+    /**
+     * Candado del Cuaderno de Estudio: solo staff (SuperAdmin/Admin) o miembros con días vigentes.
+     *
+     * Se mantiene separado de hasActiveSubscription() para no alterar el estado de membresía
+     * mostrado en dashboard/listados (un Admin sin suscripción no es "miembro activo").
+     */
+    public function canAccessStudyNotes(int $editionId): bool
+    {
+        return $this->hasAnyRole('SuperAdmin', 'Admin')
+            || $this->hasActiveSubscription($editionId);
     }
 
     /**

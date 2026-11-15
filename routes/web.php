@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\LibraryController;
 use App\Http\Controllers\Student\MembershipController;
+use App\Http\Controllers\Student\StudyNoteController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -59,6 +60,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('edition')
         ->middleware('throttle:60,1')
         ->name('library.editions.progress');
+
+    // Cuaderno de Estudio (candado por membresía vigente en StudyNotePolicy)
+    Route::get('/biblioteca/ediciones/{edition}/apuntes', [StudyNoteController::class, 'index'])
+        ->whereNumber('edition')
+        ->middleware('throttle:60,1')
+        ->name('library.notes.index');
+    Route::post('/biblioteca/ediciones/{edition}/apuntes', [StudyNoteController::class, 'store'])
+        ->whereNumber('edition')
+        ->middleware('throttle:30,1')
+        ->name('library.notes.store');
+    Route::put('/biblioteca/apuntes/{note}', [StudyNoteController::class, 'update'])
+        ->whereNumber('note')
+        ->middleware('throttle:120,1')
+        ->name('library.notes.update');
+    Route::delete('/biblioteca/apuntes/{note}', [StudyNoteController::class, 'destroy'])
+        ->whereNumber('note')
+        ->middleware('throttle:30,1')
+        ->name('library.notes.destroy');
 
     Route::get('/membresia', [MembershipController::class, 'index'])->name('membership.index');
     Route::post('/membresia/pago', [MembershipController::class, 'storePayment'])->middleware('throttle:10,1')->name('membership.payment.store');

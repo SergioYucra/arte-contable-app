@@ -17,15 +17,12 @@ import {
     Lock,
     Maximize2,
     Minimize2,
-    Moon,
     Play,
     RefreshCw,
     Search,
     Shrink,
     Sparkles,
     StickyNote,
-    Sun,
-    Sunset,
     Unlock,
     X,
     ZoomIn,
@@ -34,6 +31,7 @@ import {
 import BookCard from './books/BookCard.vue';
 import BookTocDrawer from './books/BookTocDrawer.vue';
 import LibrarySkeleton from './books/LibrarySkeleton.vue';
+import StudyNotebookPanel from './notes/StudyNotebookPanel.vue';
 import BaseToast from './ui/BaseToast.vue';
 
 /**
@@ -273,10 +271,15 @@ const readerEdition = ref(null);
 const currentPage = ref(1);
 const zoomLevel = ref(100);
 const isFitToPage = ref(true);
-const readerBackdropMode = ref('night'); // 'night' | 'sepia' | 'day'
+// Sincronización automática con el tema del sistema/aplicación (claro / oscuro)
+const isSystemDark = ref(
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+);
+const isDayReader = computed(() => !isSystemDark.value);
 const isFullscreen = ref(false);
 const readerScrollContainer = ref(null);
 const isReaderTocOpen = ref(true);
+const isReaderNotebookOpen = ref(false);
 const isPageLoading = ref(false);
 const pageLoadError = ref(false);
 const isSavingProgress = ref(false);
@@ -407,6 +410,26 @@ const isPaywallGatePage = computed(() => {
     return currentPage.value > sample;
 });
 
+const readerHasNotesAccess = computed(() => {
+    if (!readerEdition.value) return false;
+    if (typeof readerEdition.value.can_access_notes === 'boolean') {
+        return readerEdition.value.can_access_notes;
+    }
+    return hasActiveMembership.value;
+});
+
+function handleNotesCountChanged({ editionId, count }) {
+    for (const book of catalogBooks.value) {
+        const ed = book.editions.find((e) => Number(e.id) === Number(editionId));
+        if (ed) {
+            ed.notes_count = Number(count);
+        }
+    }
+    if (continueReadingState.value && Number(continueReadingState.value.edition_id) === Number(editionId)) {
+        continueReadingState.value.notes_count = Number(count);
+    }
+}
+
 const currentReaderPageUrl = computed(() => {
     if (!readerEdition.value || isPaywallGatePage.value) return '';
     const template =
@@ -514,6 +537,7 @@ function closeReader() {
     isFullscreen.value = false;
     isReaderOpen.value = false;
     isReaderTocOpen.value = false;
+    isReaderNotebookOpen.value = false;
     document.body.classList.remove('overflow-hidden');
 }
 
@@ -624,8 +648,25 @@ function handleReaderKeydown(event) {
     }
 }
 
+let themeObserver = null;
+
+function syncSystemTheme() {
+    if (typeof document !== 'undefined') {
+        isSystemDark.value = document.documentElement.classList.contains('dark');
+    }
+}
+
 onMounted(() => {
     window.addEventListener('keydown', handleReaderKeydown);
+    syncSystemTheme();
+
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+        themeObserver = new MutationObserver(syncSystemTheme);
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+    }
 
     const autoOpen = props.initialOpenReader;
     if (autoOpen && autoOpen.edition_id) {
@@ -644,6 +685,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleReaderKeydown);
+    themeObserver?.disconnect();
+    themeObserver = null;
     document.body.classList.remove('overflow-hidden');
 });
 </script>
@@ -977,6 +1020,7 @@ onBeforeUnmount(() => {
             :has-active-membership="hasActiveMembership"
             :membership-url="membershipUrl"
             @open-reader="openReader"
+            @notes-count-changed="handleNotesCountChanged"
         />
 
         <!-- ===============================================================
@@ -993,27 +1037,43 @@ onBeforeUnmount(() => {
             >
                 <div
                     v-if="isReaderOpen && readerBook && readerEdition"
-                    class="fixed inset-0 z-50 bg-slate-950 text-slate-100 flex flex-col select-none"
+                    class="fixed inset-0 z-50 flex flex-col select-none transition-colors duration-200"
+                    :class="isDayReader ? 'bg-slate-100 text-slate-900' : 'bg-slate-950 text-slate-100'"
                     role="dialog"
                     aria-modal="true"
                     :aria-label="`Modo Estudio: ${readerBook.title}`"
                     @contextmenu.prevent
                 >
                     <!-- Barra superior continua de progreso del libro -->
-                    <div class="h-1 w-full bg-slate-800 shrink-0 overflow-hidden">
+                    <div
+                        class="h-1 w-full shrink-0 overflow-hidden"
+                        :class="isDayReader ? 'bg-slate-200' : 'bg-slate-800'"
+                    >
                         <div
-                            class="h-full bg-sky-400 transition-all duration-300"
+                            class="h-full bg-sky-500 transition-all duration-300"
                             :style="{ width: `${readerProgressPercent}%` }"
                         />
                     </div>
 
                     <!-- Cabecera Profesional de Estudio -->
-                    <header class="h-14 sm:h-16 px-3 sm:px-5 border-b border-slate-800/90 bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 shrink-0">
+                    <header
+                        class="h-14 sm:h-16 px-3 sm:px-5 border-b backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 shrink-0 transition-colors duration-200"
+                        :class="
+                            isDayReader
+                                ? 'border-slate-200 bg-white/95 text-slate-900'
+                                : 'border-slate-800/90 bg-slate-900/95 text-slate-100'
+                        "
+                    >
                         <!-- Izquierda: Volver + Título + Capítulo Actual -->
-                        <div class="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-800/90 hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors shrink-0"
+                                class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0"
+                                :class="
+                                    isDayReader
+                                        ? 'border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                        : 'border-slate-700/80 bg-slate-800/90 hover:bg-slate-800 text-slate-200'
+                                "
                                 @click="closeReader"
                             >
                                 <ChevronLeft class="h-4 w-4" />
@@ -1025,26 +1085,73 @@ onBeforeUnmount(() => {
                                 class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0"
                                 :class="
                                     isReaderTocOpen
-                                        ? 'border-sky-500/40 bg-sky-500/15 text-sky-300'
-                                        : 'border-slate-700/80 bg-slate-800/90 hover:bg-slate-800 text-slate-200'
+                                        ? isDayReader
+                                            ? 'border-sky-300 bg-sky-50 text-sky-700'
+                                            : 'border-sky-500/40 bg-sky-500/15 text-sky-300'
+                                        : isDayReader
+                                          ? 'border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                          : 'border-slate-700/80 bg-slate-800/90 hover:bg-slate-800 text-slate-200'
                                 "
                                 title="Mostrar u ocultar temario del libro"
                                 @click="isReaderTocOpen = !isReaderTocOpen"
                             >
-                                <ListTree class="h-4 w-4 text-sky-400" />
+                                <ListTree class="h-4 w-4" :class="isDayReader ? 'text-sky-600' : 'text-sky-400'" />
                                 <span class="hidden md:inline">Temario</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors shrink-0"
+                                :class="
+                                    isReaderNotebookOpen
+                                        ? isDayReader
+                                            ? 'border-sky-300 bg-sky-50 text-sky-700'
+                                            : 'border-sky-500/40 bg-sky-500/15 text-sky-300'
+                                        : isDayReader
+                                          ? 'border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                          : 'border-slate-700/80 bg-slate-800/90 hover:bg-slate-800 text-slate-200'
+                                "
+                                title="Abrir o cerrar Cuaderno de Estudio"
+                                @click="isReaderNotebookOpen = !isReaderNotebookOpen"
+                            >
+                                <StickyNote class="h-4 w-4" :class="isDayReader ? 'text-sky-600' : 'text-sky-400'" />
+                                <span class="hidden md:inline">Mi cuaderno</span>
+                                <Lock
+                                    v-if="!readerHasNotesAccess"
+                                    class="h-3 w-3 text-amber-500"
+                                />
+                                <span
+                                    v-else-if="readerEdition.notes_count > 0"
+                                    class="rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none"
+                                    :class="isDayReader ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'"
+                                >
+                                    {{ readerEdition.notes_count }}
+                                </span>
                             </button>
 
                             <div class="min-w-0 hidden sm:block">
                                 <div class="flex items-center gap-2">
-                                    <h3 class="text-xs sm:text-sm font-bold text-white truncate max-w-[220px] xl:max-w-xs">
+                                    <h3
+                                        class="text-xs sm:text-sm font-bold truncate max-w-[220px] xl:max-w-xs"
+                                        :class="isDayReader ? 'text-slate-900' : 'text-white'"
+                                    >
                                         {{ readerBook.title }}
                                     </h3>
-                                    <span class="rounded-md bg-slate-800 border border-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-300 shrink-0">
+                                    <span
+                                        class="rounded-md border px-1.5 py-0.5 text-[10px] font-medium shrink-0"
+                                        :class="
+                                            isDayReader
+                                                ? 'bg-slate-100 border-slate-200 text-slate-600'
+                                                : 'bg-slate-800 border-slate-700 text-slate-300'
+                                        "
+                                    >
                                         {{ readerEdition.edition_name }}
                                     </span>
                                 </div>
-                                <p class="text-[11px] text-slate-400 truncate">
+                                <p
+                                    class="text-[11px] truncate"
+                                    :class="isDayReader ? 'text-slate-500' : 'text-slate-400'"
+                                >
                                     <template v-if="activeReaderChapter">
                                         {{ activeReaderChapter.title }}
                                     </template>
@@ -1058,31 +1165,55 @@ onBeforeUnmount(() => {
                         <!-- Centro: Salto directo de página + Modo de Ajuste + Zoom -->
                         <div class="flex items-center gap-2">
                             <!-- Input directo de página -->
-                            <div class="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1 text-xs">
-                                <span class="text-slate-400 hidden xs:inline">Pág.</span>
+                            <div
+                                class="flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs"
+                                :class="
+                                    isDayReader
+                                        ? 'border-slate-200 bg-slate-50 text-slate-700'
+                                        : 'border-slate-800 bg-slate-950 text-slate-200'
+                                "
+                            >
+                                <span
+                                    class="hidden xs:inline"
+                                    :class="isDayReader ? 'text-slate-500' : 'text-slate-400'"
+                                >
+                                    Pág.
+                                </span>
                                 <input
                                     :value="Math.min(currentPage, readerEdition.total_pages)"
                                     type="number"
                                     min="1"
                                     :max="maxNavigablePage"
                                     aria-label="Ir a la página"
-                                    class="w-12 rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-center text-xs font-bold text-white focus:border-sky-400 focus:outline-none"
+                                    class="w-12 rounded-md border px-1.5 py-0.5 text-center text-xs font-bold focus:border-sky-500 focus:outline-none"
+                                    :class="
+                                        isDayReader
+                                            ? 'border-slate-300 bg-white text-slate-900'
+                                            : 'border-slate-700 bg-slate-900 text-white'
+                                    "
                                     @change="goToReaderPage($event.target.value)"
                                 />
-                                <span class="text-slate-400">
+                                <span :class="isDayReader ? 'text-slate-500' : 'text-slate-400'">
                                     / {{ readerEdition.total_pages }}
                                 </span>
                             </div>
 
                             <!-- Botones de modo de encaje (Página entera vs Ancho de lectura) y Zoom -->
-                            <div class="hidden lg:flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-950 p-1">
+                            <div
+                                class="hidden lg:flex items-center gap-1 rounded-xl border p-1"
+                                :class="isDayReader ? 'border-slate-200 bg-slate-100' : 'border-slate-800 bg-slate-950'"
+                            >
                                 <button
                                     type="button"
                                     class="rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors"
                                     :class="
                                         isFitToPage
-                                            ? 'bg-sky-500 text-slate-950 shadow-xs'
-                                            : 'text-slate-400 hover:text-white'
+                                            ? isDayReader
+                                                ? 'bg-sky-600 text-white shadow-xs'
+                                                : 'bg-sky-500 text-slate-950 shadow-xs'
+                                            : isDayReader
+                                              ? 'text-slate-600 hover:text-slate-900'
+                                              : 'text-slate-400 hover:text-white'
                                     "
                                     title="Ver la hoja completa sin recortes"
                                     @click="setReaderFitMode(true)"
@@ -1094,8 +1225,12 @@ onBeforeUnmount(() => {
                                     class="rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors"
                                     :class="
                                         !isFitToPage
-                                            ? 'bg-sky-500 text-slate-950 shadow-xs'
-                                            : 'text-slate-400 hover:text-white'
+                                            ? isDayReader
+                                                ? 'bg-sky-600 text-white shadow-xs'
+                                                : 'bg-sky-500 text-slate-950 shadow-xs'
+                                            : isDayReader
+                                              ? 'text-slate-600 hover:text-slate-900'
+                                              : 'text-slate-400 hover:text-white'
                                     "
                                     title="Expandir al ancho para lectura detallada"
                                     @click="setReaderFitMode(false)"
@@ -1103,23 +1238,31 @@ onBeforeUnmount(() => {
                                     Ancho lectura
                                 </button>
 
-                                <div class="h-4 w-px bg-slate-800 mx-1" />
+                                <div
+                                    class="h-4 w-px mx-1"
+                                    :class="isDayReader ? 'bg-slate-300' : 'bg-slate-800'"
+                                />
 
                                 <button
                                     type="button"
-                                    class="p-1 text-slate-400 hover:text-white disabled:opacity-40"
+                                    class="p-1 disabled:opacity-40"
+                                    :class="isDayReader ? 'text-slate-500 hover:text-slate-900' : 'text-slate-400 hover:text-white'"
                                     :disabled="!isFitToPage && zoomLevel <= 70"
                                     aria-label="Reducir zoom"
                                     @click="adjustZoom(-15)"
                                 >
                                     <ZoomOut class="h-3.5 w-3.5" />
                                 </button>
-                                <span class="px-1.5 text-[11px] font-mono text-slate-300 min-w-[3rem] text-center">
+                                <span
+                                    class="px-1.5 text-[11px] font-mono min-w-[3rem] text-center"
+                                    :class="isDayReader ? 'text-slate-700' : 'text-slate-300'"
+                                >
                                     {{ isFitToPage ? 'Auto' : `${zoomLevel}%` }}
                                 </span>
                                 <button
                                     type="button"
-                                    class="p-1 text-slate-400 hover:text-white disabled:opacity-40"
+                                    class="p-1 disabled:opacity-40"
+                                    :class="isDayReader ? 'text-slate-500 hover:text-slate-900' : 'text-slate-400 hover:text-white'"
                                     :disabled="!isFitToPage && zoomLevel >= 180"
                                     aria-label="Aumentar zoom"
                                     @click="adjustZoom(15)"
@@ -1129,58 +1272,16 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
 
-                        <!-- Derecha: Ambiente de lectura (Noche / Sepia / Claro) + Fullscreen + Cerrar -->
+                        <!-- Derecha: Fullscreen + Cerrar -->
                         <div class="flex items-center gap-1.5 sm:gap-2">
-                            <!-- Selector de ambiente visual -->
-                            <div
-                                class="hidden md:flex items-center gap-0.5 rounded-xl border border-slate-800 bg-slate-950 p-1"
-                                role="group"
-                                aria-label="Ambiente de lectura"
-                            >
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-1.5 text-xs transition-colors"
-                                    :class="
-                                        readerBackdropMode === 'night'
-                                            ? 'bg-slate-800 text-sky-400'
-                                            : 'text-slate-400 hover:text-slate-200'
-                                    "
-                                    title="Ambiente Noche"
-                                    @click="readerBackdropMode = 'night'"
-                                >
-                                    <Moon class="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-1.5 text-xs transition-colors"
-                                    :class="
-                                        readerBackdropMode === 'sepia'
-                                            ? 'bg-amber-500/20 text-amber-300'
-                                            : 'text-slate-400 hover:text-slate-200'
-                                    "
-                                    title="Ambiente Cálido / Sepia (Descanso visual)"
-                                    @click="readerBackdropMode = 'sepia'"
-                                >
-                                    <Sunset class="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-lg p-1.5 text-xs transition-colors"
-                                    :class="
-                                        readerBackdropMode === 'day'
-                                            ? 'bg-slate-200 text-slate-900'
-                                            : 'text-slate-400 hover:text-slate-200'
-                                    "
-                                    title="Ambiente Estudio Claro"
-                                    @click="readerBackdropMode = 'day'"
-                                >
-                                    <Sun class="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-
                             <button
                                 type="button"
-                                class="hidden sm:inline-flex p-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                class="hidden sm:inline-flex p-2 rounded-xl border transition-colors"
+                                :class="
+                                    isDayReader
+                                        ? 'border-slate-200 bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                                        : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                                "
                                 :title="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'"
                                 @click="toggleFullscreen"
                             >
@@ -1190,7 +1291,12 @@ onBeforeUnmount(() => {
 
                             <button
                                 type="button"
-                                class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                class="p-2 rounded-xl transition-colors"
+                                :class="
+                                    isDayReader
+                                        ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                "
                                 aria-label="Cerrar lector"
                                 @click="closeReader"
                             >
@@ -1204,20 +1310,39 @@ onBeforeUnmount(() => {
                         <!-- Sidebar de Módulos / Capítulos (Estilo Curso Platzi / Perlego) -->
                         <aside
                             v-if="isReaderTocOpen"
-                            class="w-72 sm:w-80 border-r border-slate-800/90 bg-slate-900/95 flex flex-col shrink-0 z-20"
+                            class="w-72 sm:w-80 border-r flex flex-col shrink-0 z-20 transition-colors duration-200"
+                            :class="
+                                isDayReader
+                                    ? 'border-slate-200 bg-white text-slate-900'
+                                    : 'border-slate-800/90 bg-slate-900/95 text-slate-100'
+                            "
                         >
-                            <div class="p-4 border-b border-slate-800 flex items-center justify-between gap-2">
+                            <div
+                                class="p-4 border-b flex items-center justify-between gap-2"
+                                :class="isDayReader ? 'border-slate-200' : 'border-slate-800'"
+                            >
                                 <div>
-                                    <p class="text-xs font-bold uppercase tracking-wider text-sky-400">
+                                    <p
+                                        class="text-xs font-bold uppercase tracking-wider"
+                                        :class="isDayReader ? 'text-sky-600' : 'text-sky-400'"
+                                    >
                                         Contenido de la obra
                                     </p>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">
+                                    <p
+                                        class="text-[11px] mt-0.5"
+                                        :class="isDayReader ? 'text-slate-500' : 'text-slate-400'"
+                                    >
                                         Progreso general: {{ readerProgressPercent }}%
                                     </p>
                                 </div>
                                 <button
                                     type="button"
-                                    class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                                    class="p-1.5 rounded-lg transition-colors"
+                                    :class="
+                                        isDayReader
+                                            ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    "
                                     @click="isReaderTocOpen = false"
                                 >
                                     <X class="h-4 w-4" />
@@ -1233,8 +1358,12 @@ onBeforeUnmount(() => {
                                         class="w-full text-left rounded-xl p-3 text-xs flex items-start justify-between gap-2.5 border transition-all"
                                         :class="
                                             isChapterActiveInReader(ch, idx, readerEdition.toc)
-                                                ? 'bg-sky-500/15 border-sky-500/40 text-white shadow-sm'
-                                                : 'bg-slate-950/40 border-transparent text-slate-300 hover:bg-slate-800/70 hover:border-slate-800'
+                                                ? isDayReader
+                                                    ? 'bg-sky-50 border-sky-300 text-slate-900 shadow-sm'
+                                                    : 'bg-sky-500/15 border-sky-500/40 text-white shadow-sm'
+                                                : isDayReader
+                                                  ? 'bg-slate-50/70 border-transparent text-slate-700 hover:bg-slate-100 hover:border-slate-200'
+                                                  : 'bg-slate-950/40 border-transparent text-slate-300 hover:bg-slate-800/70 hover:border-slate-800'
                                         "
                                         @click="goToReaderPage(ch.page || 1)"
                                     >
@@ -1314,13 +1443,7 @@ onBeforeUnmount(() => {
                             <div
                                 ref="readerScrollContainer"
                                 class="flex-1 overflow-auto flex items-start justify-center p-2 sm:p-6 transition-colors duration-300"
-                                :class="
-                                    readerBackdropMode === 'day'
-                                        ? 'bg-slate-200/95'
-                                        : readerBackdropMode === 'sepia'
-                                          ? 'bg-stone-900'
-                                          : 'bg-[#090d16]'
-                                "
+                                :class="isDayReader ? 'bg-slate-200/95' : 'bg-[#090d16]'"
                             >
                                 <!-- Cortina de Paywall al superar las páginas de muestra gratis -->
                                 <div
@@ -1399,14 +1522,11 @@ onBeforeUnmount(() => {
                                             :key="currentReaderPageUrl"
                                             :src="currentReaderPageUrl"
                                             :alt="`${readerBook.title} - Página ${currentPage}`"
-                                            :class="[
+                                            :class="
                                                 isFitToPage
                                                     ? 'max-h-[calc(100dvh-9.25rem)] w-auto max-w-full object-contain pointer-events-none select-none block'
-                                                    : 'w-full h-auto pointer-events-none select-none block',
-                                                readerBackdropMode === 'sepia'
-                                                    ? 'sepia-[.16] brightness-[.96] contrast-[1.02]'
-                                                    : '',
-                                            ]"
+                                                    : 'w-full h-auto pointer-events-none select-none block'
+                                            "
                                             draggable="false"
                                             @load="isPageLoading = false"
                                             @error="
@@ -1418,14 +1538,52 @@ onBeforeUnmount(() => {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Panel Derecho en Pantalla Dividida: Cuaderno de Estudio -->
+                        <aside
+                            v-if="isReaderNotebookOpen && readerEdition"
+                            class="fixed inset-0 sm:static sm:inset-auto sm:w-80 lg:w-96 border-l flex flex-col shrink-0 z-30 sm:z-20 transition-colors duration-200"
+                            :class="
+                                isDayReader
+                                    ? 'border-slate-200 bg-white'
+                                    : 'border-slate-800/90 bg-slate-900/95'
+                            "
+                        >
+                            <StudyNotebookPanel
+                                :edition-id="readerEdition.id"
+                                :current-page="currentPage"
+                                :total-pages="readerEdition.total_pages || 1"
+                                :has-active-subscription="readerHasNotesAccess"
+                                :membership-url="membershipUrl"
+                                :notes-index-url="readerEdition.notes_index_url || ''"
+                                :notes-store-url="readerEdition.notes_store_url || ''"
+                                :theme="isDayReader ? 'light' : 'reader'"
+                                :show-close-button="true"
+                                @jump-to-page="goToReaderPage"
+                                @notes-count-changed="handleNotesCountChanged"
+                                @close="isReaderNotebookOpen = false"
+                            />
+                        </aside>
                     </div>
 
                     <!-- Barra Inferior con Scrubber Interactivo de Páginas -->
-                    <footer class="h-14 sm:h-16 px-4 sm:px-6 border-t border-slate-800/90 bg-slate-900/95 flex items-center justify-between gap-4 shrink-0">
+                    <footer
+                        class="h-14 sm:h-16 px-4 sm:px-6 border-t flex items-center justify-between gap-4 shrink-0 transition-colors duration-200"
+                        :class="
+                            isDayReader
+                                ? 'border-slate-200 bg-white/95 text-slate-900'
+                                : 'border-slate-800/90 bg-slate-900/95 text-slate-100'
+                        "
+                    >
                         <button
                             type="button"
                             :disabled="currentPage <= 1"
-                            class="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none px-3.5 py-2 text-xs font-semibold text-slate-200 transition shrink-0"
+                            class="inline-flex items-center gap-1.5 rounded-xl border disabled:opacity-40 disabled:pointer-events-none px-3.5 py-2 text-xs font-semibold transition shrink-0"
+                            :class="
+                                isDayReader
+                                    ? 'border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                    : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200'
+                            "
                             @click="goToReaderPage(currentPage - 1)"
                         >
                             <ChevronLeft class="h-4 w-4" />
@@ -1434,7 +1592,10 @@ onBeforeUnmount(() => {
 
                         <!-- Línea de tiempo / Scrubber de páginas -->
                         <div class="flex-1 max-w-xl flex items-center gap-3">
-                            <span class="hidden sm:inline text-[11px] font-mono text-slate-400 shrink-0">
+                            <span
+                                class="hidden sm:inline text-[11px] font-mono shrink-0"
+                                :class="isDayReader ? 'text-slate-500' : 'text-slate-400'"
+                            >
                                 Pág. {{ Math.min(currentPage, readerEdition.total_pages) }}
                             </span>
                             <input
@@ -1443,10 +1604,14 @@ onBeforeUnmount(() => {
                                 :max="maxNavigablePage"
                                 :value="currentPage"
                                 aria-label="Deslizador de páginas"
-                                class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
+                                class="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                                :class="isDayReader ? 'bg-slate-200' : 'bg-slate-800'"
                                 @input="goToReaderPage($event.target.value)"
                             />
-                            <span class="text-[11px] font-mono text-sky-400 font-semibold shrink-0">
+                            <span
+                                class="text-[11px] font-mono font-semibold shrink-0"
+                                :class="isDayReader ? 'text-sky-600' : 'text-sky-400'"
+                            >
                                 {{ readerProgressPercent }}%
                             </span>
                         </div>
@@ -1454,7 +1619,12 @@ onBeforeUnmount(() => {
                         <button
                             type="button"
                             :disabled="currentPage >= maxNavigablePage"
-                            class="inline-flex items-center gap-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:pointer-events-none px-4 py-2 text-xs font-semibold text-slate-950 transition shrink-0"
+                            class="inline-flex items-center gap-1.5 rounded-xl disabled:opacity-40 disabled:pointer-events-none px-4 py-2 text-xs font-semibold transition shrink-0"
+                            :class="
+                                isDayReader
+                                    ? 'bg-sky-600 hover:bg-sky-500 text-white'
+                                    : 'bg-sky-500 hover:bg-sky-400 text-slate-950'
+                            "
                             @click="goToReaderPage(currentPage + 1)"
                         >
                             <span class="hidden xs:inline">Siguiente</span>
