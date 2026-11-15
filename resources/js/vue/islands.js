@@ -14,8 +14,8 @@ export const ISLAND_SELECTOR = '[data-vue-island]';
 
 export const pinia = createPinia();
 
-// Registro en tiempo de compilación de todos los componentes de resources/js/components/**
-const componentModules = import.meta.glob('../components/**/*.vue', { eager: true });
+// Registro perezoso (code-splitting por isla): solo se descarga el chunk de la isla presente en la página.
+const componentLoaders = import.meta.glob('../components/**/*.vue');
 
 const componentRegistry = new Map();
 
@@ -26,12 +26,10 @@ function toKebabCase(str) {
         .toLowerCase();
 }
 
-for (const [path, module] of Object.entries(componentModules)) {
+for (const [path, loader] of Object.entries(componentLoaders)) {
     const pascalName = path.split('/').pop().replace(/\.vue$/, '');
-    if (module?.default) {
-        componentRegistry.set(pascalName, module.default);
-        componentRegistry.set(toKebabCase(pascalName), module.default);
-    }
+    componentRegistry.set(pascalName, loader);
+    componentRegistry.set(toKebabCase(pascalName), loader);
 }
 
 function parseIslandProps(el) {
@@ -59,19 +57,32 @@ export function mountVueIslands(root = document) {
         }
 
         const componentName = (el.dataset.vueIsland || '').trim();
-        const rootComponent = componentRegistry.get(componentName);
+        const loadComponent = componentRegistry.get(componentName);
 
-        if (!rootComponent) {
+        if (!loadComponent) {
             return;
         }
 
         const props = parseIslandProps(el);
 
+        // Marcar x-ignore de forma síncrona antes de Alpine.start(), aunque el chunk cargue asíncrono.
         el.setAttribute('x-ignore', '');
         el.removeAttribute('data-props');
+        el.__vue_app__ = true;
 
-        const app = createApp(rootComponent, props);
-        app.use(pinia);
-        app.mount(el);
+        loadComponent()
+            .then((module) => {
+                const rootComponent = module?.default;
+                if (!rootComponent) {
+                    return;
+                }
+                const app = createApp(rootComponent, props);
+                app.use(pinia);
+                app.mount(el);
+            })
+            .catch((error) => {
+                el.__vue_app__ = false;
+                console.error(`Error al cargar la isla "${componentName}":`, error);
+            });
     });
 }

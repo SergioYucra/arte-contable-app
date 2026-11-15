@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\StudyNote;
+use App\Policies\StudyNotePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -38,5 +40,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('SuperAdmin') ? true : null;
         });
+
+        // Cuaderno de Estudio: candado por membresía vigente (la propiedad se refuerza en el controlador).
+        Gate::policy(StudyNote::class, StudyNotePolicy::class);
     }
 }

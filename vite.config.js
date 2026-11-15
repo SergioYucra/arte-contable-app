@@ -26,4 +26,28 @@ export default defineConfig({
             '@': '/resources/js',
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) {
+                        return undefined;
+                    }
+                    if (id.includes('pdfjs-dist')) {
+                        return 'vendor-pdf';
+                    }
+                    if (id.includes('/vue/') || id.includes('/@vue/') || id.includes('/pinia/')) {
+                        return 'vendor-vue';
+                    }
+                    if (id.includes('lucide-vue-next')) {
+                        return 'vendor-icons';
+                    }
+                    if (id.includes('fuse.js') || id.includes('axios')) {
+                        return 'vendor-utils';
+                    }
+                    return undefined;
+                },
+            },
+        },
+    },
 });

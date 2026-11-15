@@ -26,6 +26,7 @@ class LibraryController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $user->loadMissing('subscriptions');
         $membership = $this->getMembershipSummary($user);
         $hasFullAccess = $membership['is_active'];
 
@@ -71,6 +72,7 @@ class LibraryController extends Controller
         $latestReadingTimestamp = null;
 
         $books = $booksCollection->map(function (Book $book) use (
+            $user,
             $readingStatesByEdition,
             $notesCountByEdition,
             $hasFullAccess,
@@ -82,6 +84,7 @@ class LibraryController extends Controller
                 : null;
 
             $formattedEditions = $book->editions->map(function (BookEdition $ed) use (
+                $user,
                 $book,
                 $coverUrl,
                 $readingStatesByEdition,
@@ -146,6 +149,9 @@ class LibraryController extends Controller
                     'current_chapter' => $currentChapter,
                     'updated_at_human' => $updatedAtHuman,
                     'notes_count' => (int) ($notesCountByEdition[$ed->id] ?? 0),
+                    'can_access_notes' => $user->canAccessStudyNotes((int) $ed->id),
+                    'notes_index_url' => route('library.notes.index', $ed->id),
+                    'notes_store_url' => route('library.notes.store', $ed->id),
                     'page_url_template' => route('library.editions.page', [
                         'edition' => $ed->id,
                         'page' => '__PAGE__',
