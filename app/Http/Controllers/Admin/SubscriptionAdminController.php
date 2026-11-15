@@ -14,6 +14,7 @@ use App\Support\HumanDate;
 use App\Support\LikePattern;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -454,12 +455,26 @@ class SubscriptionAdminController extends Controller
      */
     public function storeAccessCode(Request $request): JsonResponse
     {
+        // Código escrito a mano (ej. "2026Arte"): se guarda en mayúsculas, igual que se normaliza al canjear.
+        if (filled($request->input('custom_code'))) {
+            $request->merge(['custom_code' => strtoupper(trim((string) $request->input('custom_code')))]);
+        }
+
         $validated = $request->validate([
             // Solo planes no archivados: antes la validación los aceptaba y luego findOrFail daba 404.
             'subscription_plan_id' => ['nullable', 'integer', Rule::exists('subscription_plans', 'id')->withoutTrashed()],
             'duration_days' => ['nullable', 'integer', 'min:1', 'max:1825'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'reference' => ['nullable', 'string', 'max:255'],
+            'custom_code' => [
+                'nullable',
+                'string',
+                'min:6',
+                'max:32',
+                // Letras sin tilde, números y guiones; sin espacios ni guion al inicio o al final.
+                'regex:/^[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?$/',
+                Rule::unique('access_codes', 'code'),
+            ],
         ], [
             'subscription_plan_id.exists' => 'Ese plan está archivado o ya no existe. Elige otro o usa «Elegir los días».',
             'duration_days.min' => 'La duración mínima debe ser de al menos 1 día.',
@@ -467,7 +482,20 @@ class SubscriptionAdminController extends Controller
             'quantity.required' => 'Indica la cantidad de códigos a generar.',
             'quantity.min' => 'Debes generar al menos 1 código.',
             'quantity.max' => 'Puedes generar como máximo 100 códigos por lote.',
+            'custom_code.min' => 'El código debe tener al menos 6 caracteres.',
+            'custom_code.max' => 'El código puede tener como máximo 32 caracteres.',
+            'custom_code.regex' => 'Usa solo letras (sin tildes ni ñ), números y guiones, sin espacios.',
+            'custom_code.unique' => 'Ese código ya existe. Elige otro.',
         ]);
+
+        $customCode = $validated['custom_code'] ?? null;
+
+        // Un código escrito a mano es uno solo: repetirlo en un lote crearía duplicados.
+        if ($customCode !== null && (int) $validated['quantity'] !== 1) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Un código escrito a mano se crea de uno en uno.',
+            ]);
+        }
 
         $plan = ! empty($validated['subscription_plan_id'])
             ? SubscriptionPlan::findOrFail($validated['subscription_plan_id'])
@@ -488,34 +516,14 @@ class SubscriptionAdminController extends Controller
         $quantity = (int) $validated['quantity'];
         $reference = ! empty($validated['reference']) ? trim($validated['reference']) : null;
 
-        $createdCodes = DB::transaction(function () use ($plan, $durationDays, $quantity, $reference, $request): array {
-            $list = [];
-
-            for ($i = 0; $i < $quantity; $i++) {
-                $code = AccessCode::create([
-                    'code' => AccessCode::generateSecureCode(),
-                    'subscription_plan_id' => $plan?->id,
-                    'duration_days' => $durationDays,
-                    'reference' => $reference,
-                    'created_by' => $request->user()->id,
-                ]);
-
-                $list[] = $code;
-            }
-
-            activity('access_codes')
-                ->causedBy($request->user())
-                ->performedOn($plan ?: $request->user())
-                ->withProperties([
-                    'quantity' => $quantity,
-                    'plan' => $plan?->name ?? 'Personalizado (Sin plan)',
-                    'duration_days' => $durationDays,
-                    'reference' => $reference,
-                ])
-                ->log("Lote de {$quantity} códigos prepago generado ".($plan ? "para '{$plan->name}'" : 'personalizado')." ({$durationDays} días)");
-
-            return $list;
-        });
+        try {
+            $createdCodes = $this->createAccessCodes($plan, $durationDays, $quantity, $reference, $customCode, $request);
+        } catch (UniqueConstraintViolationException) {
+            // Otro admin (u otra pestaña) creó el mismo código entre la validación y el guardado.
+            throw ValidationException::withMessages([
+                'custom_code' => 'Ese código ya existe. Elige otro.',
+            ]);
+        }
 
         $formatted = array_map(function (AccessCode $code) use ($plan, $request) {
             if ($plan) {
@@ -539,6 +547,44 @@ class SubscriptionAdminController extends Controller
             'access_code' => $formatted[0],
             'summary' => $this->summary(),
         ], 201);
+    }
+
+    /**
+     * @return list<AccessCode>
+     */
+    private function createAccessCodes(?SubscriptionPlan $plan, int $durationDays, int $quantity, ?string $reference, ?string $customCode, Request $request): array
+    {
+        return DB::transaction(function () use ($plan, $durationDays, $quantity, $reference, $customCode, $request): array {
+            $list = [];
+
+            for ($i = 0; $i < $quantity; $i++) {
+                $code = AccessCode::create([
+                    'code' => $customCode ?? AccessCode::generateSecureCode(),
+                    'subscription_plan_id' => $plan?->id,
+                    'duration_days' => $durationDays,
+                    'reference' => $reference,
+                    'created_by' => $request->user()->id,
+                ]);
+
+                $list[] = $code;
+            }
+
+            activity('access_codes')
+                ->causedBy($request->user())
+                ->performedOn($plan ?: $request->user())
+                ->withProperties([
+                    'quantity' => $quantity,
+                    'plan' => $plan?->name ?? 'Personalizado (Sin plan)',
+                    'duration_days' => $durationDays,
+                    'reference' => $reference,
+                    'written_by_hand' => $customCode !== null,
+                ])
+                ->log($customCode !== null
+                    ? "Código '{$customCode}' escrito a mano ({$durationDays} días)"
+                    : "Lote de {$quantity} códigos prepago generado ".($plan ? "para '{$plan->name}'" : 'personalizado')." ({$durationDays} días)");
+
+            return $list;
+        });
     }
 
     /**

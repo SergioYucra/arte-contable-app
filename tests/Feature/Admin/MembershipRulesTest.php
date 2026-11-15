@@ -222,6 +222,42 @@ class MembershipRulesTest extends TestCase
             ->assertJsonPath('items.0.reference', 'Descuento 50% feria');
     }
 
+    public function test_admin_can_write_a_single_use_code_by_hand(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.subscriptions.codes.store'), ['custom_code' => ' 2026Arte ', 'duration_days' => 30, 'quantity' => 1])
+            ->assertCreated()
+            ->assertJsonPath('access_code.code', '2026ARTE');
+
+        $student = User::factory()->create();
+        $student->assignRole('User');
+        $other = User::factory()->create();
+        $other->assignRole('User');
+
+        // Se canjea sin importar mayúsculas y sirve una sola vez.
+        $this->actingAs($student)->postJson(route('membership.redeem'), ['code' => '2026arte'])->assertOk();
+        $this->actingAs($other)->postJson(route('membership.redeem'), ['code' => '2026ARTE'])->assertUnprocessable();
+
+        $this->assertTrue($student->fresh()->hasActiveSubscription());
+        $this->assertFalse($other->fresh()->hasActiveSubscription());
+    }
+
+    public function test_hand_written_code_is_validated(): void
+    {
+        AccessCode::factory()->create(['code' => '2026ARTE', 'created_by' => $this->admin->id]);
+        $store = fn (array $data) => $this->actingAs($this->admin)
+            ->postJson(route('admin.subscriptions.codes.store'), $data + ['duration_days' => 30, 'quantity' => 1]);
+
+        $store(['custom_code' => '2026arte'])->assertUnprocessable()->assertJsonValidationErrors('custom_code');
+        $store(['custom_code' => 'ARTE'])->assertUnprocessable()->assertJsonValidationErrors('custom_code');
+        $store(['custom_code' => 'ARTE 2026'])->assertUnprocessable()->assertJsonValidationErrors('custom_code');
+        $store(['custom_code' => 'AÑO-2026'])->assertUnprocessable()->assertJsonValidationErrors('custom_code');
+        $store(['custom_code' => '-ARTE2026'])->assertUnprocessable()->assertJsonValidationErrors('custom_code');
+        $store(['custom_code' => 'FERIA2026', 'quantity' => 5])->assertUnprocessable()->assertJsonValidationErrors('quantity');
+
+        $this->assertSame(1, AccessCode::count());
+    }
+
     public function test_migration_backfills_history_for_existing_subscriptions(): void
     {
         $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
