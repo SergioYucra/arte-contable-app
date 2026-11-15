@@ -71,6 +71,10 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    libraryUrl: {
+        type: String,
+        default: '/biblioteca',
+    },
 });
 
 // =========================================================================
@@ -108,18 +112,31 @@ const isSubmittingPayment = ref(false);
 // Sección de Historial desplegable
 const showHistory = ref(false);
 
-// Barra de progreso de membresía activa (base 365 días)
+// Barra de progreso de membresía activa. QA: antes dividía siempre por 365, así que un plan
+// semestral recién pagado aparecía casi a la mitad. Ahora usa la duración real de la vigencia.
 const membershipProgressPercent = computed(() => {
     if (!membership.value.is_active || !membership.value.days_remaining) return 0;
     const days = Number(membership.value.days_remaining);
-    return Math.min(100, Math.max(8, Math.round((days / 365) * 100)));
+    const total = Math.max(days, Number(membership.value.total_days) || 365);
+    return Math.min(100, Math.max(8, Math.round((days / total) * 100)));
 });
+
+// Último pago rechazado (sin otro en revisión): la persona tiene que ver el motivo para corregirlo.
+const lastRejectedRequest = computed(() => {
+    if (pendingRequest.value) return null;
+    const latest = recentRequests.value[0];
+    return latest && latest.status === 'rejected' ? latest : null;
+});
+
+// Comprobante: mismas reglas que el servidor, para avisar antes de subir.
+const PROOF_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const PROOF_MAX_BYTES = 5 * 1024 * 1024;
 
 // Acordeón de FAQs
 const faqs = ref([
     {
         q: '¿Cómo funciona la activación mediante pago por QR Simple?',
-        a: 'Seleccionas el plan deseado, abres tu aplicación bancaria móvil (BCP, Banco Unión, BNB, Mercantil, etc.), escaneas el código QR por el monto exacto y adjuntas la captura del comprobante. Nuestro equipo valida el abono y tu membresía se activa en breves minutos.',
+        a: 'Seleccionas el plan deseado, abres tu aplicación bancaria móvil (BCP, Banco Unión, BNB, Mercantil, etc.), escaneas el código QR por el monto exacto y adjuntas la captura del comprobante. El equipo revisa tu pago y, al aprobarlo, tu acceso se activa de inmediato. Si lo rechaza, verás el motivo en esta página.',
         open: false,
     },
     {
@@ -134,12 +151,12 @@ const faqs = ref([
     },
     {
         q: '¿Puedo leer en mi celular, tablet y computadora?',
-        a: 'Sí. La plataforma está optimizada para cualquier navegador web moderno (Chrome, Safari, Edge, Firefox) con diseño adaptativo, visor protegido de alta definición y sincronización de notas personales.',
+        a: 'Sí. La plataforma está optimizada para cualquier navegador web moderno (Chrome, Safari, Edge, Firefox) con diseño adaptativo y visor protegido. Tu avance de lectura se guarda en tu cuenta.',
         open: false,
     },
     {
         q: 'Compré un libro impreso, ¿dónde encuentro mi código de acceso?',
-        a: 'Los libros físicos autorizados incluyen un código PIN alfanumérico impreso en las primeras páginas de cortesía. Puedes hacer clic en el botón «Canjear código PIN» e ingresarlo para activar tu membresía digital de inmediato.',
+        a: 'Si tu libro impreso trae un código de acceso, o te lo entregó el autor, haz clic en «Canjear código PIN» e ingrésalo. Mayúsculas y minúsculas valen lo mismo. Cada código sirve una sola vez.',
         open: false,
     },
 ]);
@@ -148,16 +165,15 @@ function toggleFaq(index) {
     faqs.value[index].open = !faqs.value[index].open;
 }
 
-// Sistema Toast
-const toast = ref({
-    show: false,
-    type: 'success',
-    title: '',
-    message: '',
-});
+// Sistema Toast. QA: BaseToast espera un objeto { type, title, message } o null; antes recibía
+// un booleano y props sueltas, por eso el aviso salía vacío.
+const toast = ref(null);
+let toastTimer = null;
 
 function notify(type, title, message) {
-    toast.value = { show: true, type, title, message };
+    toast.value = { type, title, message };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast.value = null), 6000);
 }
 
 function extractErrors(err) {
@@ -197,6 +213,11 @@ function getMonthlyEquivalent(plan) {
 // CHECKOUT Y CANJE
 // =========================================================================
 function openPaymentModal(plan) {
+    // QA: con un pago en revisión se podía llenar todo el formulario y recién al final salía el rechazo.
+    if (pendingRequest.value) {
+        notify('info', 'Ya tienes un pago en revisión', 'Cuando se confirme podrás enviar otro. Mientras tanto puedes usar un código de acceso.');
+        return;
+    }
     selectedPlanForPayment.value = plan;
     revokePaymentPreview();
     paymentForm.value = {
@@ -217,8 +238,20 @@ function revokePaymentPreview() {
 }
 
 function handleProofFileChange(event) {
+    // No se limpia el campo: es "required" en el formulario y vaciarlo bloquea el envío en el navegador.
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // QA: un archivo inválido se mostraba con un ✓ verde y solo fallaba al enviar.
+    if (!PROOF_TYPES.includes(file.type)) {
+        paymentErrors.value = { proof_file: 'Elige una imagen (JPG, PNG o WebP) o un PDF.' };
+        return;
+    }
+    if (file.size > PROOF_MAX_BYTES) {
+        paymentErrors.value = { proof_file: 'El archivo pesa más de 5 MB. Envía una captura de pantalla del comprobante en lugar de una foto.' };
+        return;
+    }
+    paymentErrors.value = {};
 
     revokePaymentPreview();
     const isPdf = file.type === 'application/pdf';
@@ -296,15 +329,9 @@ async function submitRedeemCode() {
         redeemSuccessInfo.value = data.message;
         redeemCodeInput.value = '';
 
-        recentCodes.value.unshift({
-            id: Date.now(),
-            code,
-            plan_name: data.membership.plan_name,
-            duration_days: '—',
-            redeemed_at: 'Recién canjeado',
-        });
+        if (data.redeemed_code) recentCodes.value.unshift(data.redeemed_code);
 
-        notify('success', '¡Membresía activada!', data.message);
+        notify('success', 'Código canjeado', data.message);
     } catch (err) {
         const { fieldErrors, message } = extractErrors(err);
         redeemErrors.value = fieldErrors;
@@ -332,12 +359,7 @@ function toggleExtendPlans() {
 <template>
     <div class="space-y-6 w-full pb-10">
         <!-- Toast de Notificaciones -->
-        <BaseToast
-            v-model="toast.show"
-            :type="toast.type"
-            :title="toast.title"
-            :message="toast.message"
-        />
+        <BaseToast v-model="toast" />
 
         <!-- ================================================================= -->
         <!-- ALERTA DE PAGO EN REVISIÓN (Si tiene una solicitud pendiente)     -->
@@ -349,7 +371,7 @@ function toggleExtendPlans() {
             <div class="flex items-center gap-2.5 min-w-0">
                 <Clock class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" />
                 <span class="text-amber-900 dark:text-amber-200 leading-snug">
-                    <strong class="font-bold">Pago en revisión:</strong> Comprobante para <strong>{{ pendingRequest.plan_name }}</strong> ({{ pendingRequest.amount_formatted }}) enviado el {{ pendingRequest.created_at }}. En breve se confirmará tu abono.
+                    <strong class="font-bold">Pago en revisión:</strong> Comprobante para <strong>{{ pendingRequest.plan_name }}</strong> ({{ pendingRequest.amount_formatted }}) enviado el {{ pendingRequest.created_at }}. Se activa cuando el equipo lo revise.
                 </span>
             </div>
             <a
@@ -361,6 +383,34 @@ function toggleExtendPlans() {
                 <span>Ver comprobante</span>
                 <ExternalLink class="h-3 w-3" />
             </a>
+        </div>
+
+        <!-- QA: el motivo del rechazo nunca se mostraba al estudiante, aunque el panel dice que lo verá. -->
+        <div
+            v-if="lastRejectedRequest"
+            class="p-3 sm:p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/5 text-xs text-foreground"
+            role="status"
+        >
+            <strong class="font-bold">Tu último pago no fue aprobado</strong>
+            ({{ lastRejectedRequest.plan_name }}, {{ lastRejectedRequest.amount_formatted }}).
+            <span v-if="lastRejectedRequest.admin_notes">Motivo: «{{ lastRejectedRequest.admin_notes }}».</span>
+            Puedes enviar un comprobante nuevo eligiendo el plan otra vez.
+        </div>
+
+        <!-- QA: quien venció o perdió el acceso veía "Acceso Gratuito" sin explicación (lámina 14 de Max). -->
+        <div
+            v-if="!membership.is_active && membership.previous"
+            class="p-3.5 sm:p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-sm text-foreground"
+            role="status"
+        >
+            <template v-if="membership.previous.state === 'expired'">
+                <strong class="font-bold">Tu suscripción venció el {{ membership.previous.until }}.</strong>
+                Conservas tus apuntes y tu avance. Elige un plan o usa un código para seguir leyendo todo.
+            </template>
+            <template v-else>
+                <strong class="font-bold">Tu acceso fue retirado.</strong>
+                Conservas tus apuntes y tu avance. Si crees que es un error, comunícate con la administración.
+            </template>
         </div>
 
         <!-- ================================================================= -->
@@ -388,7 +438,7 @@ function toggleExtendPlans() {
                         </h2>
 
                         <p class="text-xs sm:text-sm text-muted leading-relaxed">
-                            Cuentas con la membresía <strong class="text-foreground">{{ membership.plan_name }}</strong>. Puedes consultar y estudiar todas las obras oficiales, asientos contables y apuntes sin bloqueos de páginas.
+                            Cuentas con la membresía <strong class="text-foreground">{{ membership.plan_name }}</strong>. Puedes leer todos los libros publicados sin páginas bloqueadas.
                         </p>
 
                         <!-- Barra de progreso de vigencia -->
@@ -424,7 +474,7 @@ function toggleExtendPlans() {
                         <!-- Botones de Acción Ergonómicos y Responsivos -->
                         <div class="flex flex-col gap-2 w-full">
                             <a
-                                href="/dashboard"
+                                :href="props.libraryUrl"
                                 class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[42px] sm:min-h-[44px] rounded-brand bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold shadow-xs transition-all active:scale-[0.98]"
                             >
                                 <BookOpen class="h-4 w-4 shrink-0" />
@@ -520,9 +570,15 @@ function toggleExtendPlans() {
                                     </span>
                                 </div>
 
-                                <div class="p-3 rounded-xl bg-background border border-border flex items-baseline gap-2">
-                                    <span class="text-2xl sm:text-3xl font-black text-foreground">{{ plan.price_formatted }}</span>
-                                    <span class="text-xs text-muted">/ +{{ plan.duration_days }} días acumulados</span>
+                                <div class="p-3 rounded-xl bg-background border border-border space-y-1">
+                                    <p v-if="plan.special" class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                        {{ plan.special.label }} · hasta el {{ plan.special.ends_label }}
+                                    </p>
+                                    <div class="flex flex-wrap items-baseline gap-x-2">
+                                        <span class="text-2xl sm:text-3xl font-black text-foreground">{{ plan.price_formatted }}</span>
+                                        <s v-if="plan.special" class="text-sm text-muted">{{ plan.special.regular_price_formatted }}</s>
+                                        <span class="text-xs text-muted">/ +{{ plan.duration_days }} días acumulados</span>
+                                    </div>
                                 </div>
 
                                 <p class="text-xs text-muted leading-relaxed">
@@ -553,7 +609,7 @@ function toggleExtendPlans() {
                     </div>
                     <h4 class="text-xs font-bold text-foreground">Lectura 100% Desbloqueada</h4>
                     <p class="text-[11px] text-muted leading-relaxed">
-                        Acceso sin límites ni marcas de agua a todos los tomos oficiales publicados.
+                        Todas las páginas de todos los libros publicados, sin bloqueos.
                     </p>
                 </div>
 
@@ -561,9 +617,9 @@ function toggleExtendPlans() {
                     <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <BookOpen class="h-4 w-4" />
                     </div>
-                    <h4 class="text-xs font-bold text-foreground">Casos y Balances Reales</h4>
+                    <h4 class="text-xs font-bold text-foreground">Nuevas ediciones incluidas</h4>
                     <p class="text-[11px] text-muted leading-relaxed">
-                        Ejercicios explicados paso a paso con documentación de respaldo y normativa boliviana.
+                        Las actualizaciones que se publiquen mientras tu acceso esté vigente.
                     </p>
                 </div>
 
@@ -581,9 +637,9 @@ function toggleExtendPlans() {
                     <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <ShieldCheck class="h-4 w-4" />
                     </div>
-                    <h4 class="text-xs font-bold text-foreground">Notas y Marcadores</h4>
+                    <h4 class="text-xs font-bold text-foreground">Tu avance se guarda</h4>
                     <p class="text-[11px] text-muted leading-relaxed">
-                        Tus apuntes personales se guardan de forma privada y segura en tu cuenta.
+                        Al volver, sigues desde la última página que leíste.
                     </p>
                 </div>
             </div>
@@ -767,14 +823,6 @@ function toggleExtendPlans() {
                                         <X class="h-4 w-4 text-rose-500/80 shrink-0 mt-0.5" />
                                         <span>Lectura completa de tomos y capítulos</span>
                                     </li>
-                                    <li class="flex items-start gap-2 sm:gap-2.5 text-muted opacity-60 leading-snug">
-                                        <X class="h-4 w-4 text-rose-500/80 shrink-0 mt-0.5" />
-                                        <span>Casos prácticos y asientos resueltos</span>
-                                    </li>
-                                    <li class="flex items-start gap-2 sm:gap-2.5 text-muted opacity-60 leading-snug">
-                                        <X class="h-4 w-4 text-rose-500/80 shrink-0 mt-0.5" />
-                                        <span>Cuaderno personal de apuntes y notas</span>
-                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -823,10 +871,14 @@ function toggleExtendPlans() {
                             </div>
 
                             <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-background border border-border space-y-1">
+                                <p v-if="plan.special" class="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                    {{ plan.special.label }} · hasta el {{ plan.special.ends_label }}
+                                </p>
                                 <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                                     <span class="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
                                         {{ plan.price_formatted }}
                                     </span>
+                                    <s v-if="plan.special" class="text-sm text-muted">{{ plan.special.regular_price_formatted }}</s>
                                     <span class="text-xs text-muted font-medium">
                                         / {{ plan.duration_days }} días
                                     </span>
@@ -853,11 +905,7 @@ function toggleExtendPlans() {
                                     </li>
                                     <li class="flex items-start gap-2 sm:gap-2.5 leading-snug">
                                         <Check class="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                                        <span>Casos prácticos de diario, mayor y balances explicados</span>
-                                    </li>
-                                    <li class="flex items-start gap-2 sm:gap-2.5 leading-snug">
-                                        <Check class="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                                        <span>Cuaderno personal con notas y marcadores privados</span>
+                                        <span>Tu avance de lectura se guarda en tu cuenta</span>
                                     </li>
                                     <li class="flex items-start gap-2 sm:gap-2.5 leading-snug">
                                         <Check class="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -906,7 +954,7 @@ function toggleExtendPlans() {
                         </div>
                         <h4 class="text-xs font-bold text-foreground">Autoridad Oficial</h4>
                         <p class="text-[10px] sm:text-[11px] text-muted leading-relaxed">
-                            Textos de referencia universitaria respaldados por la trayectoria del Lic. Gonzalo J. Yucra.
+                            Libros escritos por el Lic. Max Apaza Luna, pensados para aprender contabilidad desde cero.
                         </p>
                     </div>
 
@@ -936,7 +984,7 @@ function toggleExtendPlans() {
                         </div>
                         <h4 class="text-xs font-bold text-foreground">Seguridad Total</h4>
                         <p class="text-[10px] sm:text-[11px] text-muted leading-relaxed">
-                            Tus notas privadas, subrayados y progreso se mantienen sincronizados en tu cuenta.
+                            Tu cuenta es privada y tu avance de lectura queda guardado en ella.
                         </p>
                     </div>
                 </div>
@@ -1084,10 +1132,12 @@ function toggleExtendPlans() {
         <!-- ================================================================= -->
         <!-- MODAL 1: CHECKOUT CON CÓDIGO QR BANCARIO                          -->
         <!-- ================================================================= -->
+        <!-- QA: mientras se envía no se puede cerrar; antes "Cancelar" cerraba la ventana pero el pago igual se enviaba. -->
         <BaseModal
             v-model="isPaymentModalOpen"
             title="Pago por transferencia QR"
             max-width="lg"
+            :closeable="!isSubmittingPayment"
         >
             <div v-if="selectedPlanForPayment" class="space-y-5">
                 <div class="p-4 rounded-2xl bg-background border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1098,6 +1148,9 @@ function toggleExtendPlans() {
                     </div>
                     <div class="text-left sm:text-right">
                         <div class="text-2xl font-black text-primary">{{ selectedPlanForPayment.price_formatted }}</div>
+                        <p v-if="selectedPlanForPayment.special" class="text-xs text-muted">
+                            Antes <s>{{ selectedPlanForPayment.special.regular_price_formatted }}</s> · {{ selectedPlanForPayment.special.label }} hasta el {{ selectedPlanForPayment.special.ends_label }}
+                        </p>
                         <span class="text-[10px] text-muted font-medium">Pago único en moneda nacional</span>
                     </div>
                 </div>
@@ -1196,7 +1249,8 @@ function toggleExtendPlans() {
                     <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
                         <button
                             type="button"
-                            class="px-3.5 py-2 rounded-brand bg-surface border border-border text-xs font-medium text-foreground"
+                            :disabled="isSubmittingPayment"
+                            class="px-3.5 py-2 rounded-brand bg-surface border border-border text-xs font-medium text-foreground disabled:opacity-50"
                             @click="isPaymentModalOpen = false"
                         >
                             Cancelar
@@ -1206,9 +1260,12 @@ function toggleExtendPlans() {
                             :disabled="isSubmittingPayment || !paymentForm.proof_file"
                             class="px-4 py-2 rounded-brand bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-bold shadow-xs transition-colors disabled:opacity-50"
                         >
-                            {{ isSubmittingPayment ? 'Enviando comprobante...' : 'Confirmar y enviar comprobante' }}
+                            {{ isSubmittingPayment ? 'Enviando comprobante…' : 'Confirmar y enviar comprobante' }}
                         </button>
                     </div>
+                    <p v-if="!paymentForm.proof_file && !isSubmittingPayment" class="text-[11px] text-muted text-right">
+                        Adjunta el comprobante para poder enviarlo.
+                    </p>
                 </form>
             </div>
         </BaseModal>
@@ -1220,6 +1277,7 @@ function toggleExtendPlans() {
             v-model="isRedeemModalOpen"
             title="Canjear código prepago (PIN)"
             max-width="md"
+            :closeable="!isRedeeming"
         >
             <div class="space-y-5">
                 <div class="text-center space-y-1.5">

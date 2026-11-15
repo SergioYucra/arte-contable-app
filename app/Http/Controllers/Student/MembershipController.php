@@ -8,7 +8,10 @@ use App\Models\PaymentRequest;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Core\Storage\PrivateVault;
+use App\Services\MembershipService;
 use App\Services\SubscriptionStorageService;
+use App\Support\HumanDate;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +22,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class MembershipController extends Controller
 {
     public function __construct(
-        private readonly SubscriptionStorageService $storageService
+        private readonly SubscriptionStorageService $storageService,
+        private readonly MembershipService $membershipService,
     ) {}
 
     /**
@@ -84,6 +88,8 @@ class MembershipController extends Controller
             'proof_file.required' => 'Debes adjuntar el comprobante o captura de la transferencia.',
             'proof_file.mimes' => 'El comprobante debe ser una imagen (WebP, JPG, PNG) o PDF.',
             'proof_file.max' => 'El archivo no debe exceder los 5 MB.',
+            // QA: si el archivo supera el límite de subida del servidor, Laravel decía "Subida fallida en proof file".
+            'proof_file.uploaded' => 'No se pudo subir el archivo, probablemente por su tamaño. Envía una captura de pantalla del comprobante en lugar de una foto, o un archivo más liviano.',
             'student_notes.max' => 'La nota opcional no debe exceder los 500 caracteres.',
         ]);
 
@@ -96,27 +102,45 @@ class MembershipController extends Controller
             ], 422);
         }
 
-        $existingPending = PaymentRequest::where('user_id', $request->user()->id)
-            ->where('status', PaymentRequest::STATUS_PENDING)
-            ->first();
+        $pendingMessage = 'Ya tienes un pago en revisión. Cuando se confirme podrás enviar otro.';
 
-        if ($existingPending) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ya tienes una solicitud de pago en revisión. Espera que la administración la verifique antes de enviar otra.',
-            ], 422);
+        if ($this->hasPendingPayment($request->user())) {
+            return response()->json(['success' => false, 'message' => $pendingMessage], 422);
         }
 
         $uploaded = $this->storageService->storePaymentProof($request->file('proof_file'));
 
-        $paymentRequest = PaymentRequest::create([
-            'user_id' => $request->user()->id,
-            'subscription_plan_id' => $plan->id,
-            'amount' => $plan->price,
-            'reference_text' => ! empty($validated['student_notes']) ? trim($validated['student_notes']) : "Pago QR {$plan->name}",
-            'proof_vault_path' => $uploaded['path'],
-            'status' => PaymentRequest::STATUS_PENDING,
-        ]);
+        // El monto se fija al enviar el comprobante: con precio especial vigente, se registra ese precio
+        // y el nombre de la promoción, para que quien revisa sepa con qué precio se pagó.
+        $amount = $plan->currentPrice();
+        $specialLabel = $plan->hasActiveSpecialPrice() ? ($plan->special_label ?: 'Precio especial') : null;
+
+        // QA: dos envíos simultáneos (dos pestañas) creaban dos pagos pendientes, porque ambos pasaban la
+        // verificación de arriba. Dentro de la transacción se bloquea la fila de la persona y se vuelve a
+        // verificar, así solo uno queda registrado.
+        $paymentRequest = DB::transaction(function () use ($request, $plan, $amount, $specialLabel, $validated, $uploaded): ?PaymentRequest {
+            User::whereKey($request->user()->id)->lockForUpdate()->first();
+
+            if ($this->hasPendingPayment($request->user())) {
+                return null;
+            }
+
+            return PaymentRequest::create([
+                'user_id' => $request->user()->id,
+                'subscription_plan_id' => $plan->id,
+                'amount' => $amount,
+                'special_price_label' => $specialLabel,
+                'reference_text' => ! empty($validated['student_notes']) ? trim($validated['student_notes']) : "Pago QR {$plan->name}",
+                'proof_vault_path' => $uploaded['path'],
+                'status' => PaymentRequest::STATUS_PENDING,
+            ]);
+        });
+
+        if ($paymentRequest === null) {
+            PrivateVault::delete($uploaded['path']);
+
+            return response()->json(['success' => false, 'message' => $pendingMessage], 422);
+        }
 
         activity('payment_requests')
             ->causedBy($request->user())
@@ -124,9 +148,10 @@ class MembershipController extends Controller
             ->withProperties([
                 'plan_id' => $plan->id,
                 'plan_name' => $plan->name,
-                'amount' => $plan->price,
+                'amount' => $amount,
+                'special_price_label' => $specialLabel,
             ])
-            ->log("El alumno '{$request->user()->name}' envió comprobante para '{$plan->name}' ({$plan->price} BOB)");
+            ->log("El alumno '{$request->user()->name}' envió comprobante para '{$plan->name}' ({$amount} BOB)");
 
         $paymentRequest->load('plan');
 
@@ -135,6 +160,13 @@ class MembershipController extends Controller
             'message' => 'Tu comprobante fue enviado correctamente. El equipo revisará tu pago a la brevedad.',
             'payment_request' => $this->formatPaymentRequest($paymentRequest),
         ], 201);
+    }
+
+    private function hasPendingPayment(User $user): bool
+    {
+        return PaymentRequest::where('user_id', $user->id)
+            ->where('status', PaymentRequest::STATUS_PENDING)
+            ->exists();
     }
 
     /**
@@ -169,7 +201,7 @@ class MembershipController extends Controller
                 return [
                     'success' => false,
                     'status' => 422,
-                    'message' => 'Este código ha sido revocado y ya no es válido.',
+                    'message' => 'Este código fue anulado y ya no sirve. Pide uno nuevo a quien te lo dio.',
                 ];
             }
 
@@ -184,34 +216,9 @@ class MembershipController extends Controller
             $now = Carbon::now();
             $durationDays = (int) $code->duration_days;
 
-            $existing = Subscription::where('user_id', $user->id)
-                ->where('status', Subscription::STATUS_ACTIVE)
-                ->where('expires_at', '>', $now)
-                ->latest('expires_at')
-                ->first();
-
-            $startsAt = $existing ? $existing->starts_at : $now;
-            $baseDate = $existing ? Carbon::parse($existing->expires_at) : $now;
-            $expiresAt = $baseDate->copy()->addDays($durationDays);
-
-            if ($existing) {
-                $existing->update([
-                    'subscription_plan_id' => $code->subscription_plan_id ?: $existing->subscription_plan_id,
-                    'expires_at' => $expiresAt,
-                    'access_code_id' => $code->id,
-                ]);
-            } else {
-                Subscription::create([
-                    'user_id' => $user->id,
-                    'book_edition_id' => null,
-                    'subscription_plan_id' => $code->subscription_plan_id,
-                    'payment_request_id' => null,
-                    'access_code_id' => $code->id,
-                    'starts_at' => $startsAt,
-                    'expires_at' => $expiresAt,
-                    'status' => Subscription::STATUS_ACTIVE,
-                ]);
-            }
+            // Regla única de vigencia; también deja la fila de historial.
+            $grant = $this->membershipService->grantFromCode($code, $user);
+            $expiresAt = $grant->new_expires_at;
 
             $code->update([
                 'redeemed_by' => $user->id,
@@ -234,7 +241,8 @@ class MembershipController extends Controller
             return [
                 'success' => true,
                 'status' => 200,
-                'message' => "¡Código canjeado con éxito! Se sumaron {$durationDays} días a tu membresía.",
+                'message' => 'Código canjeado. Se sumaron '.HumanDate::duration($durationDays).' a tu acceso: puedes leer todo hasta el '.HumanDate::long($expiresAt).'.',
+                'code' => $code,
             ];
         });
 
@@ -249,6 +257,8 @@ class MembershipController extends Controller
             'success' => true,
             'message' => $result['message'],
             'membership' => $this->getMembershipSummary($user->fresh()),
+            // QA: el historial agregaba una fila inventada ("—"); ahora recibe el código real.
+            'redeemed_code' => $this->formatRedeemedCode($result['code']->load('plan')),
         ]);
     }
 
@@ -280,17 +290,26 @@ class MembershipController extends Controller
             ->first();
 
         if (! $activeSub) {
+            // QA: quien venció o perdió el acceso veía "Acceso Gratuito" sin ninguna explicación.
+            $last = Subscription::where('user_id', $user->id)->latest('id')->first();
+
             return [
                 'is_active' => false,
                 'status_label' => 'Sin membresía activa',
                 'plan_name' => 'Acceso Gratuito',
                 'days_remaining' => 0,
+                'total_days' => 0,
                 'expires_at' => null,
                 'starts_at' => null,
+                'previous' => $last === null ? null : [
+                    'state' => $last->status === Subscription::STATUS_REVOKED ? 'revoked' : 'expired',
+                    'until' => HumanDate::long($last->expires_at),
+                ],
             ];
         }
 
         $expiresAt = Carbon::parse($activeSub->expires_at);
+        $startsAt = Carbon::parse($activeSub->starts_at);
         $daysRemaining = max(0, (int) ceil($now->floatDiffInDays($expiresAt, false)));
 
         return [
@@ -298,8 +317,11 @@ class MembershipController extends Controller
             'status_label' => 'Membresía activa',
             'plan_name' => $activeSub->plan?->name ?? 'Acceso Especial',
             'days_remaining' => $daysRemaining,
-            'expires_at' => $expiresAt->format('d/m/Y'),
-            'starts_at' => Carbon::parse($activeSub->starts_at)->format('d/m/Y'),
+            // QA: la barra de vigencia calculaba siempre sobre 365 días.
+            'total_days' => max(1, (int) ceil($startsAt->floatDiffInDays($expiresAt))),
+            'expires_at' => HumanDate::long($expiresAt),
+            'starts_at' => HumanDate::long($startsAt),
+            'previous' => null,
         ];
     }
 
@@ -308,14 +330,24 @@ class MembershipController extends Controller
      */
     private function formatPlan(SubscriptionPlan $plan): array
     {
+        // price, price_formatted y qr_image_url son siempre los de "ahora": con precio especial vigente
+        // la vista existente ya muestra el monto y el QR correctos sin cambios.
+        $special = $plan->hasActiveSpecialPrice();
+        $format = fn (float $value) => number_format($value, 2, '.', ',').' BOB';
+
         return [
             'id' => $plan->id,
             'name' => $plan->name,
-            'price' => (float) $plan->price,
-            'price_formatted' => number_format((float) $plan->price, 2, '.', ',').' BOB',
+            'price' => $plan->currentPrice(),
+            'price_formatted' => $format($plan->currentPrice()),
             'duration_days' => (int) $plan->duration_days,
             'description' => $plan->description ?? '',
-            'qr_image_url' => $plan->qr_image_url,
+            'qr_image_url' => $plan->currentQrImageUrl(),
+            'special' => $special ? [
+                'label' => $plan->special_label ?: 'Precio especial',
+                'regular_price_formatted' => $format((float) $plan->price),
+                'ends_label' => HumanDate::long($plan->special_ends_at),
+            ] : null,
         ];
     }
 
@@ -338,7 +370,8 @@ class MembershipController extends Controller
             'status_label' => $statusLabels[$request->status] ?? $request->status,
             'reference_text' => $request->reference_text ?? '',
             'admin_notes' => $request->admin_notes ?? '',
-            'created_at' => $request->created_at?->format('d/m/Y H:i'),
+            // QA: las fechas salían en UTC (4 horas adelantadas a Bolivia).
+            'created_at' => HumanDate::dateTime($request->created_at),
             'proof_url' => route('membership.proof', $request->id),
         ];
     }
@@ -351,9 +384,9 @@ class MembershipController extends Controller
         return [
             'id' => $code->id,
             'code' => $code->code,
-            'plan_name' => $code->plan?->name ?? 'Acceso Personalizado',
+            'plan_name' => $code->plan?->name ?? HumanDate::duration((int) $code->duration_days).' de acceso',
             'duration_days' => (int) $code->duration_days,
-            'redeemed_at' => $code->redeemed_at?->format('d/m/Y H:i'),
+            'redeemed_at' => HumanDate::dateTime($code->redeemed_at),
         ];
     }
 }

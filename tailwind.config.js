@@ -51,6 +51,19 @@ export default {
             borderRadius: {
                 brand: 'var(--radius)',
             },
+            // Utilidades de Tailwind 4 que el código ya usa (~60 veces) y Tailwind 3.4 no trae:
+            // sin estas definiciones esas clases no generaban CSS.
+            boxShadow: {
+                '2xs': '0 1px rgb(0 0 0 / 0.05)',
+                xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+            },
+            backdropBlur: {
+                xs: '2px',
+            },
+            spacing: {
+                4.5: '1.125rem',
+                18: '4.5rem',
+            },
         },
     },
 

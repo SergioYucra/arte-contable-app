@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BookController;
+use App\Http\Controllers\Admin\MembershipMemberController;
 use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
@@ -123,6 +124,13 @@ Route::middleware(['auth', 'verified', 'permission:manage-users'])
 
         Route::post('/suscripciones/codigos', [SubscriptionAdminController::class, 'storeAccessCode'])->middleware('throttle:30,1')->name('subscriptions.codes.store');
         Route::post('/suscripciones/codigos/{accessCode}/revocar', [SubscriptionAdminController::class, 'revokeAccessCode'])->middleware('throttle:30,1')->name('subscriptions.codes.revoke');
+
+        // Listados paginados ("Ver más") y "Personas con acceso"
+        Route::get('/suscripciones/solicitudes', [SubscriptionAdminController::class, 'reviewedRequests'])->middleware('throttle:60,1')->name('subscriptions.requests.index');
+        Route::get('/suscripciones/codigos', [SubscriptionAdminController::class, 'accessCodes'])->middleware('throttle:60,1')->name('subscriptions.codes.index');
+        Route::get('/suscripciones/personas', [MembershipMemberController::class, 'index'])->middleware('throttle:60,1')->name('subscriptions.members.index');
+        Route::get('/suscripciones/personas/{user}/historial', [MembershipMemberController::class, 'history'])->whereNumber('user')->middleware('throttle:60,1')->name('subscriptions.members.history');
+        Route::post('/suscripciones/personas/{user}/quitar-acceso', [MembershipMemberController::class, 'revoke'])->whereNumber('user')->middleware('throttle:30,1')->name('subscriptions.members.revoke');
     });
 
 require __DIR__.'/auth.php';

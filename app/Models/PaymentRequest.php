@@ -28,6 +28,7 @@ class PaymentRequest extends Model
         'user_id',
         'subscription_plan_id',
         'amount',
+        'special_price_label',
         'reference_text',
         'proof_vault_path',
         'status',
@@ -51,10 +52,20 @@ class PaymentRequest extends Model
 
     /**
      * Plan de suscripción seleccionado para esta solicitud.
+     *
+     * Incluye planes archivados: un pago enviado antes de archivar el plan conserva sus días y su precio.
      */
     public function plan(): BelongsTo
     {
-        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id')->withTrashed();
+    }
+
+    /**
+     * Si el comprobante es una imagen o un PDF, según la extensión que la bóveda derivó del contenido real.
+     */
+    public function proofKind(): string
+    {
+        return str_ends_with(strtolower((string) $this->proof_vault_path), '.pdf') ? 'pdf' : 'image';
     }
 
     /**
