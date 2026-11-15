@@ -63,17 +63,20 @@ async function revoke() {
     }
     busy.value = true;
     error.value = '';
+    let done = false;
     try {
         const { data } = await axios.post(props.member.revoke_url, { reason: reason.value.trim() });
         emit('revoked', { member: data.member, message: data.message });
         revoking.value = false;
         reason.value = '';
-        await loadHistory();
+        done = true;
     } catch (e) {
         error.value = readError(e).message;
     } finally {
+        // Se libera antes de recargar el historial: si no, la ventana no se puede cerrar mientras carga.
         busy.value = false;
     }
+    if (done) await loadHistory();
 }
 
 const icons = { payment: CreditCard, code: KeyRound };

@@ -194,7 +194,7 @@ function download() {
                     </button>
                 </div>
                 <div class="flex items-center gap-2">
-                    <input id="code-days" v-model.number="form.days" type="number" inputmode="numeric" min="1" max="1825" :class="[field, 'w-28']" :aria-invalid="Boolean(errors.duration_days)" />
+                    <input id="code-days" v-model.number="form.days" type="number" inputmode="numeric" min="1" max="1825" :class="[field, '!w-28']" :aria-invalid="Boolean(errors.duration_days)" />
                     <span :class="hint">días · {{ durationLabel(form.days) }}</span>
                 </div>
                 <p v-if="errors.duration_days" :class="errorText">{{ errors.duration_days }}</p>

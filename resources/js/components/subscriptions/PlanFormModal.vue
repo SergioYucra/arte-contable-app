@@ -165,7 +165,7 @@ async function save() {
                         </button>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input id="plan-days" v-model.number="form.duration_days" type="number" inputmode="numeric" min="1" max="1825" :class="[field, 'w-28']" :aria-invalid="Boolean(errors.duration_days)" aria-describedby="plan-days-hint plan-days-error" />
+                        <input id="plan-days" v-model.number="form.duration_days" type="number" inputmode="numeric" min="1" max="1825" :class="[field, '!w-28']" :aria-invalid="Boolean(errors.duration_days)" aria-describedby="plan-days-hint plan-days-error" />
                         <span id="plan-days-hint" :class="hint">días · {{ durationText }}</span>
                     </div>
                     <p v-if="errors.duration_days" id="plan-days-error" :class="errorText">{{ errors.duration_days }}</p>
