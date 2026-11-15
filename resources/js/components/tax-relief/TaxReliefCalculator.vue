@@ -218,6 +218,13 @@ const isStale = computed(() => !!plan.value && !!sentRequest.value
 const allForgiven = computed(() => plan.value && plan.value.eligible_count === 0);
 const scaleMax = computed(() => Math.max(1, plan.value?.total_without_relief ?? 0, plan.value?.plan_final_total ?? 0));
 const width = (value) => `${(Math.max(0, value) / scaleMax.value) * 100}%`;
+// Fecha de solicitud o de vencimiento sin UFV oficial todavía: el plan usa una UFV estimada.
+const usesEstimatedUfv = computed(() => {
+    const last = plan.value?.ufv_last_published_on;
+    if (!last) return '';
+    const dates = [plan.value.request_date, ...plan.value.debts.map((d) => d.due_date)];
+    return dates.filter((d) => d > last).sort().pop() || '';
+});
 const afterLawDebts = computed(() => (plan.value?.debts ?? []).filter((d) => d.due_after_law && d.treatment !== 'condonado'));
 
 function openBreakdown(index) {
@@ -477,6 +484,10 @@ function openBreakdown(index) {
                 <BaseAlert v-if="afterLawDebts.length" type="warning" title="Revisa esta deuda">
                     Venció después de que se publicó la ley ({{ shortDate(plan.law_published_on) }}): es posible que el alivio no le corresponda.
                 </BaseAlert>
+                <BaseAlert v-if="usesEstimatedUfv" type="info" title="Montos aproximados">
+                    Todavía no hay UFV oficial para el {{ shortDate(usesEstimatedUfv) }} (la última publicada es del
+                    {{ shortDate(plan.ufv_last_published_on) }}), así que se usó una UFV estimada.
+                </BaseAlert>
                 <BaseAlert v-for="(notice, n) in plan.notices" :key="n" type="info">{{ notice }}</BaseAlert>
 
                 <!-- Las dos opciones -->
@@ -609,6 +620,7 @@ function openBreakdown(index) {
             :request="sentRequest?.deudas[breakdownIndex] ?? null"
             :plan-debt="plan?.debts[breakdownIndex] ?? null"
             :request-date="sentRequest?.fecha_solicitud ?? ''"
+            :ufv-last-published="plan?.ufv_last_published_on ?? ''"
             :breakdown-url="breakdownUrl"
         />
     </div>

@@ -17,7 +17,17 @@ const props = defineProps({
     // La misma deuda en el resultado del plan (contado, base en cuotas, tratamiento).
     planDebt: { type: Object, default: null },
     requestDate: { type: String, default: '' },
+    // Última UFV oficial publicada (la respuesta del plan la trae como ufv_last_published_on).
+    ufvLastPublished: { type: String, default: '' },
     breakdownUrl: { type: String, required: true },
+});
+
+// El desglose de boliviaimpuestos solo trabaja con UFV oficiales: si el vencimiento o la
+// fecha de solicitud son posteriores a la última publicada, no se puede pedir (el plan
+// sí se calcula, porque usa una UFV estimada).
+const dateWithoutUfv = computed(() => {
+    if (!props.ufvLastPublished || !props.request) return '';
+    return [props.request.fecha_vencimiento, props.requestDate].find((d) => d && d > props.ufvLastPublished) || '';
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -30,6 +40,7 @@ const open = computed({
 const withPenalty = ref(false);
 const loading = ref(false);
 const error = ref('');
+const errorDetail = ref('');
 const detail = ref(null);
 // Con qué opción de sanción se pidió el detalle que se está mostrando.
 const shownWithPenalty = ref(false);
@@ -42,9 +53,17 @@ let lastRequestId = 0;
 async function load() {
     if (!props.request) return;
     const requestId = ++lastRequestId;
+    if (dateWithoutUfv.value) {
+        // No se consulta: fallaría con "UFV no disponible". La plantilla explica por qué.
+        loading.value = false;
+        detail.value = null;
+        error.value = '';
+        return;
+    }
     const askedWithPenalty = withPenalty.value;
     loading.value = true;
     error.value = '';
+    errorDetail.value = '';
     try {
         const { data } = await axios.post(props.breakdownUrl, {
             fecha_solicitud: props.requestDate,
@@ -60,7 +79,9 @@ async function load() {
     } catch (e) {
         if (requestId !== lastRequestId) return;
         detail.value = null;
-        error.value = e.response?.data?.message || 'No se pudo cargar el desglose. Intenta de nuevo.';
+        const data = e.response?.data ?? {};
+        error.value = data.message || 'No se pudo cargar el desglose. Intenta de nuevo.';
+        errorDetail.value = data.detail || '';
     } finally {
         if (requestId === lastRequestId) loading.value = false;
     }
@@ -68,6 +89,9 @@ async function load() {
 
 watch(() => props.modelValue, (isOpen) => {
     if (!isOpen) return;
+    // No mostrar el desglose de la deuda que se abrió antes mientras carga el de esta.
+    detail.value = null;
+    error.value = '';
     // Al abrir se empieza sin sanción. Si la casilla estaba marcada, el watcher de abajo hace la carga.
     const wasChecked = withPenalty.value;
     withPenalty.value = false;
@@ -84,12 +108,31 @@ const title = computed(() => (props.request ? `${props.request.impuesto} de ${pe
 <template>
     <BaseModal v-model="open" :title="`¿De dónde sale? ${title}`" max-width="2xl">
         <div class="space-y-6 text-sm" aria-live="polite">
-            <div v-if="loading && !detail" class="flex items-center gap-2 py-10 justify-center text-muted">
+            <template v-if="dateWithoutUfv">
+                <BaseAlert type="info" title="Todavía no hay UFV oficial para esa fecha">
+                    El paso a paso usa la UFV oficial del {{ shortDate(dateWithoutUfv) }}, y el Banco Central la publica día a día:
+                    la última es del {{ shortDate(ufvLastPublished) }}. Los montos de la calculadora usan una UFV estimada,
+                    así que son aproximados. Cuando se publique esa UFV podrás ver el desglose completo.
+                </BaseAlert>
+                <section v-if="planDebt && planDebt.treatment !== 'condonado'">
+                    <h3 class="font-semibold text-foreground">Con la Ley 1733 (aproximado)</h3>
+                    <dl class="mt-2 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 tabular-nums">
+                        <dt class="text-muted">Al contado: tributo + la mitad del mantenimiento de valor</dt>
+                        <dd class="text-right font-semibold text-emerald-700 dark:text-emerald-400">{{ bs(planDebt.cash) }}</dd>
+                        <dt class="text-muted">En cuotas: tributo actualizado solo hasta el día de la ley</dt>
+                        <dd class="text-right font-semibold text-primary">{{ bs(planDebt.plan_base) }}</dd>
+                    </dl>
+                </section>
+            </template>
+
+            <div v-else-if="loading && !detail" class="flex items-center gap-2 py-10 justify-center text-muted">
                 <Loader2 class="h-5 w-5 animate-spin" aria-hidden="true" />
                 Calculando el desglose…
             </div>
 
-            <BaseAlert v-else-if="error" type="error">{{ error }}</BaseAlert>
+            <BaseAlert v-else-if="error" type="error" :title="error">
+                <template v-if="errorDetail">El servicio de cálculo dijo: «{{ errorDetail }}»</template>
+            </BaseAlert>
 
             <template v-else-if="detail">
                 <p class="text-muted leading-relaxed">
