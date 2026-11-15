@@ -68,6 +68,12 @@
                 </x-slot:icon>
             </x-sidebar-link>
 
+            <x-sidebar-link :href="route('quick-links.index')" :label="__('Accesos rápidos')" :active="request()->routeIs('quick-links.*')">
+                <x-slot:icon>
+                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                </x-slot:icon>
+            </x-sidebar-link>
+
             {{-- Módulo TaxRelief: mismos roles que sus rutas (app/Modules/TaxRelief/Routes/web.php) --}}
             @if (config('tax_relief.enabled') && $user->hasAnyRole(['User', 'Manager', 'Admin', 'SuperAdmin']))
                 <x-sidebar-link :href="route('tax-relief.index')" :label="__('Calculadora tributaria')" :active="request()->routeIs('tax-relief.*')">
@@ -91,6 +97,12 @@
                 <x-sidebar-link :href="route('admin.subscriptions.index')" :label="__('Suscripciones y pagos')" :active="request()->routeIs('admin.subscriptions.*')">
                     <x-slot:icon>
                         <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
+                    </x-slot:icon>
+                </x-sidebar-link>
+
+                <x-sidebar-link :href="route('admin.quick-links.index')" :label="__('Accesos rápidos')" :active="request()->routeIs('admin.quick-links.*')">
+                    <x-slot:icon>
+                        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
                     </x-slot:icon>
                 </x-sidebar-link>
 

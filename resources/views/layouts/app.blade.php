@@ -44,9 +44,11 @@
                     request()->routeIs('dashboard') => null,
                     request()->routeIs('library.*') => __('Biblioteca de estudio'),
                     request()->routeIs('membership.*') => __('Membresía y planes'),
+                    request()->routeIs('quick-links.*') => __('Accesos rápidos'),
                     request()->routeIs('profile.*') => __('Mi perfil'),
                     request()->routeIs('admin.books.*') => __('Libros y ediciones'),
                     request()->routeIs('admin.subscriptions.*') => __('Suscripciones y pagos'),
+                    request()->routeIs('admin.quick-links.*') => __('Accesos rápidos'),
                     request()->routeIs('admin.users.*') => __('Usuarios y roles'),
                     default => $title ?: null,
                 };

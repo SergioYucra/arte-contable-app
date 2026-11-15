@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\Admin\BookController;
 use App\Http\Controllers\Admin\MembershipMemberController;
+use App\Http\Controllers\Admin\QuickLinkCategoryController;
+use App\Http\Controllers\Admin\QuickLinkController;
 use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\LibraryController;
 use App\Http\Controllers\Student\MembershipController;
+use App\Http\Controllers\Student\QuickLinkStudentController;
 use App\Http\Controllers\Student\StudyNoteController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,6 +86,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/membresia/pago', [MembershipController::class, 'storePayment'])->middleware('throttle:10,1')->name('membership.payment.store');
     Route::post('/membresia/canjear', [MembershipController::class, 'redeemCode'])->middleware('throttle:10,1')->name('membership.redeem');
     Route::get('/membresia/solicitudes/{paymentRequest}/comprobante', [MembershipController::class, 'streamProof'])->middleware('throttle:60,1')->name('membership.proof');
+
+    Route::get('/accesos-rapidos', [QuickLinkStudentController::class, 'index'])->name('quick-links.index');
 });
 
 // Módulo Base: Administración de Usuarios y Roles (Capa Core)
@@ -131,6 +136,20 @@ Route::middleware(['auth', 'verified', 'permission:manage-users'])
         Route::get('/suscripciones/personas', [MembershipMemberController::class, 'index'])->middleware('throttle:60,1')->name('subscriptions.members.index');
         Route::get('/suscripciones/personas/{user}/historial', [MembershipMemberController::class, 'history'])->whereNumber('user')->middleware('throttle:60,1')->name('subscriptions.members.history');
         Route::post('/suscripciones/personas/{user}/quitar-acceso', [MembershipMemberController::class, 'revoke'])->whereNumber('user')->middleware('throttle:30,1')->name('subscriptions.members.revoke');
+
+        // Gestión de Accesos Rápidos y Categorías Oficiales
+        Route::get('/accesos-rapidos', [QuickLinkController::class, 'index'])->name('quick-links.index');
+        Route::post('/accesos-rapidos', [QuickLinkController::class, 'store'])->middleware('throttle:30,1')->name('quick-links.store');
+        Route::post('/accesos-rapidos/{id}', [QuickLinkController::class, 'update'])->whereNumber('id')->middleware('throttle:30,1')->name('quick-links.update');
+        Route::patch('/accesos-rapidos/{quickLink}/estado', [QuickLinkController::class, 'toggleActive'])->whereNumber('quickLink')->middleware('throttle:30,1')->name('quick-links.toggle-active');
+        Route::delete('/accesos-rapidos/{quickLink}', [QuickLinkController::class, 'destroy'])->whereNumber('quickLink')->middleware('throttle:30,1')->name('quick-links.destroy');
+        Route::post('/accesos-rapidos/{id}/restaurar', [QuickLinkController::class, 'restore'])->whereNumber('id')->middleware('throttle:30,1')->name('quick-links.restore');
+
+        Route::post('/accesos-rapidos/categorias', [QuickLinkCategoryController::class, 'store'])->middleware('throttle:30,1')->name('quick-links.categories.store');
+        Route::put('/accesos-rapidos/categorias/{category}', [QuickLinkCategoryController::class, 'update'])->whereNumber('category')->middleware('throttle:30,1')->name('quick-links.categories.update');
+        Route::patch('/accesos-rapidos/categorias/{category}/estado', [QuickLinkCategoryController::class, 'toggleActive'])->whereNumber('category')->middleware('throttle:30,1')->name('quick-links.categories.toggle-active');
+        Route::delete('/accesos-rapidos/categorias/{category}', [QuickLinkCategoryController::class, 'destroy'])->whereNumber('category')->middleware('throttle:30,1')->name('quick-links.categories.destroy');
+        Route::post('/accesos-rapidos/categorias/{id}/restaurar', [QuickLinkCategoryController::class, 'restore'])->whereNumber('id')->middleware('throttle:30,1')->name('quick-links.categories.restore');
     });
 
 require __DIR__.'/auth.php';
