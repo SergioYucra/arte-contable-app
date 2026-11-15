@@ -59,7 +59,7 @@ const typeConfig = computed(() => {
 <template>
     <Teleport to="body">
         <div
-            class="fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] sm:inset-x-auto sm:bottom-5 sm:right-5 z-50 pointer-events-none flex flex-col items-stretch sm:items-end gap-2 sm:max-w-sm sm:w-full"
+            class="fixed inset-x-3 bottom-[max(1rem,env(safe-area-inset-bottom))] sm:inset-x-auto sm:bottom-5 sm:right-5 z-[60] pointer-events-none flex flex-col items-stretch sm:items-end gap-2 sm:max-w-sm sm:w-full"
             aria-live="polite"
         >
             <Transition

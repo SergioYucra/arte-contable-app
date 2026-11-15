@@ -1,24 +1,9 @@
-<x-app-layout title="Membresías y pagos">
+<x-app-layout title="Suscripciones y pagos">
     <x-slot name="header">
-        <div class="flex items-center justify-between gap-2">
-            <h1 class="font-serif text-xl sm:text-2xl text-foreground leading-tight truncate">
-                Membresías y pagos
-            </h1>
-
-            @php($pending = $initialSummary['pending_payments'])
-            <span @class([
-                'shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
-                'border-gold/40 bg-gold/15 text-foreground' => $pending > 0,
-                'border-border bg-surface text-muted' => $pending === 0,
-            ])>
-                @if ($pending > 0)
-                    <span class="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden="true"></span>
-                    {{ $pending }} {{ $pending === 1 ? 'pago por revisar' : 'pagos por revisar' }}
-                @else
-                    Sin pagos por revisar
-                @endif
-            </span>
-        </div>
+        {{-- Lo pendiente se muestra en la cabecera del panel, que se actualiza al aprobar o rechazar. --}}
+        <h1 class="font-serif text-xl sm:text-2xl text-foreground leading-tight truncate">
+            Suscripciones y pagos
+        </h1>
     </x-slot>
 
     <div class="py-4 sm:py-6">
