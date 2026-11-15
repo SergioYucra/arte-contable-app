@@ -59,9 +59,10 @@ class TaxReliefService
      * Desglose de una deuda: mantenimiento de valor, interés por tramos y sanción opcional.
      *
      * @param  array{fecha_solicitud: string, impuesto: string, periodo: string, fecha_vencimiento: string, tributo_omitido: float|int|string, con_sancion?: bool}  $input
+     * @param  bool  $fresh  true = ignora el caché (lo usa el monitor diario)
      * @return array<string, mixed>
      */
-    public function breakdown(array $input): array
+    public function breakdown(array $input, bool $fresh = false): array
     {
         $payload = [
             'fechaVenc' => $input['fecha_vencimiento'],
@@ -73,20 +74,26 @@ class TaxReliefService
             'precisionFactor' => 'completa',
         ];
 
-        return $this->remember('breakdown', $payload, function () use ($payload): array {
+        $compute = function () use ($payload): array {
             $raw = $this->client->post(BoliviaImpuestosClient::BREAKDOWN, $payload);
 
             return $this->mapped(BoliviaImpuestosClient::BREAKDOWN, fn () => $this->mapBreakdown($raw));
-        });
+        };
+
+        return $fresh ? $compute() : $this->remember('breakdown', $payload, $compute);
     }
 
-    /** Fecha de vencimiento sugerida según impuesto, periodo y último dígito del NIT. */
-    public function dueDate(string $tax, string $period, int $nitLastDigit): ?string
+    /**
+     * Fecha de vencimiento sugerida según impuesto, periodo y último dígito del NIT.
+     *
+     * @param  bool  $fresh  true = ignora el caché (lo usa el monitor diario)
+     */
+    public function dueDate(string $tax, string $period, int $nitLastDigit, bool $fresh = false): ?string
     {
         $query = ['periodo' => $period, 'impuesto' => $tax, 'nit' => $nitLastDigit];
         $key = 'tax-relief:due:'.sha1(json_encode($query));
 
-        $cached = Cache::get($key);
+        $cached = $fresh ? null : Cache::get($key);
         if (is_array($cached)) {
             return $cached['date'];
         }

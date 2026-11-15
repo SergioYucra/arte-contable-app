@@ -312,7 +312,7 @@ flowchart LR
 | Rutas, controlador y validaciones | `app/Modules/TaxRelief/` (`Routes`, `Controllers`, `Requests`) |
 | Llamadas hacia afuera y protecciones | `app/Modules/TaxRelief/Services/BoliviaImpuestosClient.php` |
 | Traducción de su formato al nuestro, y caché | `app/Modules/TaxRelief/Services/TaxReliefService.php` |
-| Monitor diario (07:00 de Bolivia, avisa por correo) | `app/Modules/TaxRelief/Console/CheckUpstreamCommand.php` |
+| Revisión diaria (07:00 de Bolivia, avisa al desarrollador líder) | `app/Modules/TaxRelief/Console/CheckUpstreamCommand.php` |
 | Configuración (todo tiene valor por defecto) | `config/tax_relief.php` |
 | Pantalla | `resources/js/components/tax-relief/` y `resources/views/tax-relief/index.blade.php` |
 | Pruebas (36) | `tests/Feature/TaxRelief/` (no llaman al servicio real) |
@@ -330,6 +330,49 @@ flowchart LR
 | Conexión | Solo https, sin seguir redirecciones, con 10 s de tiempo máximo. La URL la fija la configuración, nunca el usuario. |
 | Apagado de emergencia | `TAX_RELIEF_ENABLED=false` oculta el menú y apaga los cálculos sin desplegar código. |
 
-**Variables opcionales del `.env`:** `TAX_RELIEF_ENABLED`, `TAX_RELIEF_API_URL`, `TAX_RELIEF_TIMEOUT`, `TAX_RELIEF_USER_PER_MINUTE`, `TAX_RELIEF_USER_PER_DAY`, `TAX_RELIEF_UPSTREAM_PER_MINUTE`, `TAX_RELIEF_UPSTREAM_PER_HOUR` y `TAX_RELIEF_ALERT_EMAIL` (si falta, se usa `SUPERADMIN_EMAIL`).
+**Variables opcionales del `.env`:** `TAX_RELIEF_ENABLED`, `TAX_RELIEF_API_URL`, `TAX_RELIEF_TIMEOUT`, `TAX_RELIEF_USER_PER_MINUTE`, `TAX_RELIEF_USER_PER_DAY`, `TAX_RELIEF_UPSTREAM_PER_MINUTE`, `TAX_RELIEF_UPSTREAM_PER_HOUR`, `TAX_RELIEF_ALERT_EMAIL` y `TAX_RELIEF_CHECK_AT`.
 
-**Para que corra el monitor en Hostinger** tiene que existir el cron de Laravel: `* * * * * php /ruta/al/proyecto/artisan schedule:run`.
+---
+
+## 10. Revisión diaria y aviso al desarrollador líder
+
+Todos los días a las **07:00 (hora de Bolivia)** el sistema ejecuta `php artisan tax-relief:check`. El comando prueba los 3 servicios de boliviaimpuestos que usa la pantalla, con un caso de referencia de fecha fija:
+
+| Prueba | Valor esperado |
+|---|---|
+| Plan (`fap.php`) | Sin alivio Bs 21.400,77, al contado Bs 12.352,15, en cuotas Bs 14.185,57, 12 cuotas |
+| Desglose (`deudas.php?action=calc`) | Mantenimiento de valor Bs 4.704,30, interés Bs 6.696,47, tramos de 1461, 1096 y 273 días |
+| Vencimiento (`deudas.php?action=vencimiento`) | IVA 2019-01 con NIT terminado en 2 vence el 15/02/2019 |
+
+| Resultado | Qué pasa |
+|---|---|
+| Todo igual | No se envía nada (queda `tax_relief.monitor_ok` en el log). |
+| Responde, pero con otros valores | Correo **"cambió el cálculo"**, con qué cambió. No es un error: la calculadora ya muestra los valores nuevos. |
+| Algún servicio falla o cambió su formato | Correo **"dejó de funcionar"**, con qué falló y qué hacer. El comando termina con error. |
+| Mucho uso en ese momento (tope global) | No se prueba; se reintenta al día siguiente. |
+
+### Cómo activarlo en Hostinger
+
+1. **Correo del desarrollador líder** en el `.env` del servidor: `TAX_RELIEF_ALERT_EMAIL=lider@dominio.com`. Para varios, separarlos con comas. Si queda vacío, el aviso solo queda en el log.
+2. **Correo saliente (SMTP).** Es el mismo mailer de Laravel que ya envía los correos de verificación de cuenta. En hPanel → Correos se crea una cuenta, por ejemplo `avisos@dominio.com`, y se usa en el `.env`:
+
+   ```dotenv
+   MAIL_MAILER=smtp
+   MAIL_HOST=smtp.hostinger.com
+   MAIL_PORT=465
+   MAIL_SCHEME=smtps
+   MAIL_USERNAME=avisos@dominio.com
+   MAIL_PASSWORD=********
+   MAIL_FROM_ADDRESS=avisos@dominio.com
+   ```
+
+3. **Cron de Laravel** en hPanel → Avanzado → Cron Jobs, cada minuto. Es una sola línea y sirve para todas las tareas programadas, incluidos los respaldos de la rama de seguridad:
+
+   ```
+   * * * * * cd /home/USUARIO/ruta-del-proyecto && php artisan schedule:run >> /dev/null 2>&1
+   ```
+
+4. **Probar** desde la terminal del servidor:
+   - `php artisan tax-relief:check --test-mail` envía un correo de prueba al líder, para confirmar que el SMTP funciona.
+   - `php artisan tax-relief:check --no-mail` ejecuta las 3 pruebas y muestra el resultado sin enviar correo.
+   - `php artisan schedule:list` debe mostrar `tax-relief:check` con su próxima ejecución.

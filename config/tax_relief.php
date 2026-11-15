@@ -67,9 +67,16 @@ return [
         'due_date_seconds' => 30 * 24 * 3600,
     ],
 
-    // Monitor diario (tax-relief:check). Si no hay correo propio, avisa al SuperAdmin.
+    /*
+    | Revisión diaria (php artisan tax-relief:check)
+    |
+    | Prueba los 3 servicios de boliviaimpuestos que usa la pantalla y, si algo
+    | falla o cambia, escribe al desarrollador líder. Varios correos: separados
+    | por coma. Si queda vacío no se avisa a nadie (solo queda en el log).
+    | Necesita el cron de Laravel: * * * * * php artisan schedule:run
+    */
     'monitor' => [
-        'alert_email' => env('TAX_RELIEF_ALERT_EMAIL', env('SUPERADMIN_EMAIL')),
+        'alert_to' => env('TAX_RELIEF_ALERT_EMAIL', ''),
         'daily_at' => env('TAX_RELIEF_CHECK_AT', '07:00'),
     ],
 
