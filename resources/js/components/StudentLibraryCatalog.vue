@@ -258,6 +258,7 @@ watch(
 
 // Búsqueda y filtros del catálogo
 const searchQuery = ref('');
+const catalogSearchRef = ref(null);
 const activeFilter = ref('all'); // 'all' | 'in_progress' | 'with_notes'
 
 // Slide-over Drawer del Índice de Contenidos (TOC)
@@ -605,6 +606,12 @@ async function toggleFullscreen() {
 }
 
 function handleReaderKeydown(event) {
+    if (!isReaderOpen.value && !isTocDrawerOpen.value && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        catalogSearchRef.value?.focus();
+        return;
+    }
+
     if (!isReaderOpen.value) return;
     if (event.target?.tagName === 'INPUT') return;
 
@@ -654,97 +661,25 @@ onBeforeUnmount(() => {
 
         <template v-else>
             <!-- ===========================================================
-                 RESUMEN ACADÉMICO DE LA BIBLIOTECA (Estilo Plataforma SaaS)
-                 =========================================================== -->
-            <section
-                aria-label="Resumen de tu biblioteca de estudio"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-3.5"
-            >
-                <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800/90 bg-white dark:bg-slate-900/60 p-4 flex items-center gap-3.5 shadow-xs">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400">
-                        <BookOpen class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Obras publicadas
-                        </p>
-                        <p class="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
-                            {{ totalBooksCount }} {{ totalBooksCount === 1 ? 'libro editorial' : 'libros editoriales' }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800/90 bg-white dark:bg-slate-900/60 p-4 flex items-center gap-3.5 shadow-xs">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-                        <GraduationCap class="h-5 w-5" />
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Ritmo de estudio
-                        </p>
-                        <p class="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
-                            {{
-                                inProgressCount > 0
-                                    ? `${inProgressCount} ${inProgressCount === 1 ? 'obra en curso' : 'obras en curso'}`
-                                    : 'Listo para comenzar'
-                            }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800/90 bg-white dark:bg-slate-900/60 p-4 flex items-center justify-between gap-3 shadow-xs">
-                    <div class="flex items-center gap-3.5 min-w-0">
-                        <span
-                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
-                            :class="
-                                hasActiveMembership
-                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                    : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
-                            "
-                        >
-                            <CheckCircle2 v-if="hasActiveMembership" class="h-5 w-5" />
-                            <Sparkles v-else class="h-5 w-5" />
-                        </span>
-                        <div class="min-w-0">
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                Plan de lectura
-                            </p>
-                            <p class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                                {{ membershipState.plan_name }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <a
-                        v-if="!hasActiveMembership"
-                        :href="membershipUrl"
-                        class="shrink-0 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 transition-colors"
-                    >
-                        Mejorar &rarr;
-                    </a>
-                </div>
-            </section>
-
-            <!-- ===========================================================
                  A. SECCIÓN HERO: "CONTINUAR LECTURA" (EN PROGRESO)
                  Visible solo si el estudiante tiene un ReadingState activo
                  =========================================================== -->
             <section
                 v-if="continueReadingState"
                 aria-labelledby="continue-reading-heading"
-                class="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/95 dark:bg-slate-900/75 text-slate-100 p-5 sm:p-7 shadow-xl backdrop-blur-md"
+                class="relative overflow-hidden rounded-[14px] border border-[#175c80]/40 bg-[linear-gradient(112deg,#0f2335_0%,#143c56_62%,#175c80_100%)] text-slate-100 p-5 sm:p-6 shadow-[0_13px_30px_rgba(15,35,53,0.12)]"
             >
                 <div
-                    class="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl"
+                    class="pointer-events-none absolute -top-44 right-24 h-80 w-80 rounded-full border border-[#14b8a6]/15 shadow-[0_0_0_34px_rgba(20,184,166,0.06),0_0_0_75px_rgba(255,255,255,0.025)]"
                     aria-hidden="true"
                 />
 
                 <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <!-- Bloque Izquierdo: Portada con relieve + Metadatos + Barra de Progreso -->
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 min-w-0 flex-1">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-5 min-w-0 flex-1">
                         <!-- Thumbnail de la portada del libro actual con efecto lomo -->
                         <div
-                            class="relative h-32 w-24 sm:h-36 sm:w-28 shrink-0 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-800 shadow-2xl shadow-black/60 cursor-pointer group"
+                            class="relative h-36 w-[104px] shrink-0 rounded-[9px] overflow-hidden border border-white/15 bg-[#0f2335] shadow-xl shadow-black/45 cursor-pointer group"
                             @click="handleHeroContinueClick"
                         >
                             <img
@@ -755,107 +690,103 @@ onBeforeUnmount(() => {
                             />
                             <div
                                 v-else
-                                class="h-full w-full flex flex-col items-center justify-center p-2.5 text-center bg-slate-800 text-slate-200"
+                                class="h-full w-full flex flex-col items-center justify-center p-2.5 text-center bg-[#132f46] text-slate-100"
                             >
-                                <BookOpen class="h-7 w-7 text-sky-400 mb-1.5" />
-                                <span class="text-[10px] font-semibold line-clamp-3 leading-tight">
+                                <BookOpen class="h-6 w-6 text-[#78dacc] mb-1.5" />
+                                <span class="font-serif text-[11px] font-medium line-clamp-3 leading-tight">
                                     {{ continueReadingState.book_title }}
                                 </span>
                             </div>
-                            <div class="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/40 via-white/10 to-transparent" />
+                            <div class="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/45 via-white/10 to-transparent" />
                         </div>
 
                         <!-- Metadatos y Barra de Progreso -->
-                        <div class="min-w-0 flex-1 space-y-3">
-                            <div class="flex flex-wrap items-center gap-2 text-xs">
-                                <span class="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 border border-sky-400/30 px-2.5 py-0.5 font-semibold text-sky-300">
-                                    <BookMarked class="h-3.5 w-3.5" />
+                        <div class="min-w-0 flex-1 space-y-2.5">
+                            <div class="flex flex-wrap items-center gap-2 text-[11px] text-[#bfd6df]">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-[#14b8a6]/20 border border-[#14b8a6]/35 px-2.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-[#78dacc]">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
                                     <span>En progreso</span>
                                 </span>
 
-                                <span class="inline-flex items-center gap-1 rounded-md bg-slate-800/90 border border-slate-700 px-2 py-0.5 text-slate-300 font-medium">
-                                    <Layers class="h-3 w-3 text-slate-400" />
+                                <span class="font-mono text-[10px] uppercase tracking-wider text-[#bfd6df]">
                                     {{ continueReadingState.edition_name }}
                                 </span>
 
                                 <span
                                     v-if="continueReadingState.updated_at_human"
-                                    class="inline-flex items-center gap-1 text-slate-400"
+                                    class="inline-flex items-center gap-1 text-[#9bb9c8]"
                                 >
-                                    <Clock class="h-3.5 w-3.5" />
+                                    <span>·</span>
+                                    <Clock class="h-3 w-3" />
                                     <span>Última sesión: {{ continueReadingState.updated_at_human }}</span>
                                 </span>
                             </div>
 
                             <div>
+                                <p class="font-serif text-xl sm:text-2xl font-medium tracking-[-0.02em] text-white leading-tight">
+                                    Continúa donde lo dejaste.
+                                </p>
                                 <h2
                                     id="continue-reading-heading"
-                                    class="text-lg sm:text-2xl font-bold tracking-tight text-white truncate"
+                                    class="text-sm sm:text-base font-semibold text-[#e9f3f7] truncate mt-1"
                                     :title="continueReadingState.book_title"
                                 >
                                     {{ continueReadingState.book_title }}
                                 </h2>
                                 <p
                                     v-if="continueReadingState.current_chapter"
-                                    class="text-xs sm:text-sm text-slate-300 truncate mt-1 flex items-center gap-1.5"
+                                    class="text-xs text-[#bfd6df] truncate mt-0.5"
                                 >
-                                    <span class="inline-block h-1.5 w-1.5 rounded-full bg-sky-400 shrink-0" />
-                                    <span>Capítulo actual: <strong class="text-white font-semibold">{{ continueReadingState.current_chapter }}</strong></span>
+                                    Capítulo actual: <strong class="text-white font-semibold">{{ continueReadingState.current_chapter }}</strong>
                                 </p>
                             </div>
 
                             <!-- Barra de progreso interactiva con etiqueta Pág. X de Y (Z%) -->
                             <div class="max-w-xl space-y-1.5 pt-1">
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="font-medium text-slate-300">
+                                <div class="h-1.5 w-full rounded-full bg-white/15 overflow-hidden">
+                                    <div
+                                        class="h-full rounded-full bg-[#14b8a6] transition-all duration-500 ease-out"
+                                        :style="{ width: `${Math.max(3, continueReadingState.percentage)}%` }"
+                                    />
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                                    <span class="font-medium text-[#d8e7ed]">
                                         Pág. <strong class="text-white">{{ continueReadingState.current_page }}</strong> de {{ continueReadingState.total_pages }}
-                                        <span class="text-sky-400 font-bold ml-1">({{ continueReadingState.percentage }}%)</span>
+                                        <span class="text-[#78dacc] font-bold ml-1">({{ continueReadingState.percentage }}%)</span>
                                     </span>
-                                    <span class="text-[11px] text-slate-400">
+                                    <span class="font-mono text-[10px] text-[#9bb9c8]">
                                         {{
                                             Math.max(
                                                 0,
                                                 continueReadingState.total_pages - continueReadingState.current_page
                                             )
                                         }}
-                                        págs. restantes (~{{ heroRemainingMinutes }} min)
+                                        págs. restantes · ~{{ heroRemainingMinutes }} min
                                     </span>
-                                </div>
-
-                                <div
-                                    class="h-2.5 w-full rounded-full bg-slate-800 border border-slate-700/80 overflow-hidden p-0.5"
-                                    role="progressbar"
-                                    :aria-valuenow="continueReadingState.percentage"
-                                    aria-valuemin="0"
-                                    aria-valuemax="100"
-                                    :aria-label="`Progreso de lectura: página ${continueReadingState.current_page} de ${continueReadingState.total_pages} (${continueReadingState.percentage}%)`"
-                                >
-                                    <div
-                                        class="h-full rounded-full bg-sky-400 transition-all duration-500 ease-out"
-                                        :style="{ width: `${Math.max(3, continueReadingState.percentage)}%` }"
-                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- CTA de Acción Primaria Destacado + Acceso al Índice -->
-                    <div class="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2.5 shrink-0">
+                    <div class="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-stretch gap-2 shrink-0 lg:w-48">
                         <a
                             :href="buildReaderHref(continueReadingState.edition_id, continueReadingState.current_page)"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold text-sm px-5 py-3 shadow-lg shadow-sky-950/40 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                            class="inline-flex items-center justify-center gap-2 rounded-[9px] bg-white hover:bg-[#f1f6f8] text-[#0f2335] font-semibold text-xs sm:text-[13px] px-4 py-2.5 shadow-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14b8a6]"
                             @click.prevent="handleHeroContinueClick"
                         >
-                            <Play class="h-4 w-4 fill-current" />
-                            <span>Continuar lectura &rarr;</span>
+                            <Play class="h-3.5 w-3.5 fill-current" />
+                            <span>Continuar lectura</span>
+                            <ArrowRight class="h-3.5 w-3.5" />
                         </a>
 
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-medium text-xs px-4 py-2.5 transition-colors"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-[9px] border border-white/25 bg-white/10 hover:bg-white/15 text-white font-medium text-xs px-4 py-2 transition-colors"
                             @click="openHeroTocDrawer"
                         >
-                            <ListTree class="h-3.5 w-3.5 text-sky-400" />
+                            <ListTree class="h-3.5 w-3.5 text-[#78dacc]" />
                             <span>Ver índice del libro</span>
                         </button>
                     </div>
@@ -867,86 +798,103 @@ onBeforeUnmount(() => {
                  =========================================================== -->
             <section
                 aria-label="Herramientas de filtrado del catálogo"
-                class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 shadow-xs"
+                class="space-y-4 pt-1"
             >
-                <div class="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filtrar libros">
-                    <button
-                        type="button"
-                        role="tab"
-                        :aria-selected="activeFilter === 'all'"
-                        class="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all"
-                        :class="
-                            activeFilter === 'all'
-                                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950 shadow-xs'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        "
-                        @click="activeFilter = 'all'"
-                    >
-                        <Compass class="h-3.5 w-3.5" />
-                        <span>Catálogo completo</span>
-                        <span
-                            class="rounded-full px-1.5 py-0.2 text-[10px]"
+                <div class="flex flex-col-reverse lg:flex-row lg:items-center justify-between gap-3 border-b border-border pb-0">
+                    <div class="flex items-center gap-5 overflow-x-auto no-scrollbar" role="tablist" aria-label="Filtrar libros">
+                        <button
+                            type="button"
+                            role="tab"
+                            :aria-selected="activeFilter === 'all'"
+                            class="relative inline-flex shrink-0 items-center gap-2 pb-3 text-xs sm:text-[13px] font-medium transition-colors border-b-2 -mb-px"
                             :class="
                                 activeFilter === 'all'
-                                    ? 'bg-white/20 dark:bg-slate-900/20'
-                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                    ? 'border-primary text-foreground font-semibold'
+                                    : 'border-transparent text-muted hover:text-foreground'
                             "
+                            @click="activeFilter = 'all'"
                         >
-                            {{ totalBooksCount }}
-                        </span>
-                    </button>
+                            <span>Todos</span>
+                            <span
+                                class="rounded-full px-1.5 py-0.5 font-mono text-[10px]"
+                                :class="
+                                    activeFilter === 'all'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'bg-surface border border-border text-muted'
+                                "
+                            >
+                                {{ totalBooksCount }}
+                            </span>
+                        </button>
 
-                    <button
-                        type="button"
-                        role="tab"
-                        :aria-selected="activeFilter === 'in_progress'"
-                        class="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all"
-                        :class="
-                            activeFilter === 'in_progress'
-                                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950 shadow-xs'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        "
-                        @click="activeFilter = 'in_progress'"
-                    >
-                        <BookOpen class="h-3.5 w-3.5" />
-                        <span>En lectura</span>
-                        <span class="rounded-full bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 text-[10px] text-slate-600 dark:text-slate-400">
-                            {{ inProgressCount }}
-                        </span>
-                    </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            :aria-selected="activeFilter === 'in_progress'"
+                            class="relative inline-flex shrink-0 items-center gap-2 pb-3 text-xs sm:text-[13px] font-medium transition-colors border-b-2 -mb-px"
+                            :class="
+                                activeFilter === 'in_progress'
+                                    ? 'border-primary text-foreground font-semibold'
+                                    : 'border-transparent text-muted hover:text-foreground'
+                            "
+                            @click="activeFilter = 'in_progress'"
+                        >
+                            <span>En lectura</span>
+                            <span
+                                class="rounded-full px-1.5 py-0.5 font-mono text-[10px]"
+                                :class="
+                                    activeFilter === 'in_progress'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'bg-surface border border-border text-muted'
+                                "
+                            >
+                                {{ inProgressCount }}
+                            </span>
+                        </button>
 
-                    <button
-                        v-if="withNotesCount > 0"
-                        type="button"
-                        role="tab"
-                        :aria-selected="activeFilter === 'with_notes'"
-                        class="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all"
-                        :class="
-                            activeFilter === 'with_notes'
-                                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950 shadow-xs'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        "
-                        @click="activeFilter = 'with_notes'"
-                    >
-                        <StickyNote class="h-3.5 w-3.5" />
-                        <span>Con apuntes</span>
-                        <span class="rounded-full bg-slate-200 dark:bg-slate-800 px-1.5 py-0.2 text-[10px] text-slate-600 dark:text-slate-400">
-                            {{ withNotesCount }}
-                        </span>
-                    </button>
-                </div>
+                        <button
+                            v-if="withNotesCount > 0"
+                            type="button"
+                            role="tab"
+                            :aria-selected="activeFilter === 'with_notes'"
+                            class="relative inline-flex shrink-0 items-center gap-2 pb-3 text-xs sm:text-[13px] font-medium transition-colors border-b-2 -mb-px"
+                            :class="
+                                activeFilter === 'with_notes'
+                                    ? 'border-primary text-foreground font-semibold'
+                                    : 'border-transparent text-muted hover:text-foreground'
+                            "
+                            @click="activeFilter = 'with_notes'"
+                        >
+                            <span>Con apuntes</span>
+                            <span
+                                class="rounded-full px-1.5 py-0.5 font-mono text-[10px]"
+                                :class="
+                                    activeFilter === 'with_notes'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'bg-surface border border-border text-muted'
+                                "
+                            >
+                                {{ withNotesCount }}
+                            </span>
+                        </button>
+                    </div>
 
-                <!-- Buscador por título, tema o capítulo -->
-                <div class="flex items-center gap-3 w-full lg:w-auto">
-                    <div class="relative flex-1 lg:w-80">
-                        <Search class="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        <input
-                            v-model="searchQuery"
-                            type="search"
-                            placeholder="Buscar libro, edición o tema del índice..."
-                            aria-label="Buscar libro, edición o tema del índice"
-                            class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 pl-10 pr-4 py-2 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none transition"
-                        />
+                    <!-- Buscador por título, tema o capítulo -->
+                    <div class="w-full lg:w-80 pb-2.5 lg:pb-2">
+                        <label class="relative flex items-center">
+                            <Search class="h-4 w-4 text-muted absolute left-3 pointer-events-none" />
+                            <input
+                                ref="catalogSearchRef"
+                                v-model="searchQuery"
+                                type="search"
+                                placeholder="Buscar libro, edición o tema..."
+                                aria-label="Buscar libro, edición o tema del índice"
+                                class="w-full rounded-[9px] border border-border bg-surface pl-9 pr-14 py-2 text-xs text-foreground placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition"
+                            />
+                            <kbd class="hidden sm:inline-flex items-center rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted absolute right-2.5 pointer-events-none">
+                                ⌘ K
+                            </kbd>
+                        </label>
                     </div>
                 </div>
             </section>

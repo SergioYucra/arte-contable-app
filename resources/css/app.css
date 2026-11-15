@@ -121,41 +121,46 @@
 
     /* --- Menú lateral del sistema interno ------------------------------ */
     .app-sidebar {
-        width: min(16rem, 85vw);
-        transition: transform 0.25s ease, width 0.2s ease;
+        width: min(16.125rem, 85vw);
+        background: linear-gradient(165deg, #0f2335 0%, #132f46 100%);
+        color: #e9f3f7;
+        transition: transform 0.25s ease, width 0.22s ease;
     }
 
     @media (min-width: 1024px) {
         .app-sidebar {
-            width: 16rem;
+            width: 16.125rem;
         }
     }
 
     .app-shell {
-        transition: padding 0.2s ease;
+        transition: padding 0.22s ease;
     }
 
     @media (min-width: 1024px) {
         .app-shell {
-            padding-inline-start: 16rem;
+            padding-inline-start: 16.125rem;
         }
 
         html[data-sidebar="collapsed"] .app-shell {
-            padding-inline-start: 4.5rem;
+            padding-inline-start: 4.875rem;
         }
 
         html[data-sidebar="collapsed"] .app-sidebar {
-            width: 4.5rem;
+            width: 4.875rem;
+            padding-inline: 0.75rem;
         }
 
         html[data-sidebar="collapsed"] .sidebar-label,
-        html[data-sidebar="collapsed"] .sidebar-section-title {
+        html[data-sidebar="collapsed"] .sidebar-section-title,
+        html[data-sidebar="collapsed"] .sidebar-user-status {
             display: none;
         }
 
         html[data-sidebar="collapsed"] .sidebar-brand,
         html[data-sidebar="collapsed"] .nav-item,
-        html[data-sidebar="collapsed"] .sidebar-user {
+        html[data-sidebar="collapsed"] .sidebar-user,
+        html[data-sidebar="collapsed"] .sidebar-collapse-btn {
             justify-content: center;
             padding-inline: 0;
         }

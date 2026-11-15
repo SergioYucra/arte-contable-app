@@ -123,82 +123,77 @@ function handleOpenReader() {
 
 <template>
     <article
-        class="group relative flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-900/80 hover:border-sky-500/40 dark:hover:border-sky-500/40 transition-all duration-300 shadow-xs hover:shadow-2xl hover:shadow-slate-950/10 dark:hover:shadow-slate-950/60 overflow-hidden"
+        class="group relative flex flex-col rounded-[12px] border border-border bg-surface hover:border-primary/45 transition-all duration-200 shadow-2xs hover:shadow-xl hover:shadow-slate-950/10 dark:hover:shadow-black/40 overflow-hidden"
     >
-        <!-- 1. Escenario de Portada Estilo Plataforma Educativa (Perlego / O'Reilly) -->
+        <!-- 1. Escenario de Portada -->
         <div
-            class="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 dark:bg-slate-950 border-b border-slate-200/70 dark:border-slate-800/80 cursor-pointer"
+            class="relative min-h-[245px] w-full overflow-hidden bg-gradient-to-br from-[#eff4f5] to-[#e5ebed] dark:from-slate-900 dark:to-slate-950 border-b border-border flex items-center justify-center p-5 cursor-pointer"
             @click="handleOpenReader"
         >
             <!-- Imagen de portada con efecto lomo de libro -->
-            <img
-                v-if="book.cover_url"
-                :src="book.cover_url"
-                :alt="`Portada de ${book.title}`"
-                loading="lazy"
-                class="h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-            />
+            <div class="relative aspect-[3/4] w-36 sm:w-40 rounded-[6px] overflow-hidden shadow-[0_14px_26px_rgba(15,35,53,0.22)] transition-transform duration-300 ease-out group-hover:-translate-y-1">
+                <img
+                    v-if="book.cover_url"
+                    :src="book.cover_url"
+                    :alt="`Portada de ${book.title}`"
+                    loading="lazy"
+                    class="h-full w-full object-cover object-center"
+                />
 
-            <!-- Cubierta editorial académica si no hay imagen -->
-            <div
-                v-else
-                class="h-full w-full p-6 flex flex-col justify-between bg-slate-900 text-slate-100 relative overflow-hidden select-none"
-            >
-                <div class="pointer-events-none absolute inset-0 bg-brand-grid opacity-25" />
-                <div class="pointer-events-none absolute left-0 inset-y-0 w-3 bg-white/5 border-r border-white/10" />
+                <!-- Cubierta editorial académica si no hay imagen -->
+                <div
+                    v-else
+                    class="h-full w-full p-3.5 flex flex-col justify-between bg-[linear-gradient(145deg,#246e8a,#124568_65%,#0d3049)] text-white relative overflow-hidden select-none"
+                >
+                    <div class="relative z-10 flex items-center justify-between font-mono text-[7px] uppercase tracking-[1.4px] text-white/80">
+                        <span>Colección Contable</span>
+                    </div>
 
-                <div class="relative z-10 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-sky-400">
-                    <span>Colección Contable</span>
-                    <span>{{ editionLabel }}</span>
+                    <div class="relative z-10 my-auto space-y-1.5 border-l-2 border-gold pl-2.5">
+                        <p class="font-serif text-[15px] font-medium leading-[1.08] text-white line-clamp-3">
+                            {{ book.title }}
+                        </p>
+                        <p v-if="book.subtitle" class="text-[10px] text-white/75 line-clamp-2">
+                            {{ book.subtitle }}
+                        </p>
+                    </div>
+
+                    <div class="relative z-10 flex items-center justify-between font-mono text-[7px] uppercase tracking-wider text-white/75 pt-2 border-t border-white/15">
+                        <span class="truncate">{{ book.author_name || 'Edición Oficial' }}</span>
+                        <BookOpen class="h-3 w-3 text-gold shrink-0" />
+                    </div>
                 </div>
 
-                <div class="relative z-10 my-auto space-y-2.5 pl-3 border-l-2 border-sky-400">
-                    <p class="text-base sm:text-lg font-bold leading-snug text-white line-clamp-3">
-                        {{ book.title }}
-                    </p>
-                    <p v-if="book.subtitle" class="text-xs text-slate-300 line-clamp-2">
-                        {{ book.subtitle }}
-                    </p>
-                </div>
-
-                <div class="relative z-10 flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-800">
-                    <span class="truncate font-medium text-slate-300">{{ book.author_name || 'Edición Oficial' }}</span>
-                    <BookOpen class="h-4 w-4 text-sky-400 shrink-0" />
-                </div>
+                <!-- Reflejo de lomo de libro en el borde izquierdo -->
+                <div
+                    class="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/35 via-white/15 to-transparent"
+                    aria-hidden="true"
+                />
             </div>
-
-            <!-- Reflejo de lomo de libro en el borde izquierdo -->
-            <div
-                class="pointer-events-none absolute inset-y-0 left-0 w-2.5 bg-gradient-to-r from-black/35 via-white/10 to-transparent"
-                aria-hidden="true"
-            />
-
-            <!-- Gradiente superior suave para contraste de insignias -->
-            <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-950/75 via-slate-950/25 to-transparent" />
 
             <!-- Badge Superior Dinámico según Membresía -->
             <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
                 <span
                     v-if="hasActiveMembership"
-                    class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/95 backdrop-blur-md px-2.5 py-1 text-[11px] font-semibold text-slate-950 shadow-md"
+                    class="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-md px-2.5 py-0.5 text-[10.5px] font-semibold text-slate-950 shadow-xs"
                 >
-                    <CheckCircle2 class="h-3.5 w-3.5 stroke-[2.3]" />
+                    <CheckCircle2 class="h-3 w-3 stroke-[2.3]" />
                     <span>Acceso Completo</span>
                 </span>
                 <span
                     v-else
-                    class="inline-flex items-center gap-1.5 rounded-full bg-amber-400/95 backdrop-blur-md px-2.5 py-1 text-[11px] font-semibold text-slate-950 shadow-md"
+                    class="inline-flex items-center gap-1 rounded-full bg-surface/95 dark:bg-slate-900/90 border border-border backdrop-blur-md px-2.5 py-0.5 text-[10.5px] font-semibold text-foreground shadow-xs"
                 >
-                    <Sparkles class="h-3.5 w-3.5 stroke-[2.3]" />
-                    <span>Muestra gratis • {{ samplePagesCount }} págs.</span>
+                    <Sparkles class="h-3 w-3 text-primary" />
+                    <span>Muestra gratis · {{ samplePagesCount }} págs.</span>
                 </span>
 
                 <span
                     v-if="notesCount > 0"
-                    class="inline-flex items-center gap-1 rounded-full bg-slate-900/90 backdrop-blur-md border border-slate-700 px-2 py-0.5 text-[10px] font-semibold text-slate-200"
+                    class="inline-flex items-center gap-1 rounded-full bg-surface/95 dark:bg-slate-900/90 border border-border backdrop-blur-md px-2 py-0.5 font-mono text-[10px] font-semibold text-foreground"
                     :title="`${notesCount} apuntes de estudio`"
                 >
-                    <StickyNote class="h-3 w-3 text-sky-400" />
+                    <StickyNote class="h-3 w-3 text-primary" />
                     {{ notesCount }}
                 </span>
             </div>
@@ -206,26 +201,26 @@ function handleOpenReader() {
             <!-- Overlay de acción rápida al pasar el cursor -->
             <div
                 v-if="isEditionReady"
-                class="pointer-events-none absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+                class="pointer-events-none absolute inset-0 bg-[#0f2335]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
             >
-                <span class="inline-flex items-center gap-2 rounded-full bg-white/95 text-slate-950 font-semibold text-xs px-4 py-2 shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform duration-200">
-                    <Eye class="h-3.5 w-3.5 text-sky-600" />
-                    <span>{{ lastPage > 0 ? `Continuar en pág. ${lastPage}` : 'Abrir lector de estudio' }}</span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-surface text-foreground border border-border font-semibold text-[11px] px-3.5 py-1.5 shadow-lg transform translate-y-1.5 group-hover:translate-y-0 transition-transform duration-200">
+                    <Eye class="h-3.5 w-3.5 text-primary" />
+                    <span>{{ lastPage > 0 ? `Continuar en pág. ${lastPage}` : 'Abrir lector' }}</span>
                 </span>
             </div>
 
-            <!-- Barra de progreso de lectura superpuesta al pie de la portada -->
+            <!-- Barra de progreso de lectura superpuesta al pie -->
             <div
                 v-if="lastPage > 0 && totalPages > 0"
-                class="absolute inset-x-0 bottom-0 bg-slate-950/90 backdrop-blur-md px-3.5 py-2.5 border-t border-slate-800/80 z-10"
+                class="absolute inset-x-0 bottom-0 bg-surface/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-2 border-t border-border z-10"
             >
-                <div class="flex items-center justify-between text-[11px] font-medium text-slate-200 mb-1">
-                    <span>Avance: Pág. {{ lastPage }} de {{ totalPages }}</span>
-                    <span class="text-sky-400 font-bold">{{ progressPercent }}%</span>
+                <div class="flex items-center justify-between font-mono text-[10px] font-medium text-muted mb-1">
+                    <span>AVANCE · PÁG. {{ lastPage }} DE {{ totalPages }}</span>
+                    <span class="text-primary font-bold">{{ progressPercent }}%</span>
                 </div>
-                <div class="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+                <div class="h-1 w-full rounded-full bg-border overflow-hidden">
                     <div
-                        class="h-full rounded-full bg-sky-400 transition-all duration-300"
+                        class="h-full rounded-full bg-accent transition-all duration-300"
                         :style="{ width: `${Math.max(4, progressPercent)}%` }"
                     />
                 </div>
@@ -235,31 +230,28 @@ function handleOpenReader() {
         <!-- 2. Cuerpo de la Ficha Académica -->
         <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
             <div class="space-y-2.5">
-                <!-- Autor / Categoría Editorial -->
-                <div class="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span class="inline-flex items-center gap-1.5 font-medium truncate">
-                        <GraduationCap class="h-3.5 w-3.5 text-sky-500 shrink-0" />
-                        <span class="truncate">{{ book.author_name || 'Editorial Arte Contable' }}</span>
-                    </span>
+                <!-- Autor / Tiempo estimado -->
+                <div class="flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.5px] text-muted">
+                    <span class="truncate font-medium">{{ book.author_name || 'Editorial Arte Contable' }}</span>
                     <span
                         v-if="estimatedHours"
-                        class="inline-flex items-center gap-1 shrink-0 text-[10px] font-medium text-slate-400"
+                        class="inline-flex items-center gap-1 shrink-0"
                     >
                         <Clock class="h-3 w-3" />
                         {{ estimatedHours }}
                     </span>
                 </div>
 
-                <!-- Título semibold con truncate -->
+                <!-- Título editorial -->
                 <h3
-                    class="text-base font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors"
+                    class="font-serif text-lg font-medium leading-snug text-foreground truncate group-hover:text-primary transition-colors"
                     :title="book.title"
                 >
                     {{ book.title }}
                 </h3>
 
                 <!-- Breve descripción del libro (clamp de 2 líneas) -->
-                <p class="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed min-h-[2.25rem]">
+                <p class="text-xs text-muted line-clamp-2 leading-relaxed min-h-[2.25rem]">
                     {{
                         book.description ||
                         book.subtitle ||
@@ -273,7 +265,7 @@ function handleOpenReader() {
                     <select
                         :id="`edition-select-${book.id}`"
                         :value="activeEdition?.id"
-                        class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                        class="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                         @change="handleEditionChange"
                     >
                         <option
@@ -288,18 +280,16 @@ function handleOpenReader() {
 
                 <!-- Fila de badges de metadatos editoriales -->
                 <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span class="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/70 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                        <Layers class="h-3 w-3 text-slate-400" />
+                    <span class="inline-flex items-center gap-1 rounded-[6px] bg-background border border-border px-2 py-0.5 text-[10.5px] font-medium text-foreground">
                         {{ editionLabel }}
                     </span>
 
-                    <span class="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/70 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                        <FileText class="h-3 w-3 text-slate-400" />
+                    <span class="inline-flex items-center gap-1 rounded-[6px] bg-background border border-border px-2 py-0.5 text-[10.5px] font-medium text-muted">
                         {{ totalPages }} págs.
                     </span>
 
                     <span
-                        class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium border"
+                        class="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[10.5px] font-medium border"
                         :class="
                             isEditionReady
                                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
@@ -314,37 +304,40 @@ function handleOpenReader() {
                     </span>
                 </div>
 
-                <!-- Mini-vista previa de capítulos del índice (estilo curso/temario) -->
+                <!-- Mini-vista previa de capítulos del índice -->
                 <div
                     v-if="previewChapters.length > 0"
-                    class="mt-2 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 p-2.5 space-y-1"
+                    class="mt-2 rounded-[9px] bg-background border border-border p-2.5 space-y-1"
                 >
-                    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <p class="font-mono text-[9.5px] font-medium uppercase tracking-[0.8px] text-muted">
                         Contenido temático
                     </p>
                     <div
                         v-for="(chap, cIdx) in previewChapters"
                         :key="cIdx"
-                        class="flex items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-300"
+                        class="flex items-center justify-between gap-2 text-[11px] text-foreground/85"
                     >
-                        <span class="truncate">• {{ chap.title }}</span>
-                        <span class="font-mono text-[10px] text-slate-400 shrink-0">P.{{ chap.page }}</span>
+                        <span class="truncate">
+                            <span class="font-mono text-[10px] text-muted mr-1">{{ String(cIdx + 1).padStart(2, '0') }}</span>
+                            {{ chap.title }}
+                        </span>
+                        <span class="font-mono text-[10px] text-muted shrink-0">pág. {{ chap.page }}</span>
                     </div>
                 </div>
             </div>
 
             <!-- 3. Vista Previa del Índice Temático + 4. Footer Paywall-Aware -->
-            <div class="space-y-3 pt-3 border-t border-slate-200/80 dark:border-slate-800/80">
+            <div class="space-y-2.5 pt-3 border-t border-border">
                 <button
                     type="button"
-                    class="w-full inline-flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    class="w-full inline-flex items-center justify-between rounded-lg px-2 py-1 text-xs font-semibold text-muted hover:text-primary hover:bg-background transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     @click="handleOpenToc"
                 >
                     <span class="inline-flex items-center gap-1.5">
-                        <ListTree class="h-3.5 w-3.5 text-sky-500" />
+                        <ListTree class="h-3.5 w-3.5 text-primary" />
                         <span>Ver índice de contenidos</span>
                     </span>
-                    <span class="text-[11px] text-sky-600 dark:text-sky-400 font-mono">
+                    <span class="font-mono text-[10.5px] text-primary">
                         {{ tocItemsCount > 0 ? `${tocItemsCount} temas` : 'Explorar' }} &rarr;
                     </span>
                 </button>
@@ -354,14 +347,14 @@ function handleOpenReader() {
                     <button
                         type="button"
                         :disabled="!isEditionReady"
-                        class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 disabled:pointer-events-none text-slate-950 font-semibold text-xs sm:text-sm px-4 py-2.5 shadow-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                        class="w-full inline-flex items-center justify-center gap-2 rounded-[9px] bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:pointer-events-none text-primary-foreground font-semibold text-xs px-4 py-2.5 shadow-2xs transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         @click="handleOpenReader"
                     >
                         <BookOpen class="h-4 w-4" />
                         <span>
                             {{
                                 lastPage > 0
-                                    ? `Continuar lectura (Pág. ${lastPage})`
+                                    ? `Continuar lectura · pág. ${lastPage}`
                                     : 'Leer libro completo'
                             }}
                         </span>
@@ -369,18 +362,18 @@ function handleOpenReader() {
                 </div>
 
                 <!-- Acciones Paywall-Aware en Plan Gratuito -->
-                <div v-else class="space-y-2">
+                <div v-else class="space-y-1.5">
                     <button
                         type="button"
                         :disabled="!isEditionReady"
-                        class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white disabled:opacity-50 disabled:pointer-events-none text-white dark:text-slate-950 font-semibold text-xs sm:text-sm px-4 py-2.5 shadow-sm transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                        class="w-full inline-flex items-center justify-center gap-2 rounded-[9px] bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:pointer-events-none text-primary-foreground font-semibold text-xs px-4 py-2.5 shadow-2xs transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         @click="handleOpenReader"
                     >
                         <Play class="h-3.5 w-3.5 fill-current" />
                         <span>
                             {{
                                 lastPage > 0
-                                    ? `Continuar muestra (Pág. ${lastPage})`
+                                    ? `Continuar · pág. ${lastPage}`
                                     : 'Leer muestra gratis'
                             }}
                         </span>
@@ -388,9 +381,9 @@ function handleOpenReader() {
 
                     <a
                         :href="membershipUrl"
-                        class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 hover:bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                        class="w-full inline-flex items-center justify-center gap-1.5 rounded-[9px] border border-border bg-background hover:border-primary/40 hover:text-primary px-3 py-2 text-[11px] font-semibold text-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
-                        <Lock class="h-3.5 w-3.5" />
+                        <Lock class="h-3 w-3" />
                         <span>Desbloquear libro completo</span>
                     </a>
                 </div>

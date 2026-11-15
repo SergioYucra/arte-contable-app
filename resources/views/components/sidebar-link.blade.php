@@ -9,18 +9,16 @@
     title="{{ $label }}"
     @if ($active) aria-current="page" @endif
     {{ $attributes->class([
-        'nav-item group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-        'bg-primary/10 text-primary font-semibold' => $active,
-        'text-muted hover:bg-background hover:text-foreground' => ! $active,
+        'nav-item group relative flex min-h-[42px] items-center gap-3 rounded-[10px] border px-3 text-[13px] transition-all duration-150',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14b8a6]/60',
+        'border-white/10 bg-[#175c80]/40 text-white font-medium shadow-[inset_3px_0_0_#14b8a6]' => $active,
+        'border-transparent text-[#c3d5de] hover:bg-white/[0.07] hover:text-white' => ! $active,
     ]) }}
 >
-    {{-- Indicador lateral del elemento activo --}}
-    @if ($active)
-        <span class="absolute inset-y-2 start-0 w-1 rounded-e-full bg-primary" aria-hidden="true"></span>
-    @endif
-
-    <span class="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden="true">
+    <span
+        class="flex h-[18px] w-[18px] shrink-0 items-center justify-center transition-colors duration-150 {{ $active ? 'text-[#78dacc]' : 'text-[#9bb9c8] group-hover:text-[#c4e7f1]' }}"
+        aria-hidden="true"
+    >
         {{ $icon }}
     </span>
     <span class="sidebar-label truncate">{{ $label }}</span>
