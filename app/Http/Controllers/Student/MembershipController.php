@@ -8,6 +8,7 @@ use App\Models\PaymentRequest;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\MembershipService;
 use App\Services\SubscriptionStorageService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class MembershipController extends Controller
 {
     public function __construct(
-        private readonly SubscriptionStorageService $storageService
+        private readonly SubscriptionStorageService $storageService,
+        private readonly MembershipService $membershipService,
     ) {}
 
     /**
@@ -184,34 +186,9 @@ class MembershipController extends Controller
             $now = Carbon::now();
             $durationDays = (int) $code->duration_days;
 
-            $existing = Subscription::where('user_id', $user->id)
-                ->where('status', Subscription::STATUS_ACTIVE)
-                ->where('expires_at', '>', $now)
-                ->latest('expires_at')
-                ->first();
-
-            $startsAt = $existing ? $existing->starts_at : $now;
-            $baseDate = $existing ? Carbon::parse($existing->expires_at) : $now;
-            $expiresAt = $baseDate->copy()->addDays($durationDays);
-
-            if ($existing) {
-                $existing->update([
-                    'subscription_plan_id' => $code->subscription_plan_id ?: $existing->subscription_plan_id,
-                    'expires_at' => $expiresAt,
-                    'access_code_id' => $code->id,
-                ]);
-            } else {
-                Subscription::create([
-                    'user_id' => $user->id,
-                    'book_edition_id' => null,
-                    'subscription_plan_id' => $code->subscription_plan_id,
-                    'payment_request_id' => null,
-                    'access_code_id' => $code->id,
-                    'starts_at' => $startsAt,
-                    'expires_at' => $expiresAt,
-                    'status' => Subscription::STATUS_ACTIVE,
-                ]);
-            }
+            // Regla única de vigencia; también deja la fila de historial.
+            $grant = $this->membershipService->grantFromCode($code, $user);
+            $expiresAt = $grant->new_expires_at;
 
             $code->update([
                 'redeemed_by' => $user->id,
