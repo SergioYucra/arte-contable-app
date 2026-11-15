@@ -7,6 +7,7 @@ import { ref, watch, computed, inject } from 'vue';
 import axios from 'axios';
 import { Copy, Check, Download } from 'lucide-vue-next';
 import BaseModal from '../ui/BaseModal.vue';
+import BaseAlert from '../ui/BaseAlert.vue';
 import { PANEL_CONTEXT, btn, field, label, hint, errorText, readError, durationLabel, downloadText, plural } from './shared';
 
 const props = defineProps({
@@ -46,7 +47,6 @@ function reset() {
 
 watch(() => props.modelValue, (open) => open && reset(), { immediate: true });
 
-// El error del código se borra apenas se corrige, para no dejar un aviso viejo en pantalla.
 watch(
     () => [form.value.customCode, form.value.kind],
     () => {
@@ -65,10 +65,10 @@ const daysGiven = computed(() => (form.value.mode === 'plan' ? selectedPlan.valu
 
 function validate() {
     const next = {};
-    if (form.value.mode === 'plan' && !selectedPlan.value) next.subscription_plan_id = 'Elige un plan.';
+    if (form.value.mode === 'plan' && !selectedPlan.value) next.subscription_plan_id = 'Selecciona un plan.';
     if (form.value.mode === 'days') {
         const d = Number(form.value.days);
-        if (!Number.isInteger(d) || d < 1 || d > 1825) next.duration_days = 'Elige entre 1 día y 5 años (1825 días).';
+        if (!Number.isInteger(d) || d < 1 || d > 1825) next.duration_days = 'Indica entre 1 día y 5 años (1825 días).';
     }
     if (isCustom.value) {
         const code = normalizedCustomCode.value;
@@ -76,7 +76,7 @@ function validate() {
         else if (!CUSTOM_CODE_PATTERN.test(code)) next.custom_code = 'Usa solo letras (sin tildes ni ñ), números y guiones, sin espacios.';
     } else {
         const q = Number(form.value.quantity);
-        if (!Number.isInteger(q) || q < 1 || q > 100) next.quantity = 'Entre 1 y 100 códigos por vez.';
+        if (!Number.isInteger(q) || q < 1 || q > 100) next.quantity = 'Indica entre 1 y 100 códigos por lote.';
     }
     errors.value = next;
     return Object.keys(next).length === 0;
@@ -95,7 +95,7 @@ async function generate() {
         });
         created.value = data.access_codes;
         emit('generated', { codes: data.access_codes, summary: data.summary });
-        notify('success', 'Códigos creados', data.message);
+        notify('success', 'Códigos generados', data.message);
     } catch (e) {
         const { fields, message } = readError(e);
         errors.value = Object.keys(fields).length ? fields : { general: message };
@@ -110,7 +110,7 @@ async function copyText(text, key) {
         copied.value = key;
         setTimeout(() => copied.value === key && (copied.value = null), 2000);
     } catch {
-        notify('error', 'No se pudo copiar', 'Selecciona los códigos y cópialos a mano.');
+        notify('error', 'No se pudo copiar', 'Selecciona los códigos y cópialos manualmente.');
     }
 }
 
@@ -133,71 +133,73 @@ function download() {
 <template>
     <BaseModal
         :model-value="modelValue"
-        :title="created.length ? 'Códigos listos' : 'Crear códigos de acceso'"
+        :title="created.length ? 'Códigos generados' : 'Generar códigos de acceso'"
         max-width="lg"
         :closeable="!saving"
         @update:model-value="emit('update:modelValue', $event)"
     >
         <!-- Resultado -->
         <div v-if="created.length" class="space-y-4">
-            <p class="text-sm text-foreground">
-                <template v-if="created.length === 1">Código creado. Da <strong>{{ created[0].duration_label }}</strong> de acceso a una persona.</template>
-                <template v-else>{{ plural(created.length, 'código creado', 'códigos creados') }}. Cada uno da <strong>{{ created[0].duration_label }}</strong> de acceso.</template>
-                Se entregan a mano: no se envían por correo.
-            </p>
-            <ul class="max-h-64 overflow-y-auto divide-y divide-border rounded-brand border border-border bg-background">
+            <BaseAlert type="success" :title="created.length === 1 ? 'Código listo para entregar' : `${plural(created.length, 'código listo', 'códigos listos')} para entregar`">
+                Cada código otorga <strong>{{ created[0].duration_label }}</strong> de acceso y es válido para un único canje.
+            </BaseAlert>
+
+            <ul class="max-h-60 overflow-y-auto divide-y divide-border rounded-brand border border-border bg-background">
                 <li v-for="code in created" :key="code.id" class="flex items-center justify-between gap-3 px-3 py-2">
-                    <code translate="no" class="font-mono text-base font-semibold tracking-wide text-foreground select-all">{{ code.code }}</code>
+                    <code translate="no" class="font-mono text-sm font-semibold tracking-wide text-foreground select-all">{{ code.code }}</code>
                     <button
                         type="button"
-                        class="p-1.5 rounded-brand text-muted hover:text-foreground hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        class="p-1.5 rounded-brand text-muted hover:text-primary hover:bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                         :aria-label="`Copiar el código ${code.code}`"
                         @click="copyText(code.code, code.id)"
                     >
-                        <Check v-if="copied === code.id" class="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                        <Check v-if="copied === code.id" class="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                         <Copy v-else class="h-4 w-4" aria-hidden="true" />
                     </button>
                 </li>
             </ul>
+
             <div class="flex flex-wrap gap-2">
                 <button type="button" :class="btn.secondary" @click="copyText(listText, 'all')">
-                    <component :is="copied === 'all' ? Check : Copy" class="h-4 w-4" aria-hidden="true" />
+                    <component :is="copied === 'all' ? Check : Copy" class="h-3.5 w-3.5 text-primary" aria-hidden="true" />
                     <template v-if="created.length === 1">{{ copied === 'all' ? 'Copiado' : 'Copiar código' }}</template>
                     <template v-else>{{ copied === 'all' ? 'Copiados' : 'Copiar todos' }}</template>
                 </button>
                 <button type="button" :class="btn.secondary" @click="download">
-                    <Download class="h-4 w-4" aria-hidden="true" />
-                    Descargar lista
+                    <Download class="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                    <span>Descargar lista (.txt)</span>
                 </button>
             </div>
         </div>
 
         <!-- Formulario -->
-        <form v-else id="code-form" class="space-y-5" novalidate @submit.prevent="generate">
-            <p v-if="errors.general" role="alert" :class="[errorText, 'text-sm']">{{ errors.general }}</p>
+        <form v-else id="code-form" class="space-y-4" novalidate @submit.prevent="generate">
+            <BaseAlert v-if="errors.general" type="error">
+                {{ errors.general }}
+            </BaseAlert>
 
-            <fieldset class="space-y-2">
-                <legend :class="label">¿Cómo se crea el código?</legend>
+            <fieldset class="space-y-1.5">
+                <legend :class="label">Modo de generación</legend>
                 <div class="grid grid-cols-2 gap-2">
                     <label
-                        class="flex items-center gap-2 rounded-brand border p-3 cursor-pointer text-sm transition-colors"
-                        :class="form.kind === 'random' ? 'border-primary bg-primary/5' : 'border-border'"
+                        class="flex items-center gap-2 rounded-brand border p-2.5 cursor-pointer text-xs font-medium transition-colors"
+                        :class="form.kind === 'random' ? 'border-primary bg-primary/10 text-foreground font-semibold' : 'border-border bg-background text-muted hover:text-foreground'"
                     >
-                        <input v-model="form.kind" type="radio" value="random" class="text-primary focus:ring-primary/40" />
-                        Generarlo al azar
+                        <input v-model="form.kind" type="radio" value="random" class="text-primary focus:ring-primary/30" />
+                        <span>Generar al azar</span>
                     </label>
                     <label
-                        class="flex items-center gap-2 rounded-brand border p-3 cursor-pointer text-sm transition-colors"
-                        :class="form.kind === 'custom' ? 'border-primary bg-primary/5' : 'border-border'"
+                        class="flex items-center gap-2 rounded-brand border p-2.5 cursor-pointer text-xs font-medium transition-colors"
+                        :class="form.kind === 'custom' ? 'border-primary bg-primary/10 text-foreground font-semibold' : 'border-border bg-background text-muted hover:text-foreground'"
                     >
-                        <input v-model="form.kind" type="radio" value="custom" class="text-primary focus:ring-primary/40" />
-                        Escribirlo yo
+                        <input v-model="form.kind" type="radio" value="custom" class="text-primary focus:ring-primary/30" />
+                        <span>Código personalizado</span>
                     </label>
                 </div>
             </fieldset>
 
             <div v-if="isCustom" class="space-y-1.5">
-                <label for="code-custom" :class="label">Código</label>
+                <label for="code-custom" :class="label">Código personalizado *</label>
                 <input
                     id="code-custom"
                     v-model="form.customCode"
@@ -208,59 +210,62 @@ function download() {
                     spellcheck="false"
                     translate="no"
                     :class="[field, 'font-mono uppercase tracking-wide']"
-                    placeholder="Ej.: 2026ARTE…"
+                    placeholder="Ej. 2026ARTE-UMSA"
                     :aria-invalid="Boolean(errors.custom_code)"
                     aria-describedby="code-custom-help code-custom-error"
                 />
                 <p id="code-custom-help" :class="hint">
-                    De 6 a 32 letras, números o guiones. Mayúsculas y minúsculas valen lo mismo.
-                    Sirve para <strong class="font-semibold text-foreground">una sola persona</strong>.
+                    De 6 a 32 letras, números o guiones. Válido para <strong class="font-semibold text-foreground">una sola persona</strong>.
                 </p>
                 <p v-if="errors.custom_code" id="code-custom-error" :class="errorText">{{ errors.custom_code }}</p>
-                <p v-else class="text-xs text-amber-800 dark:text-amber-300">
-                    Un código fácil de adivinar lo puede usar otra persona antes. Entrégalo directo a quien corresponde.
-                </p>
             </div>
 
-            <fieldset class="space-y-2">
-                <legend :class="label">¿Cuánto acceso da {{ isCustom ? 'el código' : 'cada código' }}?</legend>
+            <fieldset class="space-y-1.5">
+                <legend :class="label">Duración del acceso</legend>
                 <div class="grid grid-cols-2 gap-2">
                     <label
-                        class="flex items-center gap-2 rounded-brand border p-3 cursor-pointer text-sm transition-colors"
-                        :class="[form.mode === 'plan' ? 'border-primary bg-primary/5' : 'border-border', !activePlans.length && 'opacity-50 cursor-not-allowed']"
+                        class="flex items-center gap-2 rounded-brand border p-2.5 cursor-pointer text-xs font-medium transition-colors"
+                        :class="[
+                            form.mode === 'plan' ? 'border-primary bg-primary/10 text-foreground font-semibold' : 'border-border bg-background text-muted hover:text-foreground',
+                            !activePlans.length && 'opacity-50 cursor-not-allowed',
+                        ]"
                     >
-                        <input v-model="form.mode" type="radio" value="plan" class="text-primary focus:ring-primary/40" :disabled="!activePlans.length" />
-                        Lo de un plan
+                        <input v-model="form.mode" type="radio" value="plan" class="text-primary focus:ring-primary/30" :disabled="!activePlans.length" />
+                        <span>Según un plan activo</span>
                     </label>
                     <label
-                        class="flex items-center gap-2 rounded-brand border p-3 cursor-pointer text-sm transition-colors"
-                        :class="form.mode === 'days' ? 'border-primary bg-primary/5' : 'border-border'"
+                        class="flex items-center gap-2 rounded-brand border p-2.5 cursor-pointer text-xs font-medium transition-colors"
+                        :class="form.mode === 'days' ? 'border-primary bg-primary/10 text-foreground font-semibold' : 'border-border bg-background text-muted hover:text-foreground'"
                     >
-                        <input v-model="form.mode" type="radio" value="days" class="text-primary focus:ring-primary/40" />
-                        Elegir los días
+                        <input v-model="form.mode" type="radio" value="days" class="text-primary focus:ring-primary/30" />
+                        <span>Días personalizados</span>
                     </label>
                 </div>
             </fieldset>
 
             <div v-if="form.mode === 'plan'" class="space-y-1.5">
-                <label for="code-plan" :class="label">Plan</label>
-                <select id="code-plan" v-model="form.planId" :class="[field, 'bg-background']" :aria-invalid="Boolean(errors.subscription_plan_id)">
+                <label for="code-plan" :class="label">Plan asociado *</label>
+                <select id="code-plan" v-model="form.planId" :class="field" :aria-invalid="Boolean(errors.subscription_plan_id)">
                     <option v-for="plan in activePlans" :key="plan.id" :value="plan.id">
-                        {{ plan.name }} — {{ plan.duration_label }}
+                        {{ plan.name }} ({{ plan.duration_label }})
                     </option>
                 </select>
                 <p v-if="errors.subscription_plan_id" :class="errorText">{{ errors.subscription_plan_id }}</p>
             </div>
 
-            <div v-else class="space-y-1.5">
-                <label for="code-days" :class="label">Días</label>
+            <div v-else class="space-y-2">
+                <label for="code-days" :class="label">Cantidad de días *</label>
                 <div class="flex flex-wrap gap-1.5" role="group" aria-label="Días frecuentes">
                     <button
                         v-for="d in DAY_SHORTCUTS"
                         :key="d"
                         type="button"
-                        class="px-3 py-1.5 rounded-full border text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                        :class="Number(form.days) === d ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted hover:text-foreground'"
+                        class="px-2.5 py-1 rounded-brand border text-xs font-medium transition-colors"
+                        :class="
+                            Number(form.days) === d
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background border-border text-muted hover:text-foreground'
+                        "
                         :aria-pressed="Number(form.days) === d"
                         @click="form.days = d"
                     >
@@ -274,30 +279,30 @@ function download() {
                 <p v-if="errors.duration_days" :class="errorText">{{ errors.duration_days }}</p>
             </div>
 
-            <div class="grid gap-5" :class="isCustom ? '' : 'sm:grid-cols-[8rem_1fr]'">
-                <div v-if="!isCustom" class="space-y-1.5">
-                    <label for="code-quantity" :class="label">Cantidad</label>
+            <div class="grid gap-3.5" :class="isCustom ? '' : 'sm:grid-cols-[7.5rem_1fr]'">
+                <div v-if="!isCustom" class="space-y-1">
+                    <label for="code-quantity" :class="label">Cantidad *</label>
                     <input id="code-quantity" v-model.number="form.quantity" type="number" inputmode="numeric" min="1" max="100" :class="field" :aria-invalid="Boolean(errors.quantity)" />
                     <p v-if="errors.quantity" :class="errorText">{{ errors.quantity }}</p>
                 </div>
-                <div class="space-y-1.5">
-                    <label for="code-reference" :class="label">¿Para quién o para qué? <span class="font-normal text-muted">(opcional)</span></label>
-                    <input id="code-reference" v-model="form.reference" type="text" maxlength="255" autocomplete="off" :class="field" placeholder="Ej.: Lectores del libro impreso, feria UMSA…" />
-                    <p :class="hint">Solo lo ves tú, para recordar a quién se los diste.</p>
+                <div class="space-y-1">
+                    <label for="code-reference" :class="label">Referencia interna <span class="font-normal text-muted">(opcional)</span></label>
+                    <input id="code-reference" v-model="form.reference" type="text" maxlength="255" autocomplete="off" :class="field" placeholder="Ej. Lectores edición impresa, Beca UMSA..." />
+                    <p :class="hint">Nota privada para identificar el lote o destinatario.</p>
                 </div>
             </div>
         </form>
 
         <template #footer="{ close }">
             <template v-if="created.length">
-                <button type="button" :class="[btn.quiet, 'mr-auto']" @click="reset">Crear más</button>
-                <button type="button" :class="btn.primary" @click="close">Listo</button>
+                <button type="button" :class="[btn.quiet, 'mr-auto']" @click="reset">Generar más</button>
+                <button type="button" :class="btn.primary" @click="close">Finalizar</button>
             </template>
             <template v-else>
                 <button type="button" :class="btn.secondary" :disabled="saving" @click="close">Cancelar</button>
                 <button type="submit" form="code-form" :class="btn.primary" :disabled="saving">
-                    {{ saving ? 'Creando…' : `Crear ${plural(howMany, 'código', 'códigos')}` }}
-                    <span v-if="!saving && daysGiven" class="font-normal opacity-80">de {{ durationLabel(daysGiven) }}</span>
+                    {{ saving ? 'Generando…' : `Generar ${plural(howMany, 'código', 'códigos')}` }}
+                    <span v-if="!saving && daysGiven" class="font-normal opacity-85">({{ durationLabel(daysGiven) }})</span>
                 </button>
             </template>
         </template>

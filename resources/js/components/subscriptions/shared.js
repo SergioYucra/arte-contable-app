@@ -6,25 +6,26 @@
 export const PANEL_CONTEXT = Symbol('subscription-panel');
 
 const focusRing =
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
-const press = 'transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 disabled:opacity-50 disabled:pointer-events-none';
-const base = `inline-flex items-center justify-center gap-2 rounded-brand font-semibold ${press} ${focusRing}`;
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30';
+const press =
+    'transition-colors disabled:opacity-50 disabled:pointer-events-none';
+const base = `inline-flex items-center justify-center gap-1.5 rounded-brand ${press} ${focusRing}`;
 
 export const btn = {
-    primary: `${base} px-4 py-2.5 text-sm bg-primary text-primary-foreground hover:bg-primary-hover`,
-    secondary: `${base} px-4 py-2.5 text-sm bg-surface border border-border text-foreground hover:border-primary/40 hover:bg-background`,
-    danger: `${base} px-4 py-2.5 text-sm bg-rose-600 text-white hover:bg-rose-700`,
-    dangerQuiet: `${base} px-4 py-2.5 text-sm text-rose-700 dark:text-rose-400 hover:bg-rose-500/10`,
-    quiet: `${base} px-3 py-2 text-sm text-primary hover:bg-primary/10`,
-    small: `${base} px-3 py-1.5 text-xs bg-surface border border-border text-foreground hover:border-primary/40`,
+    primary: `${base} px-4 py-2.5 sm:py-2 text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary-hover shadow-xs`,
+    secondary: `${base} px-3.5 py-2.5 sm:py-2 text-xs font-semibold bg-background border border-border text-foreground hover:border-primary/40`,
+    danger: `${base} px-4 py-2.5 sm:py-2 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs`,
+    dangerQuiet: `${base} px-3 py-2.5 sm:py-2 text-xs font-medium bg-background border border-border text-muted hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10`,
+    quiet: `${base} px-3 py-2 sm:py-1.5 text-xs font-semibold text-primary hover:bg-primary/10`,
+    small: `${base} px-3 py-2 sm:py-1.5 text-xs font-semibold bg-background border border-border text-foreground hover:border-primary/40`,
 };
 
 export const field =
-    'w-full px-3 py-2.5 text-sm bg-background border border-border rounded-brand text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary';
+    'w-full px-3 py-2.5 sm:py-2 text-sm bg-background border border-border rounded-brand text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary';
 
-export const label = 'block text-sm font-medium text-foreground';
-export const hint = 'text-xs text-muted';
-export const errorText = 'text-xs font-medium text-rose-700 dark:text-rose-400';
+export const label = 'block text-xs font-medium text-foreground';
+export const hint = 'text-[11px] text-muted leading-relaxed';
+export const errorText = 'text-xs text-rose-600 dark:text-rose-400';
 
 /**
  * Convierte un error de axios en un mensaje para la persona y errores por campo.

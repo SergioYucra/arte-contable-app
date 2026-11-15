@@ -4,7 +4,7 @@
  */
 import { ref, computed, inject } from 'vue';
 import axios from 'axios';
-import { Plus, QrCode, AlertTriangle } from 'lucide-vue-next';
+import { Plus, QrCode, AlertTriangle, Archive, RotateCcw, CreditCard, Settings2, ChevronDown } from 'lucide-vue-next';
 import BaseModal from '../ui/BaseModal.vue';
 import PlanFormModal from './PlanFormModal.vue';
 import { PANEL_CONTEXT, btn, readError, plural } from './shared';
@@ -71,108 +71,221 @@ async function restore(plan) {
 </script>
 
 <template>
-    <div class="space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-            <div>
-                <h3 class="font-serif text-xl text-foreground">Planes</h3>
-                <p class="text-sm text-muted max-w-prose">
-                    Cada plan da acceso a todos los libros y materiales durante el tiempo que elijas. El QR es el que el estudiante escanea para pagar.
+    <div class="space-y-4 sm:space-y-5">
+        <!-- Barra superior alineada a /admin/libros -->
+        <div class="bg-surface border border-border rounded-brand p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-semibold text-foreground">Planes de suscripción</h3>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-background border border-border text-muted tabular-nums">
+                        {{ visiblePlans.length }}
+                    </span>
+                </div>
+                <p class="text-xs text-muted mt-0.5">
+                    Configura precios, vigencia y el código QR bancario que escanean los estudiantes al pagar.
                 </p>
             </div>
-            <button type="button" :class="btn.primary" @click="openCreate">
+
+            <button type="button" :class="[btn.primary, 'shrink-0 w-full sm:w-auto']" @click="openCreate">
                 <Plus class="h-4 w-4" aria-hidden="true" />
-                Nuevo plan
+                <span>Nuevo plan</span>
             </button>
         </div>
 
-        <ul v-if="visiblePlans.length" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <li v-for="plan in visiblePlans" :key="plan.id" class="rounded-brand border border-border bg-surface p-5 flex flex-col gap-4">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <h4 class="text-base font-semibold text-foreground break-words">{{ plan.name }}</h4>
-                        <p class="text-sm text-muted">{{ plan.duration_label }} de acceso</p>
+        <!-- Cuadrícula adaptable de planes estilo /admin/libros -->
+        <ul v-if="visiblePlans.length" class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-5">
+            <li
+                v-for="plan in visiblePlans"
+                :key="plan.id"
+                class="bg-surface border border-border rounded-brand p-3 sm:p-4 flex flex-col justify-between gap-3 sm:gap-4 hover:border-primary/40 transition-colors"
+            >
+                <div class="space-y-3">
+                    <div class="flex gap-3 sm:gap-4">
+                        <!-- Miniatura del código QR -->
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-brand overflow-hidden border border-border bg-white flex items-center justify-center p-1.5">
+                            <img
+                                v-if="plan.qr_image_url"
+                                :src="plan.qr_image_url"
+                                :alt="`QR de pago de ${plan.name}`"
+                                width="88"
+                                height="88"
+                                loading="lazy"
+                                decoding="async"
+                                class="w-full h-full object-contain"
+                            />
+                            <div v-else class="text-center space-y-1 p-1 select-none">
+                                <QrCode class="h-6 w-6 mx-auto text-slate-400" aria-hidden="true" />
+                                <span class="block text-[10px] font-semibold text-slate-500 leading-tight">Sin QR</span>
+                            </div>
+                        </div>
+
+                        <!-- Información principal del plan -->
+                        <div class="flex-1 min-w-0 space-y-1.5">
+                            <div class="flex flex-wrap items-center justify-between gap-1.5">
+                                <span
+                                    v-if="plan.is_active"
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                >
+                                    Visible
+                                </span>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                >
+                                    Oculto
+                                </span>
+
+                                <span class="text-sm sm:text-base font-bold text-foreground tabular-nums">
+                                    {{ plan.price_formatted }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <h4 class="text-sm sm:text-base font-semibold text-foreground leading-snug line-clamp-2">
+                                    {{ plan.name }}
+                                </h4>
+                                <p v-if="plan.description" class="text-xs text-muted line-clamp-1 mt-0.5">
+                                    {{ plan.description }}
+                                </p>
+                                <p class="text-xs font-medium text-muted mt-1">
+                                    {{ plan.duration_label }} de acceso
+                                </p>
+                            </div>
+
+                            <div class="pt-0.5 text-xs text-muted flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span
+                                    v-if="plan.qr_image_url"
+                                    class="font-medium text-emerald-600 dark:text-emerald-400"
+                                >
+                                    QR activo
+                                </span>
+                                <span
+                                    v-else
+                                    class="font-medium text-amber-600 dark:text-amber-400 inline-flex items-center gap-1"
+                                >
+                                    <AlertTriangle class="h-3 w-3 shrink-0" aria-hidden="true" />
+                                    Falta QR
+                                </span>
+                                <span>·</span>
+                                <span>{{ plural(plan.active_subscriptions_count, 'con acceso', 'con acceso') }}</span>
+                                <template v-if="plan.pending_requests_count">
+                                    <span>·</span>
+                                    <span class="font-medium text-amber-600 dark:text-amber-400">
+                                        {{ plural(plan.pending_requests_count, 'por revisar', 'por revisar') }}
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
                     </div>
-                    <p class="font-serif text-2xl text-foreground tabular-nums shrink-0">{{ plan.price_formatted }}</p>
-                </div>
 
-                <p v-if="plan.description" class="text-sm text-muted">{{ plan.description }}</p>
-
-                <div
-                    v-if="plan.special && plan.special.status !== 'ended'"
-                    class="rounded-brand border border-gold/60 bg-gold/10 p-3 text-sm space-y-1"
-                >
-                    <p class="font-semibold text-foreground">
-                        {{ plan.special.status === 'active' ? 'Precio especial vigente' : 'Precio especial programado' }}:
-                        <span class="font-serif text-base tabular-nums">{{ plan.special.price_formatted }}</span>
-                        <span v-if="plan.special.label" class="font-normal text-foreground/75"> · {{ plan.special.label }}</span>
-                    </p>
-                    <p class="text-foreground/75">
-                        <template v-if="plan.special.status === 'scheduled'">Empieza el {{ plan.special.starts_label }} · </template>
-                        Termina el {{ plan.special.ends_label }}
-                    </p>
-                    <p v-if="!plan.special.qr_image_url" class="text-amber-800 dark:text-amber-300 inline-flex items-center gap-1.5">
-                        <AlertTriangle class="h-4 w-4 shrink-0" aria-hidden="true" />
-                        Falta el QR del precio especial
-                    </p>
-                </div>
-                <p v-else-if="plan.special?.status === 'ended'" class="text-xs text-muted">
-                    El precio especial terminó el {{ plan.special.ends_label }}.
-                </p>
-
-                <div class="flex items-center gap-3 rounded-brand bg-background border border-border p-3">
-                    <div class="h-14 w-14 rounded-lg bg-white border border-border flex items-center justify-center overflow-hidden shrink-0">
-                        <img v-if="plan.qr_image_url" :src="plan.qr_image_url" :alt="`QR de pago de ${plan.name}`" width="56" height="56" class="h-full w-full object-contain" />
-                        <QrCode v-else class="h-6 w-6 text-muted" aria-hidden="true" />
+                    <!-- Aviso de precio especial -->
+                    <div
+                        v-if="plan.special && plan.special.status !== 'ended'"
+                        class="rounded-brand border border-amber-500/20 bg-amber-500/5 p-2.5 text-xs space-y-1"
+                    >
+                        <div class="flex flex-wrap items-center justify-between gap-1">
+                            <span class="font-semibold text-foreground">
+                                {{ plan.special.status === 'active' ? 'Precio especial vigente' : 'Precio especial programado' }}
+                                <span v-if="plan.special.label" class="font-normal text-muted">· {{ plan.special.label }}</span>
+                            </span>
+                            <span class="font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+                                {{ plan.special.price_formatted }}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-muted">
+                            <template v-if="plan.special.status === 'scheduled'">Inicia {{ plan.special.starts_label }} · </template>
+                            Finaliza {{ plan.special.ends_label }}
+                        </p>
+                        <p v-if="!plan.special.qr_image_url" class="text-[11px] font-medium text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                            <AlertTriangle class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            Falta subir el QR con el monto especial
+                        </p>
                     </div>
-                    <p v-if="plan.qr_image_url" class="text-sm text-foreground">QR listo para pagar</p>
-                    <p v-else class="text-sm text-amber-800 dark:text-amber-300 inline-flex items-center gap-1.5">
-                        <AlertTriangle class="h-4 w-4 shrink-0" aria-hidden="true" />
-                        Falta el QR: nadie puede pagar este plan
-                    </p>
                 </div>
 
-                <p class="text-xs text-muted">
-                    <span v-if="!plan.is_active" class="font-semibold text-foreground">Oculto para estudiantes · </span>
-                    {{ plural(plan.active_subscriptions_count, 'persona con acceso', 'personas con acceso') }}
-                    <template v-if="plan.pending_requests_count"> · {{ plural(plan.pending_requests_count, 'pago por revisar', 'pagos por revisar') }}</template>
-                </p>
-
-                <div class="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-border">
-                    <button type="button" :class="btn.dangerQuiet" @click="archiveTarget = plan">
-                        Archivar
+                <!-- Pie de acciones de tarjeta (idéntico a /admin/libros) -->
+                <div class="pt-3 border-t border-border flex items-center justify-between gap-2">
+                    <button
+                        type="button"
+                        class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-brand bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold transition-colors"
+                        @click="openEdit(plan)"
+                    >
+                        <Settings2 class="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Editar plan</span>
                         <span class="sr-only"> {{ plan.name }}</span>
                     </button>
-                    <button type="button" :class="btn.secondary" @click="openEdit(plan)">
-                        Editar
+
+                    <button
+                        type="button"
+                        :class="btn.dangerQuiet"
+                        title="Archivar plan"
+                        @click="archiveTarget = plan"
+                    >
+                        <Archive class="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
+                        <span class="hidden sm:inline">Archivar</span>
                         <span class="sr-only"> {{ plan.name }}</span>
                     </button>
                 </div>
             </li>
         </ul>
 
-        <div v-else class="rounded-brand border border-dashed border-border bg-surface/60 px-6 py-10 text-center">
-            <p class="text-base font-semibold text-foreground">Todavía no hay planes</p>
-            <p class="mt-1 text-sm text-muted">Crea uno para que los estudiantes puedan pagar su membresía.</p>
-            <button type="button" :class="[btn.primary, 'mt-4']" @click="openCreate">Crear el primer plan</button>
+        <!-- Estado vacío alineado a /admin/libros -->
+        <div
+            v-else
+            class="bg-surface border border-border rounded-brand px-5 py-10 sm:p-10 text-center space-y-3"
+        >
+            <div class="mx-auto h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <CreditCard class="h-6 w-6" aria-hidden="true" />
+            </div>
+            <h4 class="text-base font-semibold text-foreground">Aún no hay planes activos</h4>
+            <p class="text-sm text-muted max-w-md mx-auto">
+                Registra el primer plan de suscripción con su código QR para que los estudiantes puedan solicitar su acceso.
+            </p>
+            <div class="pt-2">
+                <button type="button" :class="btn.primary" @click="openCreate">
+                    <Plus class="h-4 w-4" aria-hidden="true" />
+                    <span>Crear primer plan</span>
+                </button>
+            </div>
         </div>
 
-        <div v-if="archivedPlans.length">
+        <!-- Planes archivados -->
+        <div v-if="archivedPlans.length" class="space-y-3">
             <button
                 type="button"
-                :class="btn.quiet"
+                class="w-full bg-surface border border-border rounded-brand px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-3 text-left hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 :aria-expanded="showArchived"
                 aria-controls="archived-plans"
                 @click="showArchived = !showArchived"
             >
-                {{ showArchived ? 'Ocultar' : 'Ver' }} {{ plural(archivedPlans.length, 'plan archivado', 'planes archivados') }}
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-foreground">Planes archivados</span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-background border border-border text-muted tabular-nums">
+                        {{ archivedPlans.length }}
+                    </span>
+                </div>
+                <ChevronDown
+                    class="h-4 w-4 text-muted transition-transform duration-200"
+                    :class="{ 'rotate-180': showArchived }"
+                    aria-hidden="true"
+                />
             </button>
-            <ul v-show="showArchived" id="archived-plans" class="mt-2 divide-y divide-border rounded-brand border border-dashed border-border">
-                <li v-for="plan in archivedPlans" :key="plan.id" class="p-4 flex items-center justify-between gap-3">
-                    <p class="text-sm text-muted min-w-0 truncate">
-                        <span class="font-semibold text-foreground">{{ plan.name }}</span> · {{ plan.price_formatted }} · {{ plan.duration_label }}
-                    </p>
+
+            <ul v-if="showArchived" id="archived-plans" class="divide-y divide-border rounded-brand border border-border bg-surface overflow-hidden">
+                <li
+                    v-for="plan in archivedPlans"
+                    :key="plan.id"
+                    class="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-background/40 transition-colors"
+                >
+                    <div class="min-w-0">
+                        <p class="text-xs sm:text-sm text-muted truncate">
+                            <span class="font-semibold text-foreground">{{ plan.name }}</span>
+                            <span> · {{ plan.price_formatted }} · {{ plan.duration_label }}</span>
+                        </p>
+                    </div>
                     <button type="button" :class="btn.small" @click="restore(plan)">
-                        Restaurar
+                        <RotateCcw class="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                        <span>Restaurar</span>
                         <span class="sr-only"> {{ plan.name }}</span>
                     </button>
                 </li>
@@ -183,15 +296,17 @@ async function restore(plan) {
 
         <BaseModal
             :model-value="Boolean(archiveTarget)"
-            :title="archiveTarget ? `¿Archivar «${archiveTarget.name}»?` : ''"
+            :title="archiveTarget ? `Archivar «${archiveTarget.name}»` : 'Archivar plan'"
             max-width="md"
             :closeable="!archiving"
             @update:model-value="!$event && (archiveTarget = null)"
         >
-            <p class="text-sm text-foreground leading-relaxed">
-                Dejará de aparecer para quienes quieran pagar. Quien ya lo tiene conserva su acceso, y los pagos pendientes de este plan se pueden seguir aprobando.
-            </p>
-            <p class="mt-2 text-sm text-muted">Puedes restaurarlo cuando quieras.</p>
+            <div class="space-y-2 text-xs sm:text-sm text-foreground leading-relaxed">
+                <p>
+                    Este plan dejará de mostrarse a los nuevos estudiantes. Quienes ya tienen acceso activo lo conservarán intacto, y los comprobantes pendientes aún podrán aprobarse.
+                </p>
+                <p class="text-xs text-muted">Puedes restaurar el plan en cualquier momento desde la sección de archivados.</p>
+            </div>
             <template #footer="{ close }">
                 <button type="button" :class="btn.secondary" :disabled="archiving" @click="close">Cancelar</button>
                 <button type="button" :class="btn.danger" :disabled="archiving" @click="archive">

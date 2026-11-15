@@ -1,9 +1,9 @@
 <script setup>
 /**
- * Cabecera del panel: una frase que dice qué hay que hacer hoy y tres cifras que llevan a su lista.
+ * Cabecera operativa del panel: estado de comprobantes y accesos directos en una sola línea.
  */
 import { inject, computed } from 'vue';
-import { ArrowRight, CheckCircle2 } from 'lucide-vue-next';
+import { ArrowRight, CheckCircle2, Clock, Users, AlertTriangle, KeyRound } from 'lucide-vue-next';
 import { PANEL_CONTEXT, btn, plural } from './shared';
 
 const { summary, goTo } = inject(PANEL_CONTEXT);
@@ -11,57 +11,86 @@ const { summary, goTo } = inject(PANEL_CONTEXT);
 const pending = computed(() => summary.value.pending_payments);
 
 const figures = computed(() => [
-    { key: 'members', value: summary.value.active_members, text: summary.value.active_members === 1 ? 'persona con acceso' : 'personas con acceso', action: () => goTo('members', 'active') },
-    { key: 'expiring', value: summary.value.expiring_soon, text: 'vencen en los próximos 15 días', action: () => goTo('members', 'expiring'), warn: summary.value.expiring_soon > 0 },
-    { key: 'codes', value: summary.value.unused_codes, text: summary.value.unused_codes === 1 ? 'código sin usar' : 'códigos sin usar', action: () => goTo('codes') },
+    {
+        key: 'members',
+        icon: Users,
+        value: summary.value.active_members,
+        label: 'con acceso activo',
+        hint: 'Ver personas con membresía activa',
+        iconClass: 'text-primary',
+        valueClass: 'text-foreground',
+        action: () => goTo('members', 'active'),
+    },
+    {
+        key: 'expiring',
+        icon: AlertTriangle,
+        value: summary.value.expiring_soon,
+        label: 'vencen en 15 días',
+        hint: 'Ver accesos que vencen en los próximos 15 días',
+        iconClass: summary.value.expiring_soon > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted',
+        valueClass: summary.value.expiring_soon > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
+        action: () => goTo('members', 'expiring'),
+    },
+    {
+        key: 'codes',
+        icon: KeyRound,
+        value: summary.value.unused_codes,
+        label: summary.value.unused_codes === 1 ? 'código disponible' : 'códigos disponibles',
+        hint: 'Ver códigos disponibles para canjear',
+        iconClass: 'text-emerald-600 dark:text-emerald-400',
+        valueClass: 'text-foreground',
+        action: () => goTo('codes'),
+    },
 ]);
 </script>
 
 <template>
-    <div class="rounded-brand border border-border bg-paper dark:bg-surface p-5 sm:p-7 flex flex-col lg:flex-row lg:items-end gap-6 lg:gap-10">
-        <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-foreground/75 dark:text-muted">Hoy</p>
+    <div class="px-3 py-2.5 sm:px-4 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+        <!-- Estado principal en una línea -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+            <span
+                class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground"
+            >
+                <Clock
+                    v-if="pending > 0"
+                    class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0"
+                    aria-hidden="true"
+                />
+                <CheckCircle2
+                    v-else
+                    class="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0"
+                    aria-hidden="true"
+                />
+                <span>
+                    {{ pending > 0 ? plural(pending, 'pago pendiente de revisión', 'pagos pendientes de revisión') : 'Bandeja de pagos al día' }}
+                </span>
+            </span>
 
-            <template v-if="pending > 0">
-                <h2 class="mt-1 font-serif text-3xl sm:text-4xl leading-tight text-foreground text-balance">
-                    {{ plural(pending, 'pago espera', 'pagos esperan') }} tu revisión
-                </h2>
-                <p class="mt-2 text-sm text-foreground/75 dark:text-muted max-w-prose">
-                    Mira cada comprobante y decide. Al aprobar, la persona puede leer todo de inmediato.
-                </p>
-                <button type="button" :class="[btn.primary, 'mt-4']" @click="goTo('payments')">
-                    Revisar pagos
-                    <ArrowRight class="h-4 w-4" aria-hidden="true" />
-                </button>
-            </template>
-
-            <template v-else>
-                <h2 class="mt-1 font-serif text-3xl sm:text-4xl leading-tight text-foreground flex items-center gap-3">
-                    <CheckCircle2 class="h-7 w-7 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
-                    Todo al día
-                </h2>
-                <p class="mt-2 text-sm text-foreground/75 dark:text-muted max-w-prose">
-                    No hay pagos por revisar. Cuando alguien envíe su comprobante, aparecerá aquí.
-                </p>
-            </template>
+            <button
+                v-if="pending > 0"
+                type="button"
+                :class="[btn.primary, '!py-1.5 !px-3 !text-xs']"
+                @click="goTo('payments')"
+            >
+                <span>Revisar</span>
+                <ArrowRight class="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
         </div>
 
-        <ul class="grid grid-cols-3 gap-2 sm:gap-3 lg:w-[30rem] shrink-0">
-            <li v-for="figure in figures" :key="figure.key">
-                <button
-                    type="button"
-                    class="w-full h-full flex flex-col justify-start text-left rounded-brand border border-border bg-surface px-3 py-3 sm:px-4 hover:border-primary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                    @click="figure.action"
-                >
-                    <span
-                        class="block font-serif text-2xl sm:text-3xl tabular-nums leading-none"
-                        :class="figure.warn ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'"
-                    >
-                        {{ figure.value }}
-                    </span>
-                    <span class="mt-1.5 block text-xs text-muted leading-snug">{{ figure.text }}</span>
-                </button>
-            </li>
-        </ul>
+        <!-- Indicadores rápidos en una sola línea, sin recortes -->
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <button
+                v-for="figure in figures"
+                :key="figure.key"
+                type="button"
+                :title="figure.hint"
+                class="inline-flex items-center gap-1.5 rounded-brand border border-border bg-background px-2.5 py-1.5 text-xs hover:border-primary/40 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                @click="figure.action"
+            >
+                <component :is="figure.icon" class="h-3.5 w-3.5 shrink-0" :class="figure.iconClass" aria-hidden="true" />
+                <span class="font-bold tabular-nums" :class="figure.valueClass">{{ figure.value }}</span>
+                <span class="text-muted">{{ figure.label }}</span>
+            </button>
+        </div>
     </div>
 </template>

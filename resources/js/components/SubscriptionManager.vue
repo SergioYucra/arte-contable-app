@@ -6,6 +6,7 @@
  * El estado compartido (cifras de cabecera, planes y avisos) se ofrece con provide/inject.
  */
 import { ref, provide, computed, watch } from 'vue';
+import { Inbox, Users, CreditCard, KeyRound } from 'lucide-vue-next';
 import BaseToast from './ui/BaseToast.vue';
 import SubscriptionSummary from './subscriptions/SubscriptionSummary.vue';
 import PaymentInbox from './subscriptions/PaymentInbox.vue';
@@ -37,15 +38,14 @@ watch(currentTab, (tab) => {
     history.replaceState(null, '', tab === 'payments' ? window.location.pathname + window.location.search : `#${TAB_HASH[tab]}`);
 });
 
-// BaseToast espera un objeto { type, title, message } o null. Antes se le pasaba un booleano
-// y props sueltas, por eso los avisos salían vacíos y siempre verdes.
+// BaseToast espera un objeto { type, title, message } o null.
 const toast = ref(null);
 let toastTimer = null;
 
 function notify(type, title, message = '') {
     toast.value = { type, title, message };
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => (toast.value = null), type === 'error' ? 8000 : 5000);
+    toastTimer = setTimeout(() => (toast.value = null), type === 'error' ? 6000 : 3500);
 }
 
 function updateSummary(next) {
@@ -61,10 +61,35 @@ function goTo(tab, filter = null) {
 provide(PANEL_CONTEXT, { summary, plans, urls: props.urls, notify, updateSummary, goTo });
 
 const tabs = computed(() => [
-    { id: 'payments', label: 'Pagos', count: summary.value.pending_payments, attention: summary.value.pending_payments > 0 },
-    { id: 'members', label: 'Personas con acceso', count: summary.value.active_members },
-    { id: 'plans', label: 'Planes', count: plans.value.filter((p) => !p.is_archived).length },
-    { id: 'codes', label: 'Códigos', count: summary.value.unused_codes },
+    {
+        id: 'payments',
+        label: 'Pagos por revisar',
+        short: 'Pagos',
+        icon: Inbox,
+        count: summary.value.pending_payments,
+        attention: summary.value.pending_payments > 0,
+    },
+    {
+        id: 'members',
+        label: 'Personas con acceso',
+        short: 'Personas',
+        icon: Users,
+        count: summary.value.active_members,
+    },
+    {
+        id: 'plans',
+        label: 'Planes y QR',
+        short: 'Planes',
+        icon: CreditCard,
+        count: plans.value.filter((p) => !p.is_archived).length,
+    },
+    {
+        id: 'codes',
+        label: 'Códigos de acceso',
+        short: 'Códigos',
+        icon: KeyRound,
+        count: summary.value.unused_codes,
+    },
 ]);
 
 function onTabKeydown(event, index) {
@@ -78,43 +103,55 @@ function onTabKeydown(event, index) {
 </script>
 
 <template>
-    <div class="space-y-6">
+    <div class="space-y-4 sm:space-y-5">
         <BaseToast v-model="toast" />
 
-        <SubscriptionSummary />
+        <!-- Cabecera unificada con resumen operativo y pestañas (estándar /admin/libros) -->
+        <div class="bg-surface border border-border rounded-brand overflow-hidden">
+            <SubscriptionSummary />
 
-        <div
-            role="tablist"
-            aria-label="Secciones de suscripciones"
-            class="flex gap-1 overflow-x-auto no-scrollbar border-b border-border"
-        >
-            <button
-                v-for="(tab, index) in tabs"
-                :id="`tab-${tab.id}`"
-                :key="tab.id"
-                type="button"
-                role="tab"
-                :aria-selected="currentTab === tab.id"
-                :aria-controls="`panel-${tab.id}`"
-                :tabindex="currentTab === tab.id ? 0 : -1"
-                class="relative shrink-0 inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-t-brand"
-                :class="currentTab === tab.id ? 'text-foreground' : 'text-muted hover:text-foreground'"
-                @click="currentTab = tab.id"
-                @keydown="onTabKeydown($event, index)"
-            >
-                {{ tab.label }}
-                <span
-                    class="min-w-[1.5rem] px-1.5 py-0.5 rounded-full text-xs font-bold tabular-nums text-center"
-                    :class="tab.attention ? 'bg-gold text-gold-foreground' : 'bg-background text-muted border border-border'"
+            <div class="px-1.5 sm:px-4 border-t border-border bg-background/50 overflow-x-auto no-scrollbar">
+                <div
+                    role="tablist"
+                    aria-label="Secciones de suscripciones"
+                    class="flex items-stretch gap-0 sm:gap-1 min-w-max sm:min-w-0"
                 >
-                    {{ tab.count }}
-                </span>
-                <span
-                    v-if="currentTab === tab.id"
-                    class="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary"
-                    aria-hidden="true"
-                ></span>
-            </button>
+                    <button
+                        v-for="(tab, index) in tabs"
+                        :id="`tab-${tab.id}`"
+                        :key="tab.id"
+                        type="button"
+                        role="tab"
+                        :aria-selected="currentTab === tab.id"
+                        :aria-controls="`panel-${tab.id}`"
+                        :tabindex="currentTab === tab.id ? 0 : -1"
+                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-3 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                        :class="
+                            currentTab === tab.id
+                                ? 'border-primary text-primary font-semibold'
+                                : 'border-transparent text-muted hover:text-foreground'
+                        "
+                        @click="currentTab = tab.id"
+                        @keydown="onTabKeydown($event, index)"
+                    >
+                        <component :is="tab.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span class="sm:hidden">{{ tab.short }}</span>
+                        <span class="hidden sm:inline">{{ tab.label }}</span>
+                        <span
+                            class="px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold tabular-nums border"
+                            :class="
+                                tab.attention
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                    : currentTab === tab.id
+                                      ? 'bg-primary/10 text-primary border-primary/20'
+                                      : 'bg-surface text-muted border-border'
+                            "
+                        >
+                            {{ tab.count }}
+                        </span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <section
@@ -143,7 +180,7 @@ function onTabKeydown(event, index) {
         </section>
 
         <section
-            v-show="currentTab === 'plans'"
+            v-if="currentTab === 'plans'"
             id="panel-plans"
             role="tabpanel"
             aria-labelledby="tab-plans"
