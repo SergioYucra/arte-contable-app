@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -80,6 +81,7 @@ class MembershipController extends Controller
             // La columna reference_text guarda 255 caracteres: aceptar más rompía el envío en MySQL.
             'student_notes' => ['nullable', 'string', 'max:255'],
             'expected_amount' => ['nullable', 'numeric', 'min:0'],
+            'previous_amount' => ['nullable', 'numeric', 'min:0'],
         ], [
             'subscription_plan_id.required' => 'Elige un plan antes de enviar tu comprobante.',
             'subscription_plan_id.exists' => 'Ese plan ya no está disponible. Actualiza la página y elige otro.',
@@ -121,6 +123,15 @@ class MembershipController extends Controller
             ], 409);
         }
 
+        $note = filled($validated['student_notes'] ?? null) ? trim($validated['student_notes']) : "Pago QR {$plan->name}";
+
+        // Si el precio cambió mientras la persona pagaba, su comprobante puede traer el monto anterior.
+        // Se deja dicho junto a la nota para que quien revisa entienda la diferencia. Es un dato que
+        // informa la página, no el monto del pago: ese lo sigue fijando el servidor.
+        if (isset($validated['previous_amount']) && abs((float) $validated['previous_amount'] - $amount) >= 0.005) {
+            $note = Str::limit('Vio antes otro precio: '.HumanDate::money((float) $validated['previous_amount']).'. '.$note, 250, '…');
+        }
+
         $uploaded = $this->storageService->storePaymentProof($request->file('proof_file'));
         $specialLabel = $plan->hasActiveSpecialPrice() ? ($plan->special_label ?: 'Precio especial') : null;
 
@@ -128,7 +139,7 @@ class MembershipController extends Controller
         // verificación de arriba. Dentro de la transacción se bloquea la fila de la persona y se vuelve a
         // verificar, así solo uno queda registrado.
         try {
-            $paymentRequest = DB::transaction(function () use ($user, $plan, $amount, $specialLabel, $validated, $uploaded): ?PaymentRequest {
+            $paymentRequest = DB::transaction(function () use ($user, $plan, $amount, $specialLabel, $note, $uploaded): ?PaymentRequest {
                 User::whereKey($user->id)->lockForUpdate()->first();
 
                 if ($this->pendingPayment($user) !== null) {
@@ -140,7 +151,7 @@ class MembershipController extends Controller
                     'subscription_plan_id' => $plan->id,
                     'amount' => $amount,
                     'special_price_label' => $specialLabel,
-                    'reference_text' => filled($validated['student_notes'] ?? null) ? trim($validated['student_notes']) : "Pago QR {$plan->name}",
+                    'reference_text' => $note,
                     'proof_vault_path' => $uploaded['path'],
                     'status' => PaymentRequest::STATUS_PENDING,
                 ]);
@@ -250,17 +261,13 @@ class MembershipController extends Controller
             'code.max' => 'Ese código es demasiado largo. Revisa que lo hayas copiado bien.',
         ]);
 
-        $candidates = $this->codeCandidates($validated['code']);
+        $codeId = $this->findCodeId($validated['code']);
         /** @var User $user */
         $user = $request->user();
 
-        $result = DB::transaction(function () use ($candidates, $user) {
-            $matches = $candidates === []
-                ? collect()
-                : AccessCode::whereIn('code', $candidates)->lockForUpdate()->get();
-
-            // Si coincidieran dos (lo escrito tal cual y su forma con guiones), gana lo escrito tal cual.
-            $code = $matches->firstWhere('code', $candidates[0] ?? null) ?? $matches->first();
+        $result = DB::transaction(function () use ($codeId, $user) {
+            // Se bloquea por su id: dos personas no pueden canjear el mismo código a la vez.
+            $code = $codeId === null ? null : AccessCode::whereKey($codeId)->lockForUpdate()->first();
 
             if (! $code) {
                 return [
@@ -327,10 +334,13 @@ class MembershipController extends Controller
             ], 422);
         }
 
+        // El canje cambió el acceso: se vuelve a leer antes de describirlo.
+        $user->load('subscriptions');
+
         return response()->json([
             'success' => true,
             'message' => $result['message'],
-            'membership' => $this->membershipSummary($user->fresh()),
+            'membership' => $this->membershipSummary($user),
             // Los planes dicen hasta cuándo llegaría el acceso: cambia al sumar días.
             'plans' => $this->activePlans($user),
             // QA: el historial agregaba una fila inventada ("—"); ahora recibe el código real.
@@ -358,14 +368,21 @@ class MembershipController extends Controller
      */
     private function studentState(User $user): array
     {
-        $pending = $this->pendingPayment($user);
+        // Esta respuesta se pide cada 45 s mientras hay un pago en revisión: las suscripciones se leen
+        // una sola vez (el servicio de membresía usa la relación ya cargada) y siempre de nuevo.
+        $user->load('subscriptions');
 
-        $recentRequests = PaymentRequest::where('user_id', $user->id)
+        $requests = PaymentRequest::where('user_id', $user->id)
             ->with('plan')
             ->latest()
             ->latest('id')
             ->take(self::HISTORY_LIMIT)
-            ->get()
+            ->get();
+
+        // Con un pago en revisión no se puede enviar otro, así que si existe es de los más recientes.
+        $pending = $requests->first(fn (PaymentRequest $r) => $r->status === PaymentRequest::STATUS_PENDING);
+
+        $recentRequests = $requests
             ->map(fn (PaymentRequest $r) => $this->formatPaymentRequest($r))
             ->values()
             ->all();
@@ -414,29 +431,32 @@ class MembershipController extends Controller
     }
 
     /**
-     * Formas en que pudo escribirse un código: sin espacios, en mayúsculas y, para los códigos
-     * generados (AC-XXXX-XXXX), también con los guiones que la gente suele omitir al copiarlos a mano.
+     * Busca el código como pudo escribirlo la persona: sin importar espacios, mayúsculas ni guiones.
+     * Vale para los generados (AC-XXXX-XXXX) y para los que la administración escribe a mano.
      *
-     * @return list<string>
+     * Devuelve su id, o null si no existe o si lo escrito calza con más de un código
+     * (dos códigos que solo se diferencian por los guiones): en la duda no se canjea ninguno.
      */
-    private function codeCandidates(string $typed): array
+    private function findCodeId(string $typed): ?int
     {
         // Algunos teclados de celular cambian el guion por una raya larga.
         $clean = preg_replace('/[\x{2010}-\x{2015}\x{2212}]/u', '-', $typed) ?? $typed;
         $clean = strtoupper(preg_replace('/\s+/u', '', $clean) ?? '');
-
-        if ($clean === '') {
-            return [];
-        }
-
-        $candidates = [$clean];
         $bare = str_replace('-', '', $clean);
 
-        if (preg_match('/^AC[A-Z0-9]{8}$/', $bare) === 1) {
-            $candidates[] = 'AC-'.substr($bare, 2, 4).'-'.substr($bare, 6, 4);
+        if ($bare === '') {
+            return null;
         }
 
-        return array_values(array_unique($candidates));
+        $matches = AccessCode::whereRaw("REPLACE(code, '-', '') = ?", [$bare])->pluck('code', 'id');
+
+        $exact = $matches->search($clean, true);
+
+        if ($exact !== false) {
+            return (int) $exact;
+        }
+
+        return $matches->count() === 1 ? (int) $matches->keys()->first() : null;
     }
 
     /**
@@ -449,11 +469,12 @@ class MembershipController extends Controller
         $isStaff = $user->can('manage-users');
 
         // Misma regla de vigencia que usa el resto de la membresía (aprobar pagos, canjear, quitar acceso).
+        $user->loadMissing('subscriptions');
         $active = $this->membershipService->currentSubscription($user);
 
         if ($active === null) {
             // QA: quien venció o perdió el acceso veía "Acceso Gratuito" sin ninguna explicación.
-            $last = Subscription::where('user_id', $user->id)->latest('id')->first();
+            $last = $user->subscriptions->sortByDesc('id')->first();
 
             return [
                 'is_active' => false,
@@ -476,6 +497,9 @@ class MembershipController extends Controller
         $startsAt = Carbon::parse($active->starts_at);
         $daysRemaining = max(0, (int) ceil($now->floatDiffInDays($expiresAt, false)));
 
+        // QA: la barra de vigencia calculaba siempre sobre 365 días.
+        $totalDays = max(1, (int) ceil($startsAt->floatDiffInDays($expiresAt)));
+
         $planName = $active->subscription_plan_id !== null
             ? SubscriptionPlan::withTrashed()->find($active->subscription_plan_id)?->name
             : null;
@@ -486,9 +510,10 @@ class MembershipController extends Controller
             'status_label' => 'Membresía activa',
             'plan_name' => $planName ?? 'Acceso con código',
             'days_remaining' => $daysRemaining,
-            // QA: la barra de vigencia calculaba siempre sobre 365 días.
-            'total_days' => max(1, (int) ceil($startsAt->floatDiffInDays($expiresAt))),
-            'expiring_soon' => $daysRemaining <= self::EXPIRING_SOON_DAYS,
+            'total_days' => $totalDays,
+            // "Vence pronto" si quedan 15 días o menos y ya pasó al menos la mitad del periodo:
+            // un código de una semana recién canjeado no vence pronto, acaba de empezar.
+            'expiring_soon' => $daysRemaining <= min(self::EXPIRING_SOON_DAYS, intdiv($totalDays, 2)),
             'expires_at' => HumanDate::long($expiresAt),
             'starts_at' => HumanDate::long($startsAt),
             'previous' => null,
@@ -512,10 +537,18 @@ class MembershipController extends Controller
             ->get();
 
         $bestValueId = $this->bestValuePlanId($plans);
-        $currentExpiry = $this->membershipService->currentSubscription($user)?->expires_at;
+
+        // La fecha la calcula el servicio de membresía, que es quien aplica la regla al aprobar el pago:
+        // así lo que promete cada plan no puede apartarse de lo que después se otorga.
+        $user->loadMissing('subscriptions');
+        $hasAccess = $this->membershipService->currentSubscription($user) !== null;
 
         return $plans
-            ->map(fn (SubscriptionPlan $p) => $this->formatPlan($p, $p->id === $bestValueId, $currentExpiry))
+            ->map(fn (SubscriptionPlan $p) => $this->formatPlan(
+                $p,
+                $p->id === $bestValueId,
+                $hasAccess ? $this->membershipService->previewExpiry($user, (int) $p->duration_days) : null,
+            ))
             ->values()
             ->all();
     }
@@ -545,7 +578,7 @@ class MembershipController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function formatPlan(SubscriptionPlan $plan, bool $bestValue = false, ?CarbonInterface $currentExpiry = null): array
+    private function formatPlan(SubscriptionPlan $plan, bool $bestValue = false, ?CarbonInterface $extendsUntil = null): array
     {
         // price, price_formatted y qr_image_url son siempre los de "ahora": con precio especial vigente
         // la página muestra el monto y el QR correctos sin lógica propia.
@@ -562,7 +595,7 @@ class MembershipController extends Controller
             'per_month_label' => $this->perMonthLabel($price, $days),
             'best_value' => $bestValue,
             // Solo con acceso vigente: sin él, el plazo empieza el día que se aprueba el pago.
-            'extends_until' => $currentExpiry !== null ? HumanDate::long($currentExpiry->copy()->addDays($days)) : null,
+            'extends_until' => HumanDate::long($extendsUntil),
             'description' => $plan->description ?? '',
             'qr_image_url' => $plan->currentQrImageUrl(),
             'special' => $plan->hasActiveSpecialPrice() ? [

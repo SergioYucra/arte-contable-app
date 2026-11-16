@@ -49,7 +49,11 @@ export function readError(error, fallback = 'No se pudo completar. Revisa tu con
     }
 
     // Lo que se quería abrir o cambiar ya no existe (p. ej. un envío que la persona retiró).
-    if (error?.response?.status === 404) {
+    // Solo reemplaza el texto técnico del framework; un mensaje propio del servidor se respeta.
+    if (
+        error?.response?.status === 404 &&
+        (typeof data?.message !== 'string' || data.message === '' || /No query results|Not Found|could not be found/i.test(data.message))
+    ) {
         return { message: 'Eso ya no está disponible. Actualiza la página para ver los datos al día.', fields };
     }
 

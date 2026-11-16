@@ -38,6 +38,10 @@ const pendingRequest = ref(props.initialPendingRequest ? { ...props.initialPendi
 const recentRequests = ref([...props.initialRecentRequests]);
 const recentCodes = ref([...props.initialRecentCodes]);
 
+// Cuenta los cambios que hace la persona (enviar, retirar, canjear). Una consulta del estado que salió
+// antes de uno de esos cambios trae datos viejos: al llegar se descarta en vez de pisar lo nuevo.
+let changes = 0;
+
 /** Aplica lo que devuelve el servidor (estado al día, retirar envío, canje). */
 function applyState(data) {
     if (!data || typeof data !== 'object') return;
@@ -160,6 +164,7 @@ function openPayment(plan) {
 }
 
 function onPaymentSent(data) {
+    changes++;
     pendingRequest.value = data.payment_request;
     recentRequests.value = [data.payment_request, ...recentRequests.value];
     paymentOpen.value = false;
@@ -175,9 +180,15 @@ function onPendingFound(data) {
 }
 
 function onPlanUnavailable(data) {
-    if (Array.isArray(data.plans)) plans.value = data.plans;
     paymentOpen.value = false;
     notify('error', 'Ese plan ya no está disponible', data.message);
+
+    if (Array.isArray(data.plans)) {
+        plans.value = data.plans;
+    } else {
+        // El plan se archivó: la respuesta no trae la lista, así que se pide.
+        refreshState({ announce: false });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +197,7 @@ function onPlanUnavailable(data) {
 const redeemOpen = ref(false);
 
 function onRedeemed(data) {
+    changes++;
     applyState(data);
     if (data.redeemed_code) recentCodes.value = [data.redeemed_code, ...recentCodes.value];
     redeemOpen.value = false;
@@ -210,9 +222,11 @@ async function confirmWithdraw() {
 
     withdrawing.value = true;
     withdrawError.value = '';
+    changes++;
 
     try {
         const { data } = await axios.delete(url);
+        changes++;
         applyState(data);
         withdrawOpen.value = false;
         plansOpen.value = true;
@@ -245,9 +259,12 @@ let pollingAllowed = true;
 
 async function refreshState({ announce = true } = {}) {
     const watchedId = pendingRequest.value?.id ?? null;
+    const changesAtStart = changes;
 
     try {
         const { data } = await axios.get(props.statusUrl);
+        // Mientras llegaba la respuesta la persona hizo un cambio: estos datos ya son viejos.
+        if (changesAtStart !== changes) return;
         applyState(data);
         if (announce && watchedId && !data.pending_request) announceReview(watchedId, data);
     } catch (error) {

@@ -28,6 +28,8 @@ const previewUrl = ref(null);
 const note = ref('');
 const errors = ref({});
 const priceNotice = ref('');
+// Precio que la persona tenía a la vista si cambió mientras pagaba: va con el envío para quien revisa.
+const previousAmount = ref(null);
 const busy = ref(false);
 const progress = ref(0);
 const dragging = ref(false);
@@ -51,6 +53,7 @@ function reset() {
     note.value = '';
     errors.value = {};
     priceNotice.value = '';
+    previousAmount.value = null;
     progress.value = 0;
     dragging.value = false;
     qrSaved.value = false;
@@ -180,6 +183,7 @@ async function submit() {
         body.append('proof_file', file.value);
         // El precio que la persona tuvo a la vista: si cambió, el servidor avisa en vez de registrar otro monto.
         body.append('expected_amount', props.plan.price);
+        if (previousAmount.value !== null) body.append('previous_amount', previousAmount.value);
         if (note.value.trim()) body.append('student_notes', note.value.trim());
 
         const { data } = await axios.post(props.storeUrl, body, {
@@ -193,6 +197,8 @@ async function submit() {
         const data = error?.response?.data;
 
         if (data?.code === 'price_changed') {
+            // Se recuerda el primer precio que vio: si cambia otra vez, ese sigue siendo el que pagó.
+            if (previousAmount.value === null) previousAmount.value = props.plan.price;
             priceNotice.value = data.message;
             emit('plans-updated', data.plans);
         } else if (data?.code === 'pending_exists') {
@@ -201,7 +207,18 @@ async function submit() {
             emit('unavailable', data);
         } else {
             const { message, fields } = readError(error, 'No se pudo enviar tu comprobante. Revisa tu conexión e inténtalo de nuevo.');
-            errors.value = Object.keys(fields).length ? fields : { general: message };
+
+            if (fields.subscription_plan_id) {
+                // El plan se archivó con la ventana abierta: se cierra y se muestra la lista al día.
+                emit('unavailable', { message: fields.subscription_plan_id });
+                return;
+            }
+
+            // Solo estos campos tienen un lugar en pantalla; cualquier otro error va arriba, a la vista.
+            const shown = {};
+            if (fields.proof_file) shown.proof_file = fields.proof_file;
+            if (fields.student_notes) shown.student_notes = fields.student_notes;
+            errors.value = Object.keys(shown).length ? shown : { general: message };
         }
     } finally {
         busy.value = false;

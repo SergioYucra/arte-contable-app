@@ -191,6 +191,14 @@ class MembershipStudentSideTest extends TestCase
         $this->assertTrue($summary()['expiring_soon']);
         $this->assertSame(15, $summary()['days_remaining']);
 
+        // Un acceso corto recién empezado (un código de 15 días) no "vence pronto": acaba de empezar.
+        $subscription->update(['starts_at' => now(), 'expires_at' => now()->addDays(15)]);
+        $this->assertFalse($summary()['expiring_soon']);
+
+        // Sí avisa cuando ya pasó la mitad.
+        $subscription->update(['starts_at' => now()->subDays(8), 'expires_at' => now()->addDays(7)]);
+        $this->assertTrue($summary()['expiring_soon']);
+
         $subscription->update(['expires_at' => now()->subDay()]);
         $this->assertFalse($summary()['is_active']);
         $this->assertFalse($summary()['expiring_soon']);
@@ -357,9 +365,22 @@ class MembershipStudentSideTest extends TestCase
         $this->assertSame(0, PaymentRequest::count());
         $this->assertSame([], $this->vaultFiles());
 
-        // Con el precio al día, el envío entra. El monto lo fija el servidor.
-        $this->sendProof($plan, null, ['expected_amount' => 200])->assertCreated();
-        $this->assertSame('200.00', PaymentRequest::sole()->amount);
+        // Con el precio al día, el envío entra. El monto lo fija el servidor, y quien revisa ve
+        // que la persona tenía otro precio a la vista: su comprobante puede traer ese monto.
+        $this->sendProof($plan, null, ['expected_amount' => 200, 'previous_amount' => 150, 'student_notes' => 'Pagué ayer'])->assertCreated();
+
+        $payment = PaymentRequest::sole();
+        $this->assertSame('200.00', $payment->amount);
+        $this->assertSame('Vio antes otro precio: Bs 150. Pagué ayer', $payment->reference_text);
+    }
+
+    public function test_the_price_note_never_overflows_the_column(): void
+    {
+        $plan = SubscriptionPlan::factory()->create(['price' => 200]);
+
+        $this->sendProof($plan, null, ['expected_amount' => 200, 'previous_amount' => 150, 'student_notes' => str_repeat('a', 255)])->assertCreated();
+
+        $this->assertLessThanOrEqual(255, mb_strlen(PaymentRequest::sole()->reference_text));
     }
 
     public function test_the_amount_never_comes_from_the_page(): void
@@ -490,6 +511,8 @@ class MembershipStudentSideTest extends TestCase
             'AC-7M2N-B5RT' => 'ac7m2nb5rt',               // sin guiones
             'AC-3H6W-Z9CD' => "AC\u{2013}3H6W\u{2014}Z9CD", // el teclado cambió los guiones por rayas
             '2026ARTE' => '2026 arte',                    // código escrito a mano por la administración
+            'ARTE-2026' => 'arte2026',                    // escrito a mano con guion, tecleado sin él
+            'FERIA2026' => 'feria-2026',                  // y al revés
         ];
 
         foreach ($typedAs as $stored => $typed) {
@@ -502,6 +525,27 @@ class MembershipStudentSideTest extends TestCase
                 ->assertOk()
                 ->assertJsonPath('redeemed_code.code', $stored);
         }
+    }
+
+    public function test_two_codes_that_differ_only_by_hyphens_are_never_confused(): void
+    {
+        $admin = $this->admin();
+        AccessCode::factory()->create(['code' => 'DUO-2026', 'created_by' => $admin->id]);
+        AccessCode::factory()->create(['code' => 'DUO2026', 'created_by' => $admin->id]);
+
+        // Escrito de una tercera forma calza con los dos: no se canjea ninguno.
+        $this->actingAs($this->student)
+            ->postJson(route('membership.redeem'), ['code' => 'D-UO2026'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'not_found');
+
+        // Escrito exactamente como uno de ellos, se canjea ese.
+        $this->actingAs($this->student)
+            ->postJson(route('membership.redeem'), ['code' => 'duo2026'])
+            ->assertOk()
+            ->assertJsonPath('redeemed_code.code', 'DUO2026');
+
+        $this->assertNull(AccessCode::where('code', 'DUO-2026')->sole()->redeemed_at);
     }
 
     public function test_an_unknown_code_gets_a_plain_answer(): void
