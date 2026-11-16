@@ -196,6 +196,25 @@ class MembershipStudentSideTest extends TestCase
         $this->assertFalse($summary()['expiring_soon']);
     }
 
+    public function test_a_member_sees_how_far_each_plan_would_take_their_access(): void
+    {
+        SubscriptionPlan::factory()->create(['duration_days' => 30]);
+
+        $plans = fn () => $this->actingAs($this->student)->getJson(route('membership.status'))->json('plans');
+
+        // Sin acceso vigente el plazo empieza el día que se aprueba el pago: no se promete una fecha.
+        $this->assertNull($plans()[0]['extends_until']);
+
+        Subscription::factory()->create([
+            'user_id' => $this->student->id,
+            'starts_at' => now()->subDays(5),
+            'expires_at' => Carbon::parse('2026-12-01 15:00:00', 'UTC'),
+        ]);
+
+        // 1 de diciembre + 30 días = 31 de diciembre.
+        $this->assertSame('31 de diciembre de 2026', $plans()[0]['extends_until']);
+    }
+
     public function test_summary_tells_an_administrator_they_already_have_full_access(): void
     {
         $this->assertFalse(

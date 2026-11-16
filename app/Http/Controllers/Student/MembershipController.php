@@ -12,6 +12,7 @@ use App\Services\MembershipService;
 use App\Services\SubscriptionStorageService;
 use App\Support\HumanDate;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -43,7 +44,7 @@ class MembershipController extends Controller
         $state = $this->studentState($user);
 
         return view('membership.index', [
-            'initialPlans' => $this->activePlans(),
+            'initialPlans' => $state['plans'],
             'initialMembership' => $state['membership'],
             'initialPendingRequest' => $state['pending_request'],
             'initialRecentRequests' => $state['recent_requests'],
@@ -99,7 +100,7 @@ class MembershipController extends Controller
                 'success' => false,
                 'code' => 'plan_unavailable',
                 'message' => 'Ese plan ya no está disponible. Elige otro de la lista.',
-                'plans' => $this->activePlans(),
+                'plans' => $this->activePlans($user),
             ], 422);
         }
 
@@ -116,7 +117,7 @@ class MembershipController extends Controller
                 'success' => false,
                 'code' => 'price_changed',
                 'message' => 'El precio de este plan cambió mientras tenías la página abierta: ahora es '.HumanDate::money($amount).'. Revisa el monto y el QR antes de pagar. Si ya pagaste el monto anterior, envía igual tu comprobante y cuéntalo en la nota.',
-                'plans' => $this->activePlans(),
+                'plans' => $this->activePlans($user),
             ], 409);
         }
 
@@ -330,6 +331,8 @@ class MembershipController extends Controller
             'success' => true,
             'message' => $result['message'],
             'membership' => $this->membershipSummary($user->fresh()),
+            // Los planes dicen hasta cuándo llegaría el acceso: cambia al sumar días.
+            'plans' => $this->activePlans($user),
             // QA: el historial agregaba una fila inventada ("—"); ahora recibe el código real.
             'redeemed_code' => $this->formatRedeemedCode($result['code']->load('plan')),
         ]);
@@ -349,9 +352,9 @@ class MembershipController extends Controller
     }
 
     /**
-     * Todo lo que cambia con el tiempo en la página: acceso, pago en revisión e historial.
+     * Todo lo que cambia con el tiempo en la página: planes, acceso, pago en revisión e historial.
      *
-     * @return array{membership: array<string, mixed>, pending_request: array<string, mixed>|null, recent_requests: list<array<string, mixed>>, recent_codes: list<array<string, mixed>>}
+     * @return array{plans: list<array<string, mixed>>, membership: array<string, mixed>, pending_request: array<string, mixed>|null, recent_requests: list<array<string, mixed>>, recent_codes: list<array<string, mixed>>}
      */
     private function studentState(User $user): array
     {
@@ -378,6 +381,7 @@ class MembershipController extends Controller
             ->all();
 
         return [
+            'plans' => $this->activePlans($user),
             'membership' => $this->membershipSummary($user),
             'pending_request' => $pending ? $this->formatPaymentRequest($pending) : null,
             'recent_requests' => $recentRequests,
@@ -494,9 +498,12 @@ class MembershipController extends Controller
     /**
      * Planes a la venta, en el orden que eligió la administración.
      *
+     * Para quien ya tiene acceso, cada plan dice hasta qué fecha llegaría si lo paga:
+     * es más claro que explicar que "los días se suman".
+     *
      * @return list<array<string, mixed>>
      */
-    private function activePlans(): array
+    private function activePlans(User $user): array
     {
         $plans = SubscriptionPlan::where('is_active', true)
             ->orderBy('sort_order')
@@ -505,9 +512,10 @@ class MembershipController extends Controller
             ->get();
 
         $bestValueId = $this->bestValuePlanId($plans);
+        $currentExpiry = $this->membershipService->currentSubscription($user)?->expires_at;
 
         return $plans
-            ->map(fn (SubscriptionPlan $p) => $this->formatPlan($p, $p->id === $bestValueId))
+            ->map(fn (SubscriptionPlan $p) => $this->formatPlan($p, $p->id === $bestValueId, $currentExpiry))
             ->values()
             ->all();
     }
@@ -537,7 +545,7 @@ class MembershipController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function formatPlan(SubscriptionPlan $plan, bool $bestValue = false): array
+    private function formatPlan(SubscriptionPlan $plan, bool $bestValue = false, ?CarbonInterface $currentExpiry = null): array
     {
         // price, price_formatted y qr_image_url son siempre los de "ahora": con precio especial vigente
         // la página muestra el monto y el QR correctos sin lógica propia.
@@ -553,6 +561,8 @@ class MembershipController extends Controller
             'duration_label' => HumanDate::duration($days),
             'per_month_label' => $this->perMonthLabel($price, $days),
             'best_value' => $bestValue,
+            // Solo con acceso vigente: sin él, el plazo empieza el día que se aprueba el pago.
+            'extends_until' => $currentExpiry !== null ? HumanDate::long($currentExpiry->copy()->addDays($days)) : null,
             'description' => $plan->description ?? '',
             'qr_image_url' => $plan->currentQrImageUrl(),
             'special' => $plan->hasActiveSpecialPrice() ? [
