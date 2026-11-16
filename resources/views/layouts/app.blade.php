@@ -50,6 +50,7 @@
                     request()->routeIs('admin.subscriptions.*') => __('Suscripciones y pagos'),
                     request()->routeIs('admin.quick-links.*') => __('Accesos rápidos'),
                     request()->routeIs('admin.users.*') => __('Usuarios y roles'),
+                    request()->routeIs('admin.activity-logs.*') => __('Bitácora de actividad'),
                     default => $title ?: null,
                 };
             @endphp

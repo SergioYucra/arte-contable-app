@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BookController;
 use App\Http\Controllers\Admin\MembershipMemberController;
 use App\Http\Controllers\Admin\QuickLinkCategoryController;
@@ -150,6 +151,15 @@ Route::middleware(['auth', 'verified', 'permission:manage-users'])
         Route::patch('/accesos-rapidos/categorias/{category}/estado', [QuickLinkCategoryController::class, 'toggleActive'])->whereNumber('category')->middleware('throttle:30,1')->name('quick-links.categories.toggle-active');
         Route::delete('/accesos-rapidos/categorias/{category}', [QuickLinkCategoryController::class, 'destroy'])->whereNumber('category')->middleware('throttle:30,1')->name('quick-links.categories.destroy');
         Route::post('/accesos-rapidos/categorias/{id}/restaurar', [QuickLinkCategoryController::class, 'restore'])->whereNumber('id')->middleware('throttle:30,1')->name('quick-links.categories.restore');
+    });
+
+// Auditoría del sistema: acceso exclusivo para SuperAdmin
+Route::middleware(['auth', 'verified', 'role:SuperAdmin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/actividad', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/actividad/registros', [ActivityLogController::class, 'list'])->middleware('throttle:60,1')->name('activity-logs.list');
     });
 
 require __DIR__.'/auth.php';
