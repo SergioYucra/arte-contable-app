@@ -31,6 +31,27 @@ final class HumanDate
         return rtrim($local->translatedFormat('j M Y'), '.').', '.$local->format('H:i');
     }
 
+    /**
+     * Para frases con "hasta …": un fin a medianoche nombra el último día completo
+     * ("el 19 de noviembre de 2026"); con otra hora, la dice ("el 20 de noviembre de 2026 a las 18:00").
+     *
+     * Sin esto, algo que termina el día 20 a las 00:00 se leía "hasta el 20" cuando ese día ya no vale.
+     */
+    public static function until(?CarbonInterface $date): ?string
+    {
+        if ($date === null) {
+            return null;
+        }
+
+        $local = $date->copy()->setTimezone(self::TIMEZONE)->locale('es');
+
+        if ($local->format('H:i') === '00:00') {
+            return 'el '.$local->copy()->subDay()->translatedFormat('j \d\e F \d\e Y');
+        }
+
+        return 'el '.$local->translatedFormat('j \d\e F \d\e Y').' a las '.$local->format('H:i');
+    }
+
     /** "hace 3 horas" */
     public static function relative(?CarbonInterface $date): ?string
     {

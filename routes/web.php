@@ -83,10 +83,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:30,1')
         ->name('library.notes.destroy');
 
+    // Membresía del estudiante. Cada límite lleva su propio nombre (tercer valor de throttle): sin él,
+    // Laravel cuenta juntas todas las rutas con throttle de una misma persona, y quien acababa de leer
+    // varias páginas de un libro recibía "demasiados intentos" al canjear un código o enviar su pago.
     Route::get('/membresia', [MembershipController::class, 'index'])->name('membership.index');
-    Route::post('/membresia/pago', [MembershipController::class, 'storePayment'])->middleware('throttle:10,1')->name('membership.payment.store');
-    Route::post('/membresia/canjear', [MembershipController::class, 'redeemCode'])->middleware('throttle:10,1')->name('membership.redeem');
-    Route::get('/membresia/solicitudes/{paymentRequest}/comprobante', [MembershipController::class, 'streamProof'])->middleware('throttle:60,1')->name('membership.proof');
+    Route::get('/membresia/estado', [MembershipController::class, 'status'])
+        ->middleware('throttle:30,1,membership-status')
+        ->name('membership.status');
+    Route::post('/membresia/pago', [MembershipController::class, 'storePayment'])
+        ->middleware('throttle:10,1,membership-payment')
+        ->name('membership.payment.store');
+    Route::post('/membresia/canjear', [MembershipController::class, 'redeemCode'])
+        ->middleware('throttle:6,1,membership-redeem')
+        ->name('membership.redeem');
+    Route::get('/membresia/solicitudes/{paymentRequest}/comprobante', [MembershipController::class, 'streamProof'])
+        ->whereNumber('paymentRequest')
+        ->middleware('throttle:60,1,membership-proof')
+        ->name('membership.proof');
+    Route::delete('/membresia/solicitudes/{paymentRequest}', [MembershipController::class, 'cancelPayment'])
+        ->whereNumber('paymentRequest')
+        ->middleware('throttle:10,1,membership-cancel')
+        ->name('membership.payment.cancel');
 
     Route::get('/accesos-rapidos', [QuickLinkStudentController::class, 'index'])->name('quick-links.index');
 });

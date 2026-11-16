@@ -48,6 +48,16 @@ export function readError(error, fallback = 'No se pudo completar. Revisa tu con
         return { message: 'Tu sesión expiró. Recarga la página para continuar.', fields };
     }
 
+    // Lo que se quería abrir o cambiar ya no existe (p. ej. un envío que la persona retiró).
+    if (error?.response?.status === 404) {
+        return { message: 'Eso ya no está disponible. Actualiza la página para ver los datos al día.', fields };
+    }
+
+    // La petición salió pero no hubo respuesta del servidor: se cortó la conexión.
+    if (error?.isAxiosError && !error.response) {
+        return { message: 'No hay conexión. Revisa tu internet e inténtalo de nuevo.', fields };
+    }
+
     const first = Object.values(fields)[0];
     const message = first || (typeof data?.message === 'string' && data.message) || fallback;
 

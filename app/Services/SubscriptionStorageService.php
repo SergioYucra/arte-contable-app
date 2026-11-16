@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * Servicio de almacenamiento y entrega segura para el módulo de suscripciones:
@@ -61,13 +62,38 @@ class SubscriptionStorageService
     }
 
     /**
+     * Tipos de comprobante aceptados, según el contenido real del archivo.
+     * Son los mismos que la bóveda sabe mostrar en el navegador (PrivateVault::SAFE_INLINE_MIMES).
+     */
+    public const PROOF_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+    /**
      * Almacena de forma segura un comprobante de pago en la bóveda privada.
+     *
+     * La bóveda vuelve a comprobar el tipo real: es la segunda barrera después del formulario.
      *
      * @return array{path: string, original_name: string, mime_type: string, size_bytes: int}
      */
     public function storePaymentProof(UploadedFile $file): array
     {
-        return PrivateVault::store($file, 'receipts');
+        return PrivateVault::store($file, 'receipts', self::PROOF_MIMES);
+    }
+
+    /**
+     * Borra un comprobante de la bóveda. Nunca lanza: se usa al deshacer un envío, y un archivo
+     * que no se pudo borrar no debe convertir esa operación en un error para la persona.
+     */
+    public function deletePaymentProof(?string $path): void
+    {
+        if (blank($path)) {
+            return;
+        }
+
+        try {
+            PrivateVault::delete($path);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /**
