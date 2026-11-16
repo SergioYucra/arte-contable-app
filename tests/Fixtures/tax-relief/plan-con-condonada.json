@@ -1,0 +1,366 @@
+{
+ "error": false,
+ "modo": "regularizacion",
+ "fechaSolicitud": "2026-11-15",
+ "ufvSolicitud": 3.37471,
+ "cuotaMinimaUFV": 200,
+ "cuotaMinimaBs": 674.94,
+ "maxCuotasPermitidas": 18,
+ "topeCuotas": 36,
+ "pubLey": "2026-05-27",
+ "inflacionAnualEstim": 12.53,
+ "ufvUltimaFecha": "2026-12-10",
+ "hoy": "2026-11-15",
+ "nVencidas": 0,
+ "totalVencido": 0,
+ "nPorVenir": 12,
+ "totalPorVenir": 14953.33,
+ "avisos": [],
+ "totalConsolidado": 14185.57,
+ "totalNormal": 27155.65,
+ "totalCondonado": 5754.88,
+ "ahorroTotal": 12970.08,
+ "totalContado": 12352.15,
+ "nCondonadas": 1,
+ "nRegularizables": 1,
+ "porcentajePagoInicial": 5,
+ "porcentajeGarantia": 5,
+ "pagoInicial": 709.28,
+ "garantia": 709.28,
+ "saldoTotal": 12767.01,
+ "maxCuotas": 12,
+ "deudas": [
+  {
+   "impuesto": "IVA",
+   "periodo": "2019-01",
+   "venc": "2019-02-15",
+   "tratamiento": "regularizable",
+   "tributoOmitido": 10000,
+   "mv": 4704.3,
+   "interes": 6696.47,
+   "mvFull": 4704.3,
+   "interesFull": 6696.47,
+   "totalNormal": 21400.77,
+   "total": 14185.57,
+   "ahorro": 7215.2,
+   "baseReg": 14185.57,
+   "contado": 12352.15,
+   "pagoInicial": 709.28,
+   "garantia": 709.28,
+   "saldo": 12767.01,
+   "cuotas": 12,
+   "maxCuotasDeuda": 18
+  },
+  {
+   "impuesto": "IT",
+   "periodo": "2020-05",
+   "venc": "2020-06-15",
+   "tratamiento": "condonado",
+   "tributoOmitido": 3000,
+   "mv": 1311.5,
+   "interes": 1443.38,
+   "mvFull": 1311.5,
+   "interesFull": 1443.38,
+   "totalNormal": 5754.88,
+   "total": 0,
+   "ahorro": 5754.88,
+   "baseReg": 0,
+   "contado": 0,
+   "pagoInicial": 0,
+   "garantia": 0,
+   "saldo": 0,
+   "cuotas": 0,
+   "maxCuotasDeuda": 0
+  }
+ ],
+ "cronograma": [
+  {
+   "n": 1,
+   "fecha": "2027-01-29",
+   "ufv": 3.44472,
+   "proyectada": true,
+   "minBs": 688.94,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1157.02,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 61.78,
+   "compInt": 31.32,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1157.02,
+     "to": 1063.92,
+     "mv": 61.78,
+     "interes": 31.32
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "fecha": "2027-02-26",
+   "ufv": 3.47853,
+   "proyectada": true,
+   "minBs": 695.71,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1172.02,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 72.83,
+   "compInt": 35.27,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1172.02,
+     "to": 1063.92,
+     "mv": 72.83,
+     "interes": 35.27
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "fecha": "2027-03-31",
+   "ufv": 3.51539,
+   "proyectada": true,
+   "minBs": 703.08,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1188.79,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 84.88,
+   "compInt": 39.99,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1188.79,
+     "to": 1063.92,
+     "mv": 84.88,
+     "interes": 39.99
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "fecha": "2027-04-30",
+   "ufv": 3.55013,
+   "proyectada": true,
+   "minBs": 710.03,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1204.54,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 96.23,
+   "compInt": 44.4,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1204.54,
+     "to": 1063.92,
+     "mv": 96.23,
+     "interes": 44.4
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "fecha": "2027-05-31",
+   "ufv": 3.58522,
+   "proyectada": true,
+   "minBs": 717.04,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1220.65,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 107.7,
+   "compInt": 49.03,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1220.65,
+     "to": 1063.92,
+     "mv": 107.7,
+     "interes": 49.03
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "fecha": "2027-06-30",
+   "ufv": 3.62066,
+   "proyectada": true,
+   "minBs": 724.13,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1236.83,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 119.28,
+   "compInt": 53.63,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1236.83,
+     "to": 1063.92,
+     "mv": 119.28,
+     "interes": 53.63
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "fecha": "2027-07-30",
+   "ufv": 3.65528,
+   "proyectada": true,
+   "minBs": 731.06,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1252.82,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 130.59,
+   "compInt": 58.31,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1252.82,
+     "to": 1063.92,
+     "mv": 130.59,
+     "interes": 58.31
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "fecha": "2027-08-31",
+   "ufv": 3.69258,
+   "proyectada": true,
+   "minBs": 738.52,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1270.12,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 142.79,
+   "compInt": 63.42,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1270.12,
+     "to": 1063.92,
+     "mv": 142.79,
+     "interes": 63.42
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "fecha": "2027-09-30",
+   "ufv": 3.72908,
+   "proyectada": true,
+   "minBs": 745.82,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1286.95,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 154.71,
+   "compInt": 68.33,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1286.95,
+     "to": 1063.92,
+     "mv": 154.71,
+     "interes": 68.33
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "fecha": "2027-10-29",
+   "ufv": 3.76355,
+   "proyectada": true,
+   "minBs": 752.71,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1303.04,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 165.97,
+   "compInt": 73.15,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1303.04,
+     "to": 1063.92,
+     "mv": 165.97,
+     "interes": 73.15
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "fecha": "2027-11-30",
+   "ufv": 3.80316,
+   "proyectada": true,
+   "minBs": 760.63,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1321.44,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 178.91,
+   "compInt": 78.61,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1321.44,
+     "to": 1063.92,
+     "mv": 178.91,
+     "interes": 78.61
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "fecha": "2027-12-31",
+   "ufv": 3.84075,
+   "proyectada": true,
+   "minBs": 768.15,
+   "bajoMinimo": false,
+   "vencida": false,
+   "totalCuota": 1339.11,
+   "deudasActivas": 1,
+   "compTO": 1063.92,
+   "compMV": 191.2,
+   "compInt": 83.99,
+   "detalle": [
+    {
+     "impuesto": "IVA",
+     "periodo": "2019-01",
+     "cuota": 1339.11,
+     "to": 1063.92,
+     "mv": 191.2,
+     "interes": 83.99
+    }
+   ]
+  }
+ ]
+}

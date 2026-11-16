@@ -73,6 +73,15 @@
                     <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                 </x-slot:icon>
             </x-sidebar-link>
+
+            {{-- Módulo TaxRelief: mismos roles que sus rutas (app/Modules/TaxRelief/Routes/web.php) --}}
+            @if (config('tax_relief.enabled') && $user->hasAnyRole(['User', 'Manager', 'Admin', 'SuperAdmin']))
+                <x-sidebar-link :href="route('tax-relief.index')" :label="__('Calculadora tributaria')" :active="request()->routeIs('tax-relief.*')">
+                    <x-slot:icon>
+                        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" /><line x1="8" x2="16" y1="6" y2="6" /><line x1="16" x2="16" y1="14" y2="18" /><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01" /></svg>
+                    </x-slot:icon>
+                </x-sidebar-link>
+            @endif
         </div>
 
         @can('manage-users')

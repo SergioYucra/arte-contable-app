@@ -1,0 +1,59 @@
+{
+ "byVenc_periodoFijo2019_06": [
+  "2019-06|2017-06-15:regularizable",
+  "2019-06|2017-10-13:regularizable",
+  "2019-06|2017-12-29:regularizable",
+  "2019-06|2017-12-31:regularizable",
+  "2019-06|2018-01-01:regularizable",
+  "2019-06|2018-01-02:regularizable",
+  "2019-06|2018-01-15:regularizable",
+  "2019-06|2018-02-15:regularizable",
+  "2019-06|2019-12-31:regularizable",
+  "2019-06|2020-01-01:regularizable",
+  "2019-06|2020-01-02:regularizable",
+  "2019-06|2020-01-15:regularizable",
+  "2019-06|2020-12-31:regularizable",
+  "2019-06|2021-01-01:regularizable",
+  "2019-06|2021-01-04:regularizable",
+  "2019-06|2021-01-15:regularizable",
+  "2019-06|2021-02-12:regularizable"
+ ],
+ "byVenc_periodoSegunVenc": [
+  "2017-06|2017-06-15:condonado",
+  "2017-10|2017-10-13:condonado",
+  "2017-12|2017-12-29:condonado",
+  "2017-12|2017-12-31:condonado",
+  "2018-01|2018-01-01:regularizable",
+  "2018-01|2018-01-02:regularizable",
+  "2018-01|2018-01-15:regularizable",
+  "2018-02|2018-02-15:regularizable",
+  "2019-12|2019-12-31:regularizable",
+  "2020-01|2020-01-01:condonado",
+  "2020-01|2020-01-02:condonado",
+  "2020-01|2020-01-15:condonado",
+  "2020-12|2020-12-31:condonado",
+  "2021-01|2021-01-01:regularizable",
+  "2021-01|2021-01-04:regularizable",
+  "2021-01|2021-01-15:regularizable",
+  "2021-02|2021-02-12:regularizable"
+ ],
+ "byPeriodo_vencFijo": [
+  "2015-06|2019-06-14:condonado",
+  "2017-12|2019-06-14:condonado",
+  "2018-01|2019-06-14:regularizable",
+  "2019-12|2019-06-14:regularizable",
+  "2020-01|2019-06-14:condonado",
+  "2020-06|2019-06-14:condonado",
+  "2020-12|2019-06-14:condonado",
+  "2021-01|2019-06-14:regularizable",
+  "2021-06|2019-06-14:regularizable"
+ ],
+ "sinPeriodo": [
+  "|2020-06-15:condonado",
+  "|2019-06-14:regularizable"
+ ],
+ "solic2027": [
+  "2018-03-15:regularizable",
+  "2018-12-14:regularizable"
+ ]
+}

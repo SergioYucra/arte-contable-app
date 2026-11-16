@@ -1,0 +1,54 @@
+{
+ "error": false,
+ "periodo": "2019-01",
+ "impuesto": "IVA",
+ "baseImponible": null,
+ "fechaVenc": "2019-02-15",
+ "fechaPago": "2026-11-15",
+ "tributoOmitido": 10000,
+ "ufvVenc": 2.29505,
+ "ufvPago": 3.37471,
+ "cUFV": 4357.20355,
+ "interesUFV": 1984.30966,
+ "deudaUFV": 6341.51321,
+ "sancionUFV": 2614.32213,
+ "multaDF_UFV": 0,
+ "totalUFV": 8955.83534,
+ "toActualizadoBs": 14704.3,
+ "mvBs": 4704.3,
+ "interesBs": 6696.47,
+ "deudaBs": 21400.77,
+ "sancionBs": 8822.58,
+ "multaDF_Bs": 0,
+ "totalBs": 30223.35,
+ "diasMora": 2830,
+ "tramos": [
+  {
+   "tasa": 0.04,
+   "pct": 4,
+   "dias": 1461,
+   "desde": "2019-02-16",
+   "hasta": "2023-02-15",
+   "factor": 1.176241652848461,
+   "interesUFV": 767.9207548788085
+  },
+  {
+   "tasa": 0.06,
+   "pct": 6,
+   "dias": 1096,
+   "desde": "2023-02-16",
+   "hasta": "2026-02-15",
+   "factor": 1.200395932513307,
+   "interesUFV": 873.1658679039973
+  },
+  {
+   "tasa": 0.1,
+   "pct": 10,
+   "dias": 273,
+   "desde": "2026-02-16",
+   "hasta": "2026-11-15",
+   "factor": 1.078771402030291,
+   "interesUFV": 343.22303230993214
+  }
+ ]
+}
