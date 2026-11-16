@@ -353,11 +353,27 @@ Todos los días a las **07:00 (hora de Bolivia)** el sistema ejecuta `php artisa
 
 ### Cómo activarlo en Hostinger
 
-1. **Correo del desarrollador líder** en el `.env` del servidor: `TAX_RELIEF_ALERT_EMAIL=lider@dominio.com`. Para varios, separarlos con comas. Si queda vacío, el aviso solo queda en el log.
-2. **Correo saliente (SMTP).** Es el mismo mailer de Laravel que ya envía los correos de verificación de cuenta. En hPanel → Correos se crea una cuenta, por ejemplo `avisos@dominio.com`, y se usa en el `.env`:
+1. **Correo del desarrollador líder** en el `.env` del servidor: `TAX_RELIEF_ALERT_EMAIL=lider@dominio.com`. Para varios, separarlos con comas. Si queda vacío, el aviso solo queda en el log. Con Resend sin dominio hay una condición: ver el punto 2.
+2. **Correo saliente (SMTP).** Laravel usa un solo mailer para todo: estos avisos y los correos de verificación de cuenta de los estudiantes.
+
+   **Hoy, sin dominio propio: Resend.** Probado el 15/11/2026: llegaron el correo de prueba y el aviso de caída. Plan gratis de 100 correos al día; no pide celular ni dominio para empezar. Se crea la cuenta en resend.com y, en *API Keys*, una clave con permiso *Sending access*. Conviene una clave para local y otra para producción, así se puede revocar una sin tocar la otra.
 
    ```dotenv
    MAIL_MAILER=smtp
+   MAIL_HOST=smtp.resend.com
+   MAIL_PORT=465
+   MAIL_SCHEME=smtps
+   MAIL_USERNAME=resend
+   MAIL_PASSWORD="re_********"
+   MAIL_FROM_ADDRESS="onboarding@resend.dev"
+   TAX_RELIEF_ALERT_EMAIL=correo-con-el-que-se-creo-la-cuenta-de-resend
+   ```
+
+   Sin dominio, Resend envía solo **desde** `onboarding@resend.dev` y solo **a** la dirección con la que se creó la cuenta. Por eso `TAX_RELIEF_ALERT_EMAIL` tiene que ser esa dirección; para que el aviso le llegue al líder, en esa bandeja se configura un reenvío automático. Por la misma razón, **no sirve para los correos de verificación de los estudiantes**, que van a cualquier dirección.
+
+   **Con dominio propio (lo recomendado para producción).** Se verifica el dominio en Resend (registros DNS) y se cambia `MAIL_FROM_ADDRESS` por una dirección del dominio. La otra opción es una cuenta de correo del dominio en Hostinger (hPanel → Correos):
+
+   ```dotenv
    MAIL_HOST=smtp.hostinger.com
    MAIL_PORT=465
    MAIL_SCHEME=smtps
@@ -365,6 +381,16 @@ Todos los días a las **07:00 (hora de Bolivia)** el sistema ejecuta `php artisa
    MAIL_PASSWORD=********
    MAIL_FROM_ADDRESS=avisos@dominio.com
    ```
+
+   En los dos casos `TAX_RELIEF_ALERT_EMAIL` vuelve a ser el correo del líder, y el mismo envío sirve para los estudiantes. No hace falta tocar código.
+
+   **Lo que no funcionó:** Gmail directo (para una contraseña de aplicación exige verificación en dos pasos) y Brevo (exige verificar un número de celular).
+
+   | Si `--test-mail` responde… | Causa |
+   |---|---|
+   | `Failed to authenticate … 535` | Usuario o contraseña incorrectos. En Gmail: se usó la contraseña normal en vez de una de aplicación. |
+   | `550 The gmail.com domain is not verified` | Resend sin dominio: el remitente tiene que ser `onboarding@resend.dev`. |
+   | `550 You can only send testing emails to your own email address` | Resend sin dominio: `TAX_RELIEF_ALERT_EMAIL` no es el correo con el que se creó la cuenta. |
 
 3. **Cron de Laravel** en hPanel → Avanzado → Cron Jobs, cada minuto. Es una sola línea y sirve para todas las tareas programadas, incluidos los respaldos de la rama de seguridad:
 
