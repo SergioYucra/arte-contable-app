@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { ChevronDown } from 'lucide-vue-next';
+import { sectionTitle } from './ui';
 
 /**
  * Preguntas frecuentes de la membresía, en las palabras del estudiante.
@@ -38,7 +39,7 @@ const open = ref(null);
 
 <template>
     <section aria-labelledby="membership-faq-title" class="space-y-3">
-        <h2 id="membership-faq-title" class="text-base font-semibold text-foreground">Preguntas frecuentes</h2>
+        <h2 id="membership-faq-title" :class="sectionTitle">Preguntas frecuentes</h2>
 
         <ul class="divide-y divide-border rounded-brand border border-border bg-surface overflow-hidden">
             <li v-for="(item, index) in questions" :key="item.q">

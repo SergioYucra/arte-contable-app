@@ -7,11 +7,13 @@ import BaseToast from './ui/BaseToast.vue';
 import MembershipFaq from './membership/MembershipFaq.vue';
 import MembershipHero from './membership/MembershipHero.vue';
 import MembershipHistory from './membership/MembershipHistory.vue';
+import MembershipIncludes from './membership/MembershipIncludes.vue';
 import MembershipNotices from './membership/MembershipNotices.vue';
 import MembershipPaymentModal from './membership/MembershipPaymentModal.vue';
 import MembershipPlanCard from './membership/MembershipPlanCard.vue';
 import MembershipRedeemModal from './membership/MembershipRedeemModal.vue';
 import { btn, readError } from './subscriptions/shared';
+import { sectionLead, sectionTitle } from './membership/ui';
 
 /**
  * Página de membresía del estudiante. Este componente guarda el estado y habla con el servidor;
@@ -129,6 +131,11 @@ const plansOpen = ref(!membership.value.is_active || membership.value.expiring_s
 const plansHeading = ref(null);
 
 const plansTitle = computed(() => (membership.value.is_active ? 'Suma más días a tu membresía' : 'Elige tu plan'));
+
+const hasHistory = computed(() => recentRequests.value.length > 0 || recentCodes.value.length > 0);
+
+// Con membresía vigente el historial va antes que los planes. Si está por vencer, primero los planes.
+const historyFirst = computed(() => membership.value.is_active && !membership.value.expiring_soon);
 
 function payDisabledReason(plan) {
     if (pendingRequest.value) return 'Ya tienes un pago en revisión. Cuando se resuelva podrás enviar otro.';
@@ -340,6 +347,9 @@ onBeforeUnmount(() => {
             @redeem="redeemOpen = true"
         />
 
+        <!-- Quien ya tiene membresía viene sobre todo a ver lo que pagó y canjeó: el historial va primero. -->
+        <MembershipHistory v-if="historyFirst && hasHistory" :requests="recentRequests" :codes="recentCodes" />
+
         <!-- Planes -->
         <section aria-labelledby="membership-plans-title" class="space-y-4 scroll-mt-20">
             <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -348,11 +358,11 @@ onBeforeUnmount(() => {
                         id="membership-plans-title"
                         ref="plansHeading"
                         tabindex="-1"
-                        class="text-base font-semibold text-foreground focus:outline-none"
+                        :class="[sectionTitle, 'focus:outline-none']"
                     >
                         {{ plansTitle }}
                     </h2>
-                    <p class="mt-0.5 text-sm text-muted max-w-[62ch]">
+                    <p :class="sectionLead">
                         Pagas una sola vez con el QR de tu banco y subes tu comprobante. No se cobra solo cada mes.
                     </p>
                 </div>
@@ -375,10 +385,11 @@ onBeforeUnmount(() => {
             </div>
 
             <template v-if="plans.length">
+                <!-- Las columnas se ajustan a cuántos planes hay: dos planes ocupan todo el ancho, sin un hueco al lado. -->
                 <ul
                     v-if="plansOpen"
                     id="membership-plans-list"
-                    class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 pt-2"
+                    class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(17rem,1fr))] gap-4 sm:gap-5 pt-2"
                 >
                     <MembershipPlanCard
                         v-for="plan in plans"
@@ -394,7 +405,7 @@ onBeforeUnmount(() => {
                 <div class="mx-auto h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                     <CreditCard class="h-6 w-6" aria-hidden="true" />
                 </div>
-                <h3 class="text-base font-semibold text-foreground">Todavía no hay planes a la venta</h3>
+                <h3 class="font-serif text-[19px] font-medium text-foreground">Todavía no hay planes a la venta</h3>
                 <p class="text-sm text-muted max-w-md mx-auto">
                     La administración los publicará aquí. Si tienes un código de acceso, puedes usarlo ahora.
                 </p>
@@ -402,13 +413,12 @@ onBeforeUnmount(() => {
             </div>
         </section>
 
-        <MembershipHistory
-            v-if="recentRequests.length || recentCodes.length"
-            :requests="recentRequests"
-            :codes="recentCodes"
-        />
+        <MembershipHistory v-if="!historyFirst && hasHistory" :requests="recentRequests" :codes="recentCodes" />
 
         <MembershipFaq />
+
+        <!-- Al final y solo en pantallas grandes: es un recordatorio, no hace falta para usar la página. -->
+        <MembershipIncludes v-if="membership.is_active && !membership.is_staff" />
 
         <MembershipPaymentModal
             v-model="paymentOpen"

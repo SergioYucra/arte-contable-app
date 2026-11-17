@@ -185,15 +185,16 @@ function iconClass(index) {
             </div>
 
             <!-- Con membresía: cuánto queda del periodo -->
-            <div v-if="isActive" class="rounded-xl border border-white/15 bg-white/[0.06] p-4 sm:p-5">
+            <div v-if="isActive" class="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 sm:p-5">
                 <p class="text-xs text-[#c7dddc]">{{ membership.plan_name }}</p>
                 <p class="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-[#f5fbf8]">
                     <span class="font-serif text-[34px] font-medium leading-none tracking-[-0.02em] tabular-nums">{{ days }}</span>
                     <span class="text-sm">{{ days === 1 ? 'día por delante' : 'días por delante' }}</span>
                 </p>
 
+                <!-- En el celular basta con los días: el título ya dice la fecha. -->
                 <div
-                    class="relative mt-8 h-1.5 w-full rounded-full bg-white/15"
+                    class="relative mt-8 h-1.5 w-full rounded-full bg-white/15 hidden sm:block"
                     role="img"
                     :aria-label="`Tu periodo va del ${membership.starts_at} al ${membership.expires_at}. Te quedan ${days} de ${membership.total_days} días.`"
                 >
@@ -214,7 +215,7 @@ function iconClass(index) {
                     ></span>
                 </div>
 
-                <dl class="mt-3 flex items-start justify-between gap-4 text-[11px] leading-snug text-[#c7dddc]">
+                <dl class="mt-3 hidden sm:flex items-start justify-between gap-4 text-[11px] leading-snug text-[#c7dddc]">
                     <div>
                         <dt>Desde</dt>
                         <dd class="font-semibold text-[#edf5f1]">{{ membership.starts_at }}</dd>
@@ -226,8 +227,8 @@ function iconClass(index) {
                 </dl>
             </div>
 
-            <!-- Sin membresía: qué se abre al tenerla -->
-            <div v-else class="rounded-xl border border-white/15 bg-white/[0.06] p-4 sm:p-5">
+            <!-- Sin membresía: qué se abre al tenerla. En el celular sobra: lo dicen los planes, justo debajo. -->
+            <div v-else class="hidden sm:block rounded-xl border border-white/15 bg-white/[0.06] p-4 sm:p-5">
                 <p class="text-xs font-semibold text-[#edf5f1]">Con la membresía</p>
                 <ul class="mt-3 space-y-2.5">
                     <li v-for="item in included" :key="item" class="flex items-start gap-2.5 text-[13px] leading-snug text-[#dcebea]">

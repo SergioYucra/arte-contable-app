@@ -576,7 +576,14 @@ class MembershipStudentSideTest extends TestCase
         $codes = $this->actingAs($this->student)->get(route('membership.index'))->viewData('initialRecentCodes');
 
         $this->assertSame('Plan Feria del Libro', $codes[0]['plan_name']);
+        $this->assertSame('Plan Feria del Libro', $codes[0]['plan']);
         $this->assertSame('1 mes', $codes[0]['duration_label']);
+
+        // Un código que no venía de un plan no repite la duración como si fuera el nombre del plan.
+        $loose = AccessCode::factory()->create(['subscription_plan_id' => null, 'created_by' => $this->admin()->id]);
+        $this->actingAs($this->student)->postJson(route('membership.redeem'), ['code' => $loose->code])
+            ->assertOk()
+            ->assertJsonPath('redeemed_code.plan', null);
     }
 
     public function test_redeeming_gives_the_student_role_to_someone_without_a_role(): void

@@ -664,6 +664,8 @@ class MembershipController extends Controller
             'id' => $code->id,
             'code' => $code->code,
             'plan_name' => $code->plan?->name ?? HumanDate::duration((int) $code->duration_days).' de acceso',
+            // Solo el nombre del plan, o null si el código no venía de uno (la página no repite la duración).
+            'plan' => $code->plan?->name,
             'duration_days' => (int) $code->duration_days,
             'duration_label' => HumanDate::duration((int) $code->duration_days),
             'redeemed_at' => HumanDate::dateTime($code->redeemed_at),

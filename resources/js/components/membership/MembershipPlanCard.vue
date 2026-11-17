@@ -31,7 +31,7 @@ const reasonId = computed(() => `plan-${props.plan.id}-motivo`);
         </span>
 
         <div>
-            <h3 class="text-base font-semibold text-foreground leading-snug">{{ plan.name }}</h3>
+            <h3 class="font-serif text-[19px] font-medium text-foreground leading-snug">{{ plan.name }}</h3>
             <p class="mt-0.5 text-sm text-muted">{{ plan.duration_label }} de lectura completa</p>
         </div>
 
@@ -55,7 +55,7 @@ const reasonId = computed(() => `plan-${props.plan.id}-motivo`);
             Este precio vale hasta {{ plan.special.ends_label }}.
         </p>
 
-        <p v-if="plan.description" class="text-sm leading-relaxed text-muted">{{ plan.description }}</p>
+        <p v-if="plan.description" class="text-sm leading-relaxed text-muted line-clamp-2 sm:line-clamp-none">{{ plan.description }}</p>
 
         <p
             v-if="plan.extends_until"
@@ -64,7 +64,7 @@ const reasonId = computed(() => `plan-${props.plan.id}-motivo`);
             <CalendarCheck class="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             <span>
                 Con este plan podrías leer todo hasta el
-                <strong class="font-semibold">{{ plan.extends_until }}</strong>. No pierdes los días que te quedan.
+                <strong class="font-semibold">{{ plan.extends_until }}</strong>.<span class="hidden sm:inline"> No pierdes los días que te quedan.</span>
             </span>
         </p>
 
