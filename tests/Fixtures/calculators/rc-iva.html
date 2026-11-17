@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Fixture recortado de boliviaimpuestos.com</title></head>
+<body>
+<!-- Copia recortada de la página real (capturada el 2026-11-17): solo lo que lee la revisión diaria. -->
+<script>/* Otro script de la página (buscador, comentarios): la revisión debe ignorarlo. */ document.getElementById('railSearch');</script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  function fmt(n){if(n==null||isNaN(n))return '—';return 'Bs '+Number(n).toLocaleString('es-BO',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function ans(s){var a=0,d=[];
+    if(s>13000){var t1=Math.min(Math.max(s-13000,0),12000),a1=t1*0.0115;a+=a1;if(t1>0)d.push('Tramo 1: '+fmt(t1)+' × 1,15% = '+fmt(a1));}
+    if(s>25000){var t2=Math.min(Math.max(s-25000,0),10000),a2=t2*0.0574;a+=a2;if(t2>0)d.push('Tramo 2: '+fmt(t2)+' × 5,74% = '+fmt(a2));}
+    if(s>35000){var t3=Math.max(s-35000,0),a3=t3*0.1148;a+=a3;if(t3>0)d.push('Tramo 3: '+fmt(t3)+' × 11,48% = '+fmt(a3));}
+    return [a,d];}
+  function calc(){
+    var g=parseFloat($('rG').value||0), smn=parseFloat($('rSMN').value||0)||1, sf=parseFloat($('rSF').value||0), fac=parseFloat($('rFac').value||0);
+    var afp=g*0.1271; var A=ans(g), aporteANS=A[0];
+    var neto=g-afp-aporteANS;
+    var mni=smn*2; var base=Math.max(0,neto-mni);
+    var imp=base*0.13; var compAuto=smn*0.13;
+    var sinComp=Math.max(0,imp-compAuto);
+    var compFac=fac*0.13;
+    var saldo=Math.max(0,sinComp-sf-compFac);
+    var facNec=saldo>0?saldo/0.13:0;
+    $('rSaldo').textContent=fmt(saldo);
+    $('rDot').style.background=saldo>0?'#e24b4a':'#57D08F';
+    if(saldo>0) $('rVerdict').innerHTML='<span class="verdict verdict--no" style="background:var(--bi-orange-tint);color:#B4520E">Debes pagar · presenta <b>'+fmt(facNec)+'</b> más en facturas para no pagar</span>';
+    else $('rVerdict').innerHTML='<span class="verdict verdict--yes"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#12805A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>No pagas RC-IVA este mes</span>';
+    $('rStats').innerHTML=[
+      ['Aporte AFP (12,71%)',fmt(afp),'#006ba6'],
+      ['Aporte Nac. Solidario',fmt(aporteANS),'#006ba6'],
+      ['Base imponible',fmt(base),'#2d3663'],
+      ['Impuesto (13%)',fmt(imp),'#C77E12'],
+    ].map(function(s){return '<div class="stat"><div class="stat__k">'+s[0]+'</div><div style="margin-top:2px"><span class="stat__v" style="color:'+s[2]+';font-size:16px">'+s[1]+'</span></div></div>'}).join('');
+    var T=Math.max(imp,1);
+    function row(l,v,c,sum){var w=Math.max(2,Math.min(100,Math.abs(v)/T*100));return '<div class="wf__row'+(sum?' wf__row--sum':'')+'"><span class="wf__lbl">'+l+'</span><span class="wf__bar"><span class="wf__fill" style="width:'+w+'%;background:'+c+'"></span></span><span class="wf__val">'+fmt(v)+'</span></div>'}
+    var h=row('Impuesto (13%)',imp,'#e0a53a');
+    h+=row('− Comp. automática (1 SMN)',-compAuto,'#57D08F');
+    h+=row('= RC-IVA determinado',sinComp,'#5871b5',true);
+    if(sf>0)h+=row('− Saldo a favor previo',-sf,'#57D08F');
+    if(compFac>0)h+=row('− Crédito facturas (13%)',-compFac,'#57D08F');
+    h+=row('= Saldo a pagar',saldo,saldo>0?'#e24b4a':'#1E9E6E',true);
+    $('rWf').innerHTML=h;
+    var d=['AFP = '+fmt(g)+' × 12,71% = '+fmt(afp)+'.'];
+    d.push('ANS: '+(A[1].length?A[1].join(' + '):'ingreso ≤ Bs 13.000, no aplica')+' = '+fmt(aporteANS)+'.');
+    d.push('Ingreso neto = '+fmt(g)+' − '+fmt(afp)+' − '+fmt(aporteANS)+' = '+fmt(neto)+'.');
+    d.push('Base = neto − 2 SMN ('+fmt(mni)+') = '+fmt(base)+'; × 13% = '+fmt(imp)+'.');
+    d.push('− compensación automática (1 SMN × 13% = '+fmt(compAuto)+') = '+fmt(sinComp)+'.');
+    d.push(saldo>0?('Saldo a pagar = '+fmt(saldo)+'. Con '+fmt(facNec)+' en facturas adicionales quedaría en cero.'):'Créditos y compensaciones cubren el impuesto: saldo Bs 0.');
+    $('rSteps').innerHTML=d.map(function(t,i){return '<div class="step"><span class="step__n">'+(i+1)+'</span><span>'+t+'</span></div>'}).join('');
+  }
+  ['rG','rSMN','rSF','rFac'].forEach(function(id){$(id).addEventListener('input',calc)});
+  calc();
+})();
+</script>
+</body>
+</html>
