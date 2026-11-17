@@ -59,6 +59,8 @@ const stale = computed(() => !fresh.value);
 const rate = percent(P.tasa);
 const mniLabel = `${P.minimoNoImponibleSmn} salarios mínimos`;
 const compLabel = P.compensacionSmn === 1 ? '1 salario mínimo' : `${P.compensacionSmn} salarios mínimos`;
+// La norma que cita su página para este descuento ("1 SMN × 13% (DS 5383)").
+const compNorma = P.compensacionNorma ? ` (${P.compensacionNorma})` : '';
 
 // Cómo se reparte el total ganado: aportes, parte sin impuesto y parte que paga el 13%.
 const split = computed(() => {
@@ -79,11 +81,20 @@ const ledger = computed(() => {
     if (!r) return [];
     const rows = [
         { label: `Impuesto: ${rate} de ${bs(r.base)}`, value: r.impuesto },
-        { label: `Descuento automático: ${rate} de ${compLabel}`, value: -r.compensacion },
+        { label: `Descuento automático: ${rate} de ${compLabel}${compNorma}`, value: -r.compensacion },
     ];
     if (r.saldoFavor > 0) rows.push({ label: 'Saldo a tu favor del mes pasado', value: -r.saldoFavor });
     if (r.creditoFacturas > 0) rows.push({ label: `Facturas: ${rate} de ${bs(r.entradas.facturas)}`, value: -r.creditoFacturas });
     return rows;
+});
+
+// Quién cubre el impuesto, nombrando solo lo que la persona escribió.
+const credits = computed(() => {
+    const r = result.value;
+    const both = r && r.saldoFavor > 0 && r.creditoFacturas > 0;
+    if (both) return { who: 'Tu saldo a favor y tus facturas', verb: 'cubren' };
+    if (r && r.saldoFavor > 0) return { who: 'Tu saldo a favor', verb: 'cubre' };
+    return { who: 'Tus facturas', verb: 'cubren' };
 });
 
 // Cuánto superan el saldo a favor y las facturas al impuesto del mes (su página no lo muestra:
@@ -106,7 +117,7 @@ const explanation = computed(() => {
     if (!r || r.saldo > 0) return '';
     if (r.base === 0) return `Después de los aportes, tu sueldo no pasa de ${mniLabel} (${bs(r.minimoNoImponible)}): no hay impuesto.`;
     if (r.impuesto <= r.compensacion) return `El descuento automático (${rate} de ${compLabel}) cubre todo el impuesto.`;
-    return 'Tu saldo a favor y tus facturas cubren todo el impuesto.';
+    return `${credits.value.who} ${credits.value.verb} todo el impuesto.`;
 });
 
 const steps = computed(() => {
@@ -123,9 +134,12 @@ const steps = computed(() => {
     }
     s.push(['Sueldo después de aportes: ', bs(g), ' − ', bs(r.afp), ' − ', bs(r.aporteSolidario), ' = ', { strong: bs(r.neto) }, '.']);
     s.push(['Parte que paga impuesto: ', bs(r.neto), ` − ${mniLabel} (${bs(r.minimoNoImponible)}) = `, { strong: bs(r.base) }, `. El ${rate} es `, { strong: bs(r.impuesto) }, '.']);
-    s.push([`Descuento automático: ${rate} de ${compLabel} = ${bs(r.compensacion)}. Queda `, { strong: bs(r.determinado) }, '.']);
+    s.push([`Descuento automático${compNorma}: ${rate} de ${compLabel} = ${bs(r.compensacion)}. Queda `, { strong: bs(r.determinado) }, '.']);
     if (r.saldoFavor > 0 || r.creditoFacturas > 0) {
-        s.push(['Se restan tu saldo a favor (', bs(r.saldoFavor), `) y el ${rate} de tus facturas (`, bs(r.creditoFacturas), ').']);
+        const parts = [];
+        if (r.saldoFavor > 0) parts.push(['tu saldo a favor (', bs(r.saldoFavor), ')']);
+        if (r.creditoFacturas > 0) parts.push([`el ${rate} de tus facturas (`, bs(r.creditoFacturas), ')']);
+        s.push([parts.length > 1 ? 'Se restan ' : 'Se resta ', ...parts.flatMap((p, i) => (i === 0 ? p : [' y ', ...p])), '.']);
     }
     s.push(
         r.saldo > 0
@@ -241,7 +255,7 @@ const steps = computed(() => {
                         </div>
                     </dl>
                     <p v-if="leftover > 0" class="mt-2 text-xs leading-relaxed text-muted">
-                        Tu saldo a favor y tus facturas superan al impuesto por
+                        {{ credits.who }} {{ credits.verb === 'cubren' ? 'superan' : 'supera' }} al impuesto por
                         <strong class="font-semibold text-foreground tabular-nums">{{ bs(leftover) }}</strong>: este mes no pagas nada.
                     </p>
                     <p v-else-if="result.determinado === 0 && result.impuesto > 0" class="mt-2 text-xs leading-relaxed text-muted">

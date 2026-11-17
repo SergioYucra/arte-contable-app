@@ -43,9 +43,11 @@ Datos: total ganado `g`, salario mínimo `SMN`, saldo a favor del mes anterior `
 
 No redondean los pasos intermedios; solo al mostrar (2 decimales, `es-BO`). Nosotros igual.
 
-**Para validar con un contador:** su página descuenta el 13% de **un** salario mínimo. La planilla
-tributaria clásica muestra el "13% de dos salarios mínimos". Lo copiamos como lo tienen ellos
-(decisión del equipo: seguir su cálculo), pero conviene confirmarlo con Max o Sergio.
+**Para validar con un contador:** su página descuenta el 13% de **un** salario mínimo y lo atribuye
+al **DS 5383** ("la compensación automática es 1 SMN × 13% (DS 5383)"). La planilla tributaria
+clásica mostraba el "13% de dos salarios mínimos". Lo copiamos como lo tienen ellos (decisión del
+equipo: seguir su cálculo) y nuestra pantalla también cita el DS 5383; conviene que Max o Sergio
+confirmen esa norma.
 
 Su página trae por defecto el salario mínimo de 2025 (Bs 2.750); la nuestra trae el más reciente
 de la tabla (2026: Bs 3.300, DS 5516). Con el mismo salario mínimo dan exactamente lo mismo.

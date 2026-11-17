@@ -105,6 +105,7 @@ const stale = computed(() => !fresh.value);
 const tramoLabel = (t) => (t.hasta === null ? `${t.desde} años o más` : `${t.desde} a ${t.hasta} años`);
 const shortTramo = (t) => (t.hasta === null ? `${t.desde}+` : `${t.desde}–${t.hasta}`);
 const yearsWord = (n) => (n === 1 ? '1 año' : `${n} años`);
+const yearsDone = (n) => (n === 1 ? '1 año cumplido' : `${n} años cumplidos`);
 
 // La escala como escalera: cada peldaño es un tramo; el de la persona va resaltado.
 const stairs = computed(() => {
@@ -137,9 +138,9 @@ const steps = computed(() => {
     const s = [];
     const e = r.entradas;
     if (e.modo === 'fecha') {
-        s.push(['Antigüedad: del ', longDate(e.ingreso), ' al ', longDate(e.calculo), ' van ', { strong: `${yearsWord(r.anios)} cumplidos` }, ' (solo cuentan los años completos).']);
+        s.push(['Antigüedad: del ', longDate(e.ingreso), ' al ', longDate(e.calculo), ' van ', { strong: yearsDone(r.anios) }, ' (solo cuentan los años completos).']);
     } else {
-        s.push(['Antigüedad: ', { strong: `${yearsWord(r.anios)} cumplidos` }, '.']);
+        s.push(['Antigüedad: ', { strong: yearsDone(r.anios) }, '.']);
     }
     s.push(
         r.tramo

@@ -27,7 +27,8 @@
         ],
         "tasa": 0.13,
         "minimoNoImponibleSmn": 2,
-        "compensacionSmn": 1
+        "compensacionSmn": 1,
+        "compensacionNorma": "DS 5383"
     },
     "bonoAntiguedad": {
         "escala": [
