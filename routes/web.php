@@ -8,10 +8,12 @@ use App\Http\Controllers\Admin\QuickLinkController;
 use App\Http\Controllers\Admin\SubscriptionAdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Student\CalculatorController;
 use App\Http\Controllers\Student\LibraryController;
 use App\Http\Controllers\Student\MembershipController;
 use App\Http\Controllers\Student\QuickLinkStudentController;
 use App\Http\Controllers\Student\StudyNoteController;
+use App\Http\Controllers\Student\ToolController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -106,6 +108,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('membership.payment.cancel');
 
     Route::get('/accesos-rapidos', [QuickLinkStudentController::class, 'index'])->name('quick-links.index');
+    Route::get('/calculadoras', [CalculatorController::class, 'index'])->name('calculators.index');
+    Route::get('/herramientas', [ToolController::class, 'index'])->name('tools.index');
 });
 
 // Módulo Base: Administración de Usuarios y Roles (Capa Core)
