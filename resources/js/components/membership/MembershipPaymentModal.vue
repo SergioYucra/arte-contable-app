@@ -350,7 +350,7 @@ const stepNumber = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-fu
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium text-foreground">{{ file.name }}</p>
-                                <p :class="hint">{{ isPdf ? 'Documento PDF' : 'Imagen' }} listo para enviar</p>
+                                <p :class="hint">{{ isPdf ? 'Documento PDF listo para enviar' : 'Imagen lista para enviar' }}</p>
                             </div>
                             <button
                                 type="button"
