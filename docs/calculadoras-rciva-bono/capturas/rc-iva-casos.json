@@ -1,0 +1,815 @@
+{
+  "fuente": "boliviaimpuestos.com/maletin",
+  "capturado": "2026-11-17T04:53:13.119Z",
+  "pagina": "rc-iva.php",
+  "casos": [
+    {
+      "nombre": "valores por defecto de su página",
+      "entradas": {
+        "ganado": 15000,
+        "smn": 2750,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 1906.5,
+        "aporteSolidario": 23,
+        "base": 7570.5,
+        "impuesto": 984.17,
+        "saldo": 626.67,
+        "facturasQueFaltan": 4820.5
+      },
+      "pantalla": {
+        "saldo": "Bs 626,67",
+        "veredicto": "Debes pagar · presenta Bs 4.820,50 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 1.906,50"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 23,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 7.570,50"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 984,17"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 984,17"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -357,50"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 626,67"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 626,67"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 15.000,00 × 12,71% = Bs 1.906,50.",
+          "2ANS: Tramo 1: Bs 2.000,00 × 1,15% = Bs 23,00 = Bs 23,00.",
+          "3Ingreso neto = Bs 15.000,00 − Bs 1.906,50 − Bs 23,00 = Bs 13.070,50.",
+          "4Base = neto − 2 SMN (Bs 5.500,00) = Bs 7.570,50; × 13% = Bs 984,17.",
+          "5− compensación automática (1 SMN × 13% = Bs 357,50) = Bs 626,67.",
+          "6Saldo a pagar = Bs 626,67. Con Bs 4.820,50 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "sueldo bajo, sin impuesto",
+      "entradas": {
+        "ganado": 8000,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 1016.8,
+        "aporteSolidario": 0,
+        "base": 383.2,
+        "impuesto": 49.82,
+        "saldo": 0,
+        "facturasQueFaltan": 0
+      },
+      "pantalla": {
+        "saldo": "Bs 0,00",
+        "veredicto": "No pagas RC-IVA este mes",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 1.016,80"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 0,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 383,20"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 49,82"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 49,82"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 0,00"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 8.000,00 × 12,71% = Bs 1.016,80.",
+          "2ANS: ingreso ≤ Bs 13.000, no aplica = Bs 0,00.",
+          "3Ingreso neto = Bs 8.000,00 − Bs 1.016,80 − Bs 0,00 = Bs 6.983,20.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 383,20; × 13% = Bs 49,82.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 0,00.",
+          "6Créditos y compensaciones cubren el impuesto: saldo Bs 0."
+        ]
+      }
+    },
+    {
+      "nombre": "justo en 13.000 (sin aporte solidario)",
+      "entradas": {
+        "ganado": 13000,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 1652.3,
+        "aporteSolidario": 0,
+        "base": 4747.7,
+        "impuesto": 617.2,
+        "saldo": 188.2,
+        "facturasQueFaltan": 1447.7
+      },
+      "pantalla": {
+        "saldo": "Bs 188,20",
+        "veredicto": "Debes pagar · presenta Bs 1.447,70 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 1.652,30"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 0,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 4.747,70"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 617,20"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 617,20"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 188,20"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 188,20"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 13.000,00 × 12,71% = Bs 1.652,30.",
+          "2ANS: ingreso ≤ Bs 13.000, no aplica = Bs 0,00.",
+          "3Ingreso neto = Bs 13.000,00 − Bs 1.652,30 − Bs 0,00 = Bs 11.347,70.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 4.747,70; × 13% = Bs 617,20.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 188,20.",
+          "6Saldo a pagar = Bs 188,20. Con Bs 1.447,70 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "primer tramo del aporte solidario",
+      "entradas": {
+        "ganado": 20000,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 2542,
+        "aporteSolidario": 80.5,
+        "base": 10777.5,
+        "impuesto": 1401.08,
+        "saldo": 972.08,
+        "facturasQueFaltan": 7477.5
+      },
+      "pantalla": {
+        "saldo": "Bs 972,08",
+        "veredicto": "Debes pagar · presenta Bs 7.477,50 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 2.542,00"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 80,50"
+          ],
+          [
+            "Base imponible",
+            "Bs 10.777,50"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 1.401,08"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 1.401,08"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 972,08"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 972,08"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 20.000,00 × 12,71% = Bs 2.542,00.",
+          "2ANS: Tramo 1: Bs 7.000,00 × 1,15% = Bs 80,50 = Bs 80,50.",
+          "3Ingreso neto = Bs 20.000,00 − Bs 2.542,00 − Bs 80,50 = Bs 17.377,50.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 10.777,50; × 13% = Bs 1.401,08.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 972,08.",
+          "6Saldo a pagar = Bs 972,08. Con Bs 7.477,50 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "segundo tramo del aporte solidario",
+      "entradas": {
+        "ganado": 30000,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 3813,
+        "aporteSolidario": 425,
+        "base": 19162,
+        "impuesto": 2491.06,
+        "saldo": 2062.06,
+        "facturasQueFaltan": 15862
+      },
+      "pantalla": {
+        "saldo": "Bs 2.062,06",
+        "veredicto": "Debes pagar · presenta Bs 15.862,00 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 3.813,00"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 425,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 19.162,00"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 2.491,06"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 2.491,06"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 2.062,06"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 2.062,06"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 30.000,00 × 12,71% = Bs 3.813,00.",
+          "2ANS: Tramo 1: Bs 12.000,00 × 1,15% = Bs 138,00 + Tramo 2: Bs 5.000,00 × 5,74% = Bs 287,00 = Bs 425,00.",
+          "3Ingreso neto = Bs 30.000,00 − Bs 3.813,00 − Bs 425,00 = Bs 25.762,00.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 19.162,00; × 13% = Bs 2.491,06.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 2.062,06.",
+          "6Saldo a pagar = Bs 2.062,06. Con Bs 15.862,00 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "justo en 35.000",
+      "entradas": {
+        "ganado": 35000,
+        "smn": 2750,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 4448.5,
+        "aporteSolidario": 712,
+        "base": 24339.5,
+        "impuesto": 3164.14,
+        "saldo": 2806.64,
+        "facturasQueFaltan": 21589.5
+      },
+      "pantalla": {
+        "saldo": "Bs 2.806,64",
+        "veredicto": "Debes pagar · presenta Bs 21.589,50 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 4.448,50"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 712,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 24.339,50"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 3.164,14"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 3.164,14"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -357,50"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 2.806,64"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 2.806,64"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 35.000,00 × 12,71% = Bs 4.448,50.",
+          "2ANS: Tramo 1: Bs 12.000,00 × 1,15% = Bs 138,00 + Tramo 2: Bs 10.000,00 × 5,74% = Bs 574,00 = Bs 712,00.",
+          "3Ingreso neto = Bs 35.000,00 − Bs 4.448,50 − Bs 712,00 = Bs 29.839,50.",
+          "4Base = neto − 2 SMN (Bs 5.500,00) = Bs 24.339,50; × 13% = Bs 3.164,14.",
+          "5− compensación automática (1 SMN × 13% = Bs 357,50) = Bs 2.806,64.",
+          "6Saldo a pagar = Bs 2.806,64. Con Bs 21.589,50 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "tercer tramo del aporte solidario",
+      "entradas": {
+        "ganado": 50000,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 6355,
+        "aporteSolidario": 2434,
+        "base": 34611,
+        "impuesto": 4499.43,
+        "saldo": 4070.43,
+        "facturasQueFaltan": 31311
+      },
+      "pantalla": {
+        "saldo": "Bs 4.070,43",
+        "veredicto": "Debes pagar · presenta Bs 31.311,00 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 6.355,00"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 2.434,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 34.611,00"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 4.499,43"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 4.499,43"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 4.070,43"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 4.070,43"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 50.000,00 × 12,71% = Bs 6.355,00.",
+          "2ANS: Tramo 1: Bs 12.000,00 × 1,15% = Bs 138,00 + Tramo 2: Bs 10.000,00 × 5,74% = Bs 574,00 + Tramo 3: Bs 15.000,00 × 11,48% = Bs 1.722,00 = Bs 2.434,00.",
+          "3Ingreso neto = Bs 50.000,00 − Bs 6.355,00 − Bs 2.434,00 = Bs 41.211,00.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 34.611,00; × 13% = Bs 4.499,43.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 4.070,43.",
+          "6Saldo a pagar = Bs 4.070,43. Con Bs 31.311,00 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "con saldo a favor y facturas",
+      "entradas": {
+        "ganado": 15000,
+        "smn": 3300,
+        "saldoFavor": 200,
+        "facturas": 3000
+      },
+      "esperado": {
+        "afp": 1906.5,
+        "aporteSolidario": 23,
+        "base": 6470.5,
+        "impuesto": 841.17,
+        "saldo": 0,
+        "facturasQueFaltan": 0
+      },
+      "pantalla": {
+        "saldo": "Bs 0,00",
+        "veredicto": "No pagas RC-IVA este mes",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 1.906,50"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 23,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 6.470,50"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 841,17"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 841,17"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 412,17"
+          ],
+          [
+            "− Saldo a favor previo",
+            "Bs -200,00"
+          ],
+          [
+            "− Crédito facturas (13%)",
+            "Bs -390,00"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 15.000,00 × 12,71% = Bs 1.906,50.",
+          "2ANS: Tramo 1: Bs 2.000,00 × 1,15% = Bs 23,00 = Bs 23,00.",
+          "3Ingreso neto = Bs 15.000,00 − Bs 1.906,50 − Bs 23,00 = Bs 13.070,50.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 6.470,50; × 13% = Bs 841,17.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 412,17.",
+          "6Créditos y compensaciones cubren el impuesto: saldo Bs 0."
+        ]
+      }
+    },
+    {
+      "nombre": "facturas que cubren todo",
+      "entradas": {
+        "ganado": 15000,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 50000
+      },
+      "esperado": {
+        "afp": 1906.5,
+        "aporteSolidario": 23,
+        "base": 6470.5,
+        "impuesto": 841.17,
+        "saldo": 0,
+        "facturasQueFaltan": 0
+      },
+      "pantalla": {
+        "saldo": "Bs 0,00",
+        "veredicto": "No pagas RC-IVA este mes",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 1.906,50"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 23,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 6.470,50"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 841,17"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 841,17"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 412,17"
+          ],
+          [
+            "− Crédito facturas (13%)",
+            "Bs -6.500,00"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 15.000,00 × 12,71% = Bs 1.906,50.",
+          "2ANS: Tramo 1: Bs 2.000,00 × 1,15% = Bs 23,00 = Bs 23,00.",
+          "3Ingreso neto = Bs 15.000,00 − Bs 1.906,50 − Bs 23,00 = Bs 13.070,50.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 6.470,50; × 13% = Bs 841,17.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 412,17.",
+          "6Créditos y compensaciones cubren el impuesto: saldo Bs 0."
+        ]
+      }
+    },
+    {
+      "nombre": "sin ingresos",
+      "entradas": {
+        "ganado": 0,
+        "smn": 3300,
+        "saldoFavor": 0,
+        "facturas": 0
+      },
+      "esperado": {
+        "afp": 0,
+        "aporteSolidario": 0,
+        "base": 0,
+        "impuesto": 0,
+        "saldo": 0,
+        "facturasQueFaltan": 0
+      },
+      "pantalla": {
+        "saldo": "Bs 0,00",
+        "veredicto": "No pagas RC-IVA este mes",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 0,00"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 0,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 0,00"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 0,00"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 0,00"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 0,00"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 0,00 × 12,71% = Bs 0,00.",
+          "2ANS: ingreso ≤ Bs 13.000, no aplica = Bs 0,00.",
+          "3Ingreso neto = Bs 0,00 − Bs 0,00 − Bs 0,00 = Bs 0,00.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 0,00; × 13% = Bs 0,00.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 0,00.",
+          "6Créditos y compensaciones cubren el impuesto: saldo Bs 0."
+        ]
+      }
+    },
+    {
+      "nombre": "con decimales",
+      "entradas": {
+        "ganado": 25000.5,
+        "smn": 3300,
+        "saldoFavor": 10.25,
+        "facturas": 1234.56
+      },
+      "esperado": {
+        "afp": 3177.56,
+        "aporteSolidario": 138.03,
+        "base": 15084.91,
+        "impuesto": 1961.04,
+        "saldo": 1361.3,
+        "facturasQueFaltan": 10471.5
+      },
+      "pantalla": {
+        "saldo": "Bs 1.361,30",
+        "veredicto": "Debes pagar · presenta Bs 10.471,50 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 3.177,56"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 138,03"
+          ],
+          [
+            "Base imponible",
+            "Bs 15.084,91"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 1.961,04"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 1.961,04"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 1.532,04"
+          ],
+          [
+            "− Saldo a favor previo",
+            "Bs -10,25"
+          ],
+          [
+            "− Crédito facturas (13%)",
+            "Bs -160,49"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 1.361,30"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 25.000,50 × 12,71% = Bs 3.177,56.",
+          "2ANS: Tramo 1: Bs 12.000,00 × 1,15% = Bs 138,00 + Tramo 2: Bs 0,50 × 5,74% = Bs 0,03 = Bs 138,03.",
+          "3Ingreso neto = Bs 25.000,50 − Bs 3.177,56 − Bs 138,03 = Bs 21.684,91.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 15.084,91; × 13% = Bs 1.961,04.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 1.532,04.",
+          "6Saldo a pagar = Bs 1.361,30. Con Bs 10.471,50 en facturas adicionales quedaría en cero."
+        ]
+      }
+    },
+    {
+      "nombre": "sueldo alto",
+      "entradas": {
+        "ganado": 120000,
+        "smn": 3300,
+        "saldoFavor": 500,
+        "facturas": 10000
+      },
+      "esperado": {
+        "afp": 15252,
+        "aporteSolidario": 10470,
+        "base": 87678,
+        "impuesto": 11398.14,
+        "saldo": 9169.14,
+        "facturasQueFaltan": 70531.85
+      },
+      "pantalla": {
+        "saldo": "Bs 9.169,14",
+        "veredicto": "Debes pagar · presenta Bs 70.531,85 más en facturas para no pagar",
+        "datos": [
+          [
+            "Aporte AFP (12,71%)",
+            "Bs 15.252,00"
+          ],
+          [
+            "Aporte Nac. Solidario",
+            "Bs 10.470,00"
+          ],
+          [
+            "Base imponible",
+            "Bs 87.678,00"
+          ],
+          [
+            "Impuesto (13%)",
+            "Bs 11.398,14"
+          ]
+        ],
+        "cascada": [
+          [
+            "Impuesto (13%)",
+            "Bs 11.398,14"
+          ],
+          [
+            "− Comp. automática (1 SMN)",
+            "Bs -429,00"
+          ],
+          [
+            "= RC-IVA determinado",
+            "Bs 10.969,14"
+          ],
+          [
+            "− Saldo a favor previo",
+            "Bs -500,00"
+          ],
+          [
+            "− Crédito facturas (13%)",
+            "Bs -1.300,00"
+          ],
+          [
+            "= Saldo a pagar",
+            "Bs 9.169,14"
+          ]
+        ],
+        "pasos": [
+          "1AFP = Bs 120.000,00 × 12,71% = Bs 15.252,00.",
+          "2ANS: Tramo 1: Bs 12.000,00 × 1,15% = Bs 138,00 + Tramo 2: Bs 10.000,00 × 5,74% = Bs 574,00 + Tramo 3: Bs 85.000,00 × 11,48% = Bs 9.758,00 = Bs 10.470,00.",
+          "3Ingreso neto = Bs 120.000,00 − Bs 15.252,00 − Bs 10.470,00 = Bs 94.278,00.",
+          "4Base = neto − 2 SMN (Bs 6.600,00) = Bs 87.678,00; × 13% = Bs 11.398,14.",
+          "5− compensación automática (1 SMN × 13% = Bs 429,00) = Bs 10.969,14.",
+          "6Saldo a pagar = Bs 9.169,14. Con Bs 70.531,85 en facturas adicionales quedaría en cero."
+        ]
+      }
+    }
+  ]
+}
