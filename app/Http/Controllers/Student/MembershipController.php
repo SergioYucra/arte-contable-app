@@ -320,7 +320,8 @@ class MembershipController extends Controller
 
             return [
                 'success' => true,
-                'message' => 'Código canjeado. Se sumaron '.HumanDate::duration($durationDays).' a tu acceso: puedes leer todo hasta el '.HumanDate::long($expiresAt).'.',
+                // "Sumaste" concuerda con cualquier duración ("Se sumaron 1 mes" no).
+                'message' => 'Código canjeado: sumaste '.HumanDate::duration($durationDays).' a tu acceso. Puedes leer todo hasta el '.HumanDate::long($expiresAt).'.',
                 'code' => $code,
             ];
         });

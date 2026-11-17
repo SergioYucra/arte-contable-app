@@ -586,6 +586,18 @@ class MembershipStudentSideTest extends TestCase
             ->assertJsonPath('redeemed_code.plan', null);
     }
 
+    public function test_the_redeem_message_agrees_with_any_duration(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-16 15:00:00', 'UTC'));
+        $code = AccessCode::factory()->create(['duration_days' => 30, 'created_by' => $this->admin()->id]);
+
+        // Antes decía "Se sumaron 1 mes".
+        $this->actingAs($this->student)
+            ->postJson(route('membership.redeem'), ['code' => $code->code])
+            ->assertOk()
+            ->assertJsonPath('message', 'Código canjeado: sumaste 1 mes a tu acceso. Puedes leer todo hasta el 16 de diciembre de 2026.');
+    }
+
     public function test_redeeming_gives_the_student_role_to_someone_without_a_role(): void
     {
         $newcomer = User::factory()->create();
