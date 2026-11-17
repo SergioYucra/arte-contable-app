@@ -21,6 +21,11 @@ const questions = [
         a: 'No. Cada plan es un solo pago. Nunca pedimos tarjeta y nada se cobra por su cuenta.',
     },
     {
+        // Quien todavía no es miembro no ve «Lo que incluye tu membresía»: la respuesta tiene que estar aquí.
+        q: '¿Puedo leer en el celular?',
+        a: 'Sí. Entra con tu cuenta desde el navegador del celular, la tablet o la computadora. Tu avance se guarda en tu cuenta, así que sigues donde lo dejaste en cualquiera de ellos.',
+    },
+    {
         q: 'Ya tengo membresía. ¿Qué pasa si pago otro plan o uso un código?',
         a: 'Los días nuevos se agregan a los que te quedan. Si te quedaban 20 días y sumas 6 meses, conservas esos 20.',
     },
