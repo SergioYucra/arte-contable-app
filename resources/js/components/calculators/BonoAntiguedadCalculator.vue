@@ -34,7 +34,8 @@ const form = reactive({
     dias: String(P.diasDelMes),
     haber: '',
     smnAnterior: String(salarios[1].monto),
-    // Igual que la página original: los meses que van del año (enero = 1).
+    // Igual que la página original: los meses ya cerrados del año (en noviembre, 10: de enero
+    // a octubre), como mínimo 1. La persona lo corrige si el aumento rige desde otro mes.
     meses: String(Math.max(1, new Date().getMonth())),
 });
 

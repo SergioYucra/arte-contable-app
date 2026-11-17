@@ -92,7 +92,7 @@ class FormulaReader
             if (! is_array($row) || count($row) !== 3) {
                 throw new SourceUnavailable('la tabla de salarios mínimos tiene un formato que no reconocemos');
             }
-            $result['salarios'][(int) $row[0]] = ['monto' => (float) $row[1], 'norma' => mb_substr((string) $row[2], 0, 60)];
+            $result['salarios'][(int) $row[0]] = ['monto' => (float) $row[1], 'norma' => self::norma((string) $row[2])];
         }
 
         return $result;
@@ -137,7 +137,7 @@ class FormulaReader
 
         $salarios = [];
         foreach ($json['salariosMinimos'] as $s) {
-            $salarios[(int) $s['gestion']] = ['monto' => (float) $s['monto'], 'norma' => (string) $s['norma']];
+            $salarios[(int) $s['gestion']] = ['monto' => (float) $s['monto'], 'norma' => self::norma((string) $s['norma'])];
         }
 
         return [
@@ -236,6 +236,12 @@ class FormulaReader
         }
 
         return $diff;
+    }
+
+    /** Mismo recorte de los dos lados (el texto viaja al correo): si no, nunca coincidirían. */
+    private static function norma(string $text): string
+    {
+        return mb_substr(trim($text), 0, 80);
     }
 
     private static function same(float $a, float $b): bool

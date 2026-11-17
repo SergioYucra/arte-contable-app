@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { bs, parseAmount } from './format';
 import { field, hint, label as labelClass, errorText } from '../subscriptions/shared';
 
@@ -16,23 +16,43 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+const amountInput = ref(null);
+
+// Lo último que la persona eligió en la lista: un año ("2019") u "otro".
+// Hace falta porque dos años pueden tener el mismo monto (2019 y 2020: Bs 2.122).
+const pick = ref(null);
 
 const amount = computed(() => parseAmount(props.modelValue));
 const matches = computed(() => props.salarios.filter((s) => s.monto === amount.value));
 
-const selected = computed(() => (matches.value.length ? String(matches.value[0].gestion) : 'otro'));
+const selected = computed(() => {
+    if (pick.value === 'otro') return 'otro';
+    if (matches.value.some((s) => String(s.gestion) === pick.value)) return pick.value;
+    return matches.value.length ? String(matches.value[0].gestion) : 'otro';
+});
 
-function onSelect(event) {
-    const year = event.target.value;
-    const row = props.salarios.find((s) => String(s.gestion) === year);
-    if (row) emit('update:modelValue', String(row.monto));
-    else event.target.value = selected.value;
+async function onSelect(event) {
+    pick.value = event.target.value;
+    const row = props.salarios.find((s) => String(s.gestion) === pick.value);
+    if (row) {
+        emit('update:modelValue', String(row.monto));
+    } else {
+        await nextTick();
+        amountInput.value?.focus();
+        amountInput.value?.select();
+    }
+}
+
+function onInput(event) {
+    // Si escribe un monto de la tabla, la lista vuelve a mostrar su año.
+    if (pick.value === 'otro' && props.salarios.some((s) => s.monto === parseAmount(event.target.value))) pick.value = null;
+    emit('update:modelValue', event.target.value);
 }
 
 const reference = computed(() => {
-    if (!matches.value.length) return 'Monto escrito a mano: revisa el decreto del año que calculas.';
-    const years = matches.value.map((s) => s.gestion).join(' y ');
-    return `Salario mínimo de ${years} (${matches.value[0].norma}).`;
+    const row = props.salarios.find((s) => String(s.gestion) === selected.value);
+    if (!row || row.monto !== amount.value) return 'Monto escrito a mano: revisa el decreto del año que calculas.';
+    return `Salario mínimo de ${row.gestion} (${row.norma}).`;
 });
 </script>
 
@@ -55,6 +75,7 @@ const reference = computed(() => {
             </select>
             <input
                 :id="`${id}-amount`"
+                ref="amountInput"
                 :value="modelValue"
                 type="text"
                 inputmode="decimal"
@@ -64,7 +85,7 @@ const reference = computed(() => {
                 class="min-w-0 flex-1 tabular-nums"
                 :aria-invalid="!!error"
                 :aria-describedby="`${id}-help`"
-                @input="emit('update:modelValue', $event.target.value)"
+                @input="onInput"
             />
         </div>
         <p :id="`${id}-help`" class="mt-1" :class="error ? errorText : hint">{{ error || reference }}</p>

@@ -6,6 +6,8 @@ use App\Modules\Calculators\Exceptions\SourceUnavailable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
+use Throwable;
 
 /**
  * Descarga las páginas de boliviaimpuestos.com y ubica el <script> que calcula.
@@ -26,9 +28,20 @@ class BoliviaImpuestosPages
         }
 
         $timeout = (int) config('calculators.monitor.timeout_seconds', 10);
+        $maxBytes = (int) config('calculators.monitor.max_bytes', 1_000_000);
+        $tooBig = false;
 
         try {
-            $response = Http::withOptions(['allow_redirects' => false])
+            $response = Http::withOptions([
+                'allow_redirects' => false,
+                // Corta la descarga apenas pasa del tope, sin cargar todo en memoria.
+                'progress' => function ($expected, $received) use ($maxBytes, &$tooBig): void {
+                    if ($expected > $maxBytes || $received > $maxBytes) {
+                        $tooBig = true;
+                        throw new RuntimeException('Respuesta demasiado grande');
+                    }
+                },
+            ])
                 ->timeout($timeout)
                 ->connectTimeout(min(5, $timeout))
                 ->withHeaders([
@@ -36,15 +49,21 @@ class BoliviaImpuestosPages
                     'Accept' => 'text/html',
                 ])
                 ->get($url);
-        } catch (ConnectionException) {
-            throw new SourceUnavailable("no respondió (sin conexión o tardó más de {$timeout} segundos)");
+        } catch (Throwable $e) {
+            if ($tooBig) {
+                throw new SourceUnavailable('la página pesa mucho más de lo normal (más de '.$maxBytes.' bytes)');
+            }
+            if ($e instanceof ConnectionException) {
+                throw new SourceUnavailable("no respondió (sin conexión o tardó más de {$timeout} segundos)");
+            }
+            throw $e;
         }
 
         $status = $response->status();
         if ($status >= 300 && $status < 400) {
             throw new SourceUnavailable("redirigió a otra dirección (código {$status})");
         }
-        if (in_array($status, [403, 429, 503], true) && $this->isCloudflare($response)) {
+        if ($this->isCloudflareBlock($response)) {
             throw new SourceUnavailable("Cloudflare bloqueó la revisión automática (código {$status})");
         }
         if ($status !== 200) {
@@ -52,7 +71,7 @@ class BoliviaImpuestosPages
         }
 
         $body = $response->body();
-        if (strlen($body) > (int) config('calculators.monitor.max_bytes', 1_000_000)) {
+        if (strlen($body) > $maxBytes) {
             throw new SourceUnavailable('la página pesa mucho más de lo normal ('.strlen($body).' bytes)');
         }
 
@@ -81,10 +100,25 @@ class BoliviaImpuestosPages
         return hash('sha256', (string) preg_replace('/\s+/', '', $script));
     }
 
-    private function isCloudflare(Response $response): bool
+    /**
+     * Un bloqueo de Cloudflare (reto o regla contra robots), no una caída: su sitio está
+     * detrás de Cloudflare, así que una caída también llega con sus encabezados.
+     */
+    private function isCloudflareBlock(Response $response): bool
     {
-        return strtolower($response->header('Server')) === 'cloudflare'
-            || $response->header('cf-ray') !== ''
-            || str_contains($response->body(), 'challenge-platform');
+        $status = $response->status();
+        if (! in_array($status, [403, 429, 503], true)) {
+            return false;
+        }
+
+        $body = $response->body();
+        $challenge = str_contains($body, 'cf-chl') || str_contains($body, 'Just a moment') || str_contains($body, 'Attention Required');
+        if ($challenge) {
+            return true;
+        }
+
+        $behindCloudflare = strtolower($response->header('Server')) === 'cloudflare' || $response->header('cf-ray') !== '';
+
+        return $behindCloudflare && in_array($status, [403, 429], true);
     }
 }

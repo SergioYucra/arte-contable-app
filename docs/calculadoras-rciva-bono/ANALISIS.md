@@ -17,7 +17,7 @@ Por eso no se puede "consumir su API". Lo que se hizo:
 
 1. **Copiar sus fórmulas tal cual** en nuestro código, sin "mejorarlas", para dar los mismos montos.
 2. **Probarlas contra su página real**: 12 casos de RC-IVA y 19 del bono, capturados llenando sus
-   campos con Playwright (`capturas/`). Nuestras fórmulas dan lo mismo al centavo.
+   campos con Playwright (`tests/js/fixtures/`). Nuestras fórmulas dan lo mismo al centavo.
 3. **Revisión diaria** (`php artisan calculators:check`): descarga sus dos páginas, lee sus tasas y
    tablas **sin ejecutar su código**, y avisa al desarrollador líder si cambian.
 
@@ -107,6 +107,13 @@ para el próximo tramo (resta años, no fechas). La nuestra dice "mañana", "en 
 4. Guardar la huella nueva: `php artisan calculators:check --show-fingerprint` y copiarla en
    `config/calculators.php` (`sources.*.fingerprint`). Actualizar también
    `tests/Fixtures/calculators/*.html` con la página nueva.
+
+   Si solo cambiaron textos de su página (no la fórmula), basta con poner la huella nueva en
+   `.env` (`CALCULATORS_RC_IVA_FINGERPRINT` o `CALCULATORS_BONO_FINGERPRINT`) y correr
+   `php artisan config:clear`, sin desplegar.
+
+El mismo aviso se repite como máximo una vez cada 7 días mientras no cambie su contenido
+(`monitor.repeat_after_days`).
 5. `npm run build` y desplegar.
 
 **Cada año (mayo, aumento salarial):** cuando sale el decreto del nuevo salario mínimo,

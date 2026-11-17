@@ -171,6 +171,37 @@ class CheckSourcesCommandTest extends TestCase
         $this->assertStringContainsString('Cloudflare bloqueó la revisión automática (código 403)', $this->onlyMail()->getTextBody());
     }
 
+    public function test_an_outage_behind_cloudflare_is_not_reported_as_a_block(): void
+    {
+        $this->fakePages([self::RC_URL => Http::response('<html>Service Unavailable</html>', 503, ['Server' => 'cloudflare', 'cf-ray' => 'abc123'])]);
+
+        $this->artisan('calculators:check')->assertFailed();
+
+        $body = $this->onlyMail()->getTextBody();
+        $this->assertStringContainsString('RC-IVA: respondió con un error (código 503)', $body);
+        $this->assertStringNotContainsString('Cloudflare bloqueó', $body);
+    }
+
+    public function test_the_same_warning_is_not_sent_again_every_day(): void
+    {
+        $rate = '0.1221';
+        $this->fakePages([self::RC_URL => function () use (&$rate) {
+            return Http::response(str_replace('g*0.1271', "g*{$rate}", $this->page('rc-iva')));
+        }]);
+
+        $this->artisan('calculators:check')->assertSuccessful();
+        $this->artisan('calculators:check')
+            ->expectsOutputToContain('El mismo aviso ya se envió')
+            ->assertSuccessful();
+
+        $this->assertCount(1, $this->sentMails());
+
+        // Un cambio distinto sí vuelve a avisar.
+        $rate = '0.1200';
+        $this->artisan('calculators:check')->assertSuccessful();
+        $this->assertCount(2, $this->sentMails());
+    }
+
     public function test_reports_when_their_site_does_not_answer(): void
     {
         Http::fake([

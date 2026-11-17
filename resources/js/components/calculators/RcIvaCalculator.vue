@@ -86,9 +86,12 @@ const ledger = computed(() => {
     return rows;
 });
 
-const discountsCoverAll = computed(() => {
+// Cuánto superan el saldo a favor y las facturas al impuesto del mes (su página no lo muestra:
+// el saldo solo dice Bs 0). Es una resta de las filas de arriba; no cambia ningún monto.
+const leftover = computed(() => {
     const r = result.value;
-    return r && r.impuesto > 0 && r.saldo === 0;
+    if (!r || r.saldo > 0) return 0;
+    return Math.max(0, r.saldoFavor + r.creditoFacturas - r.determinado);
 });
 
 const headline = computed(() => {
@@ -237,8 +240,12 @@ const steps = computed(() => {
                             <dd class="whitespace-nowrap font-semibold tabular-nums text-foreground">{{ bs(result.saldo) }}</dd>
                         </div>
                     </dl>
-                    <p v-if="discountsCoverAll" class="mt-2 text-xs text-muted">
-                        Los descuentos son más grandes que el impuesto, así que no pagas nada.
+                    <p v-if="leftover > 0" class="mt-2 text-xs leading-relaxed text-muted">
+                        Tu saldo a favor y tus facturas superan al impuesto por
+                        <strong class="font-semibold text-foreground tabular-nums">{{ bs(leftover) }}</strong>: este mes no pagas nada.
+                    </p>
+                    <p v-else-if="result.determinado === 0 && result.impuesto > 0" class="mt-2 text-xs leading-relaxed text-muted">
+                        El descuento automático es más grande que el impuesto: este mes no pagas nada.
                     </p>
                 </section>
 

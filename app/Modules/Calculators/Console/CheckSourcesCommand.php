@@ -7,6 +7,7 @@ use App\Modules\Calculators\Services\BoliviaImpuestosPages;
 use App\Modules\Calculators\Services\FormulaReader;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -99,14 +100,14 @@ class CheckSourcesCommand extends Command
 
         if ($broken !== []) {
             Log::error('calculators.monitor_broken', ['broken' => $broken, 'changed' => $changed]);
-            $this->notify('Calculadoras RC-IVA y Bono: no se pudo revisar boliviaimpuestos', $this->brokenBody($broken, $changed));
+            $this->notifyOnce(['broken' => $broken, 'changed' => $changed], 'Calculadoras RC-IVA y Bono: no se pudo revisar boliviaimpuestos', $this->brokenBody($broken, $changed));
 
             return self::FAILURE;
         }
 
         if ($changed !== []) {
             Log::warning('calculators.monitor_changed', ['changed' => $changed]);
-            $this->notify('Calculadoras RC-IVA y Bono: boliviaimpuestos cambió su cálculo', $this->changedBody($changed));
+            $this->notifyOnce(['changed' => $changed], 'Calculadoras RC-IVA y Bono: boliviaimpuestos cambió su cálculo', $this->changedBody($changed));
 
             return self::SUCCESS;
         }
@@ -214,6 +215,28 @@ class CheckSourcesCommand extends Command
         );
 
         return $sent ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Avisa solo si este mismo resultado no se avisó en los últimos días: si nadie
+     * alcanza a actualizar las calculadoras, el líder no recibe el mismo correo cada mañana.
+     *
+     * @param  array<string, mixed>  $what
+     */
+    private function notifyOnce(array $what, string $subject, string $body): void
+    {
+        $key = 'calculators:monitor:notified:'.hash('sha256', json_encode($what, JSON_UNESCAPED_UNICODE));
+        $days = (int) config('calculators.monitor.repeat_after_days', 7);
+
+        if (! $this->option('no-mail') && ($sentAt = Cache::get($key))) {
+            $this->line("(El mismo aviso ya se envió el {$sentAt}; se repite si sigue igual dentro de {$days} días.)");
+
+            return;
+        }
+
+        if ($this->notify($subject, $body)) {
+            Cache::put($key, Carbon::now((string) config('calculators.timezone'))->format('d/m/Y H:i'), now()->addDays($days));
+        }
     }
 
     /** Envía el aviso a cada dirección de CALCULATORS_ALERT_EMAIL. Devuelve si se envió. */

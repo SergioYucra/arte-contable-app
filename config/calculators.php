@@ -29,6 +29,9 @@ return [
         // Hora de Bolivia.
         'daily_at' => env('CALCULATORS_CHECK_AT', '07:15'),
 
+        // Un mismo aviso (mismo contenido) se repite como máximo una vez cada tantos días.
+        'repeat_after_days' => 7,
+
         'timeout_seconds' => 10,
         'max_bytes' => 1_000_000,
     ],
@@ -37,20 +40,21 @@ return [
     | Páginas que se revisan. La URL es fija (no viene de nadie de afuera) y
     | `marker` es un texto que solo aparece en el <script> que calcula.
     | `fingerprint` es la huella de ese script cuando copiamos la fórmula:
-    | se obtiene con php artisan calculators:check --show-fingerprint.
+    | se obtiene con php artisan calculators:check --show-fingerprint. Si ellos
+    | solo cambian textos de su página, se puede actualizar desde .env sin desplegar.
     */
     'sources' => [
         'rc_iva' => [
             'name' => 'RC-IVA',
             'url' => 'https://boliviaimpuestos.com/maletin/rc-iva.php',
             'marker' => 'rSMN',
-            'fingerprint' => 'f38aa9386005d6164350fb70a50663ed2072943792bfaef58e38e47d71a004ea',
+            'fingerprint' => env('CALCULATORS_RC_IVA_FINGERPRINT', 'f38aa9386005d6164350fb70a50663ed2072943792bfaef58e38e47d71a004ea'),
         ],
         'bono_antiguedad' => [
             'name' => 'Bono de antigüedad',
             'url' => 'https://boliviaimpuestos.com/maletin/bono-antiguedad.php',
             'marker' => 'ESC=',
-            'fingerprint' => '7c6ec25da2f22667f3011642ba297b4367bcc60255e4ceb4f991ed4f6f94f2d3',
+            'fingerprint' => env('CALCULATORS_BONO_FINGERPRINT', '7c6ec25da2f22667f3011642ba297b4367bcc60255e4ceb4f991ed4f6f94f2d3'),
         ],
     ],
 
