@@ -1,0 +1,1483 @@
+{
+  "fuente": "boliviaimpuestos.com/maletin",
+  "capturado": "2026-11-17T04:53:13.119Z",
+  "pagina": "bono-antiguedad.php",
+  "casos": [
+    {
+      "nombre": "6 años por fecha (caso base)",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "ingreso": "2020-11-17",
+        "calculo": "2026-11-17"
+      },
+      "esperado": {
+        "anios": 6,
+        "porcentaje": 11,
+        "baseBs": 9900,
+        "bono": 1089,
+        "bonoAnual": 13068,
+        "totalGanado": null,
+        "proximaDiferencia": 693,
+        "avancePorcentaje": 33.3,
+        "bonoSmnAnterior": 907.5,
+        "diferenciaMensual": 181.5,
+        "retroactivo": 726
+      },
+      "pantalla": {
+        "bono": "Bs 1.089,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "6 años cumplidos · tramo 5 a 7 años · 11% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "6 años"
+          ],
+          [
+            "Porcentaje",
+            "11%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 13.068,00"
+          ]
+        ],
+        "tramoActual": "5 a 7 años",
+        "proximoTexto": "Pasa al tramo 8 a 10 años (18%) el 17 de noviembre de 2028 — en 2 años. El bono sube de Bs 1.089,00 a Bs 1.782,00 mensuales.",
+        "proximoValor": "+Bs 693,00",
+        "avance": "33.3%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 907,50"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 1.089,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 181,50"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 726,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 17 de noviembre de 2020 al 17 de noviembre de 2026 = 6 años cumplidos (se cuentan años completos).",
+          "2En la escala del DS 21060 Art. 60, 6 años cae en el tramo 5 a 7 años → 11%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 11% = Bs 1.089,00."
+        ]
+      }
+    },
+    {
+      "nombre": "menos de 2 años: sin bono",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "ingreso": "2025-01-10",
+        "calculo": "2026-11-17"
+      },
+      "esperado": {
+        "anios": 1,
+        "porcentaje": 0,
+        "baseBs": 9900,
+        "bono": 0,
+        "bonoAnual": 0,
+        "totalGanado": null,
+        "proximaDiferencia": 495,
+        "avancePorcentaje": 92.6,
+        "bonoSmnAnterior": 0,
+        "diferenciaMensual": 0,
+        "retroactivo": 0
+      },
+      "pantalla": {
+        "bono": "Bs 0,00",
+        "titulo": "Aún no corresponde bono",
+        "resumen": "1 año de antigüedad. El derecho nace al cumplir 2 años (DS 21060 Art. 60). Lo cumple el 10 de enero de 2027.",
+        "datos": [
+          [
+            "Antigüedad",
+            "1 años"
+          ],
+          [
+            "Porcentaje",
+            "0%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 0,00"
+          ]
+        ],
+        "tramoActual": null,
+        "proximoTexto": "Su primer bono llega el 10 de enero de 2027 — en 1 año. El bono sube de Bs 0,00 a Bs 495,00 mensuales.",
+        "proximoValor": "+Bs 495,00",
+        "avance": "92.6%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 0,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 0,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 0,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 10 de enero de 2025 al 17 de noviembre de 2026 = 1 años cumplidos (se cuentan años completos).",
+          "2Con menos de 2 años no hay tramo aplicable → 0%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 0% = Bs 0,00."
+        ]
+      }
+    },
+    {
+      "nombre": "un día antes de cumplir 2 años",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "ingreso": "2024-11-18",
+        "calculo": "2026-11-17"
+      },
+      "esperado": {
+        "anios": 1,
+        "porcentaje": 0,
+        "baseBs": 9900,
+        "bono": 0,
+        "bonoAnual": 0,
+        "totalGanado": null,
+        "proximaDiferencia": 495,
+        "avancePorcentaje": 99.9,
+        "bonoSmnAnterior": 0,
+        "diferenciaMensual": 0,
+        "retroactivo": 0
+      },
+      "pantalla": {
+        "bono": "Bs 0,00",
+        "titulo": "Aún no corresponde bono",
+        "resumen": "1 año de antigüedad. El derecho nace al cumplir 2 años (DS 21060 Art. 60). Lo cumple el 18 de noviembre de 2026.",
+        "datos": [
+          [
+            "Antigüedad",
+            "1 años"
+          ],
+          [
+            "Porcentaje",
+            "0%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 0,00"
+          ]
+        ],
+        "tramoActual": null,
+        "proximoTexto": "Su primer bono llega el 18 de noviembre de 2026 — en 1 año. El bono sube de Bs 0,00 a Bs 495,00 mensuales.",
+        "proximoValor": "+Bs 495,00",
+        "avance": "99.9%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 0,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 0,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 0,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 18 de noviembre de 2024 al 17 de noviembre de 2026 = 1 años cumplidos (se cuentan años completos).",
+          "2Con menos de 2 años no hay tramo aplicable → 0%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 0% = Bs 0,00."
+        ]
+      }
+    },
+    {
+      "nombre": "el día que cumple 2 años",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "ingreso": "2024-11-17",
+        "calculo": "2026-11-17"
+      },
+      "esperado": {
+        "anios": 2,
+        "porcentaje": 5,
+        "baseBs": 9900,
+        "bono": 495,
+        "bonoAnual": 5940,
+        "totalGanado": null,
+        "proximaDiferencia": 594,
+        "avancePorcentaje": 0,
+        "bonoSmnAnterior": 412.5,
+        "diferenciaMensual": 82.5,
+        "retroactivo": 330
+      },
+      "pantalla": {
+        "bono": "Bs 495,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "2 años cumplidos · tramo 2 a 4 años · 5% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "2 años"
+          ],
+          [
+            "Porcentaje",
+            "5%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 5.940,00"
+          ]
+        ],
+        "tramoActual": "2 a 4 años",
+        "proximoTexto": "Pasa al tramo 5 a 7 años (11%) el 17 de noviembre de 2029 — en 3 años. El bono sube de Bs 495,00 a Bs 1.089,00 mensuales.",
+        "proximoValor": "+Bs 594,00",
+        "avance": "0%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 412,50"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 495,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 82,50"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 330,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 17 de noviembre de 2024 al 17 de noviembre de 2026 = 2 años cumplidos (se cuentan años completos).",
+          "2En la escala del DS 21060 Art. 60, 2 años cae en el tramo 2 a 4 años → 5%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 5% = Bs 495,00."
+        ]
+      }
+    },
+    {
+      "nombre": "ingreso 29 de febrero, un día antes del aniversario",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 1,
+        "ingreso": "2016-02-29",
+        "calculo": "2026-02-28"
+      },
+      "esperado": {
+        "anios": 9,
+        "porcentaje": 18,
+        "baseBs": 9900,
+        "bono": 1782,
+        "bonoAnual": 21384,
+        "totalGanado": null,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": 66.6,
+        "bonoSmnAnterior": 1485,
+        "diferenciaMensual": 297,
+        "retroactivo": 297
+      },
+      "pantalla": {
+        "bono": "Bs 1.782,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "9 años cumplidos · tramo 8 a 10 años · 18% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "9 años"
+          ],
+          [
+            "Porcentaje",
+            "18%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 21.384,00"
+          ]
+        ],
+        "tramoActual": "8 a 10 años",
+        "proximoTexto": "Pasa al tramo 11 a 14 años (26%) el 01 de marzo de 2027 — en 2 años. El bono sube de Bs 1.782,00 a Bs 2.574,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": "66.6%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 1.485,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 1.782,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 297,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 297,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 29 de febrero de 2016 al 28 de febrero de 2026 = 9 años cumplidos (se cuentan años completos).",
+          "2En la escala del DS 21060 Art. 60, 9 años cae en el tramo 8 a 10 años → 18%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 18% = Bs 1.782,00."
+        ]
+      }
+    },
+    {
+      "nombre": "ingreso 29 de febrero, al día siguiente",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 2,
+        "ingreso": "2016-02-29",
+        "calculo": "2026-03-01"
+      },
+      "esperado": {
+        "anios": 10,
+        "porcentaje": 18,
+        "baseBs": 9900,
+        "bono": 1782,
+        "bonoAnual": 21384,
+        "totalGanado": null,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": 66.7,
+        "bonoSmnAnterior": 1485,
+        "diferenciaMensual": 297,
+        "retroactivo": 594
+      },
+      "pantalla": {
+        "bono": "Bs 1.782,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "10 años cumplidos · tramo 8 a 10 años · 18% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "10 años"
+          ],
+          [
+            "Porcentaje",
+            "18%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 21.384,00"
+          ]
+        ],
+        "tramoActual": "8 a 10 años",
+        "proximoTexto": "Pasa al tramo 11 a 14 años (26%) el 01 de marzo de 2027 — en 1 año. El bono sube de Bs 1.782,00 a Bs 2.574,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": "66.7%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 1.485,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 1.782,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 297,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 594,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 29 de febrero de 2016 al 01 de marzo de 2026 = 10 años cumplidos (se cuentan años completos).",
+          "2En la escala del DS 21060 Art. 60, 10 años cae en el tramo 8 a 10 años → 18%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 18% = Bs 1.782,00."
+        ]
+      }
+    },
+    {
+      "nombre": "ingreso 29 de febrero en año bisiesto",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 2500,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2362,
+        "meses": 3,
+        "ingreso": "2020-02-29",
+        "calculo": "2024-02-29"
+      },
+      "esperado": {
+        "anios": 4,
+        "porcentaje": 5,
+        "baseBs": 7500,
+        "bono": 375,
+        "bonoAnual": 4500,
+        "totalGanado": null,
+        "proximaDiferencia": 450,
+        "avancePorcentaje": 66.6,
+        "bonoSmnAnterior": 354.3,
+        "diferenciaMensual": 20.7,
+        "retroactivo": 62.1
+      },
+      "pantalla": {
+        "bono": "Bs 375,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "4 años cumplidos · tramo 2 a 4 años · 5% de 3 SMN (Bs 7.500)",
+        "datos": [
+          [
+            "Antigüedad",
+            "4 años"
+          ],
+          [
+            "Porcentaje",
+            "5%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 7.500"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 4.500,00"
+          ]
+        ],
+        "tramoActual": "2 a 4 años",
+        "proximoTexto": "Pasa al tramo 5 a 7 años (11%) el 01 de marzo de 2025 — en 1 año. El bono sube de Bs 375,00 a Bs 825,00 mensuales.",
+        "proximoValor": "+Bs 450,00",
+        "avance": "66.6%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 354,30"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 375,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 20,70"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 62,10"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 29 de febrero de 2020 al 29 de febrero de 2024 = 4 años cumplidos (se cuentan años completos).",
+          "2En la escala del DS 21060 Art. 60, 4 años cae en el tramo 2 a 4 años → 5%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 2.500 × 3 = Bs 7.500 (DS 23474).",
+          "4Bono mensual = Bs 7.500 × 5% = Bs 375,00."
+        ]
+      }
+    },
+    {
+      "nombre": "ingreso posterior a la fecha de cálculo",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "ingreso": "2027-01-01",
+        "calculo": "2026-11-17"
+      },
+      "esperado": {
+        "anios": 0,
+        "porcentaje": 0,
+        "baseBs": 9900,
+        "bono": 0,
+        "bonoAnual": 0,
+        "totalGanado": null,
+        "proximaDiferencia": 495,
+        "avancePorcentaje": 0,
+        "bonoSmnAnterior": 0,
+        "diferenciaMensual": 0,
+        "retroactivo": 0
+      },
+      "pantalla": {
+        "bono": "Bs 0,00",
+        "titulo": "Aún no corresponde bono",
+        "resumen": "0 años de antigüedad. El derecho nace al cumplir 2 años (DS 21060 Art. 60). Lo cumple el 01 de enero de 2029.",
+        "datos": [
+          [
+            "Antigüedad",
+            "0 años"
+          ],
+          [
+            "Porcentaje",
+            "0%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 0,00"
+          ]
+        ],
+        "tramoActual": null,
+        "proximoTexto": "Su primer bono llega el 01 de enero de 2029 — en 2 años. El bono sube de Bs 0,00 a Bs 495,00 mensuales.",
+        "proximoValor": "+Bs 495,00",
+        "avance": "0%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 0,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 0,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 0,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 0,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 01 de enero de 2027 al 17 de noviembre de 2026 = 0 años cumplidos (se cuentan años completos).",
+          "2Con menos de 2 años no hay tramo aplicable → 0%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 0% = Bs 0,00."
+        ]
+      }
+    },
+    {
+      "nombre": "5 años cumplidos",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 5
+      },
+      "esperado": {
+        "anios": 5,
+        "porcentaje": 11,
+        "baseBs": 9900,
+        "bono": 1089,
+        "bonoAnual": 13068,
+        "totalGanado": null,
+        "proximaDiferencia": 693,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 907.5,
+        "diferenciaMensual": 181.5,
+        "retroactivo": 726
+      },
+      "pantalla": {
+        "bono": "Bs 1.089,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "5 años cumplidos · tramo 5 a 7 años · 11% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "5 años"
+          ],
+          [
+            "Porcentaje",
+            "11%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 13.068,00"
+          ]
+        ],
+        "tramoActual": "5 a 7 años",
+        "proximoTexto": "Pasa al tramo 8 a 10 años (18%) al cumplir 8 años — en 3 años. El bono sube de Bs 1.089,00 a Bs 1.782,00 mensuales.",
+        "proximoValor": "+Bs 693,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 907,50"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 1.089,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 181,50"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 726,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 5 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 5 años cae en el tramo 5 a 7 años → 11%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 11% = Bs 1.089,00."
+        ]
+      }
+    },
+    {
+      "nombre": "8 años cumplidos",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 8
+      },
+      "esperado": {
+        "anios": 8,
+        "porcentaje": 18,
+        "baseBs": 9900,
+        "bono": 1782,
+        "bonoAnual": 21384,
+        "totalGanado": null,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 1485,
+        "diferenciaMensual": 297,
+        "retroactivo": 1188
+      },
+      "pantalla": {
+        "bono": "Bs 1.782,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "8 años cumplidos · tramo 8 a 10 años · 18% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "8 años"
+          ],
+          [
+            "Porcentaje",
+            "18%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 21.384,00"
+          ]
+        ],
+        "tramoActual": "8 a 10 años",
+        "proximoTexto": "Pasa al tramo 11 a 14 años (26%) al cumplir 11 años — en 3 años. El bono sube de Bs 1.782,00 a Bs 2.574,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 1.485,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 1.782,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 297,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 1.188,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 8 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 8 años cae en el tramo 8 a 10 años → 18%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 18% = Bs 1.782,00."
+        ]
+      }
+    },
+    {
+      "nombre": "11 años cumplidos",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 11
+      },
+      "esperado": {
+        "anios": 11,
+        "porcentaje": 26,
+        "baseBs": 9900,
+        "bono": 2574,
+        "bonoAnual": 30888,
+        "totalGanado": null,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 2145,
+        "diferenciaMensual": 429,
+        "retroactivo": 1716
+      },
+      "pantalla": {
+        "bono": "Bs 2.574,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "11 años cumplidos · tramo 11 a 14 años · 26% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "11 años"
+          ],
+          [
+            "Porcentaje",
+            "26%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 30.888,00"
+          ]
+        ],
+        "tramoActual": "11 a 14 años",
+        "proximoTexto": "Pasa al tramo 15 a 19 años (34%) al cumplir 15 años — en 4 años. El bono sube de Bs 2.574,00 a Bs 3.366,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 2.145,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 2.574,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 429,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 1.716,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 11 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 11 años cae en el tramo 11 a 14 años → 26%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 26% = Bs 2.574,00."
+        ]
+      }
+    },
+    {
+      "nombre": "15 años cumplidos",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 15
+      },
+      "esperado": {
+        "anios": 15,
+        "porcentaje": 34,
+        "baseBs": 9900,
+        "bono": 3366,
+        "bonoAnual": 40392,
+        "totalGanado": null,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 2805,
+        "diferenciaMensual": 561,
+        "retroactivo": 2244
+      },
+      "pantalla": {
+        "bono": "Bs 3.366,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "15 años cumplidos · tramo 15 a 19 años · 34% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "15 años"
+          ],
+          [
+            "Porcentaje",
+            "34%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 40.392,00"
+          ]
+        ],
+        "tramoActual": "15 a 19 años",
+        "proximoTexto": "Pasa al tramo 20 a 24 años (42%) al cumplir 20 años — en 5 años. El bono sube de Bs 3.366,00 a Bs 4.158,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 2.805,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 3.366,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 561,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 2.244,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 15 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 15 años cae en el tramo 15 a 19 años → 34%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 34% = Bs 3.366,00."
+        ]
+      }
+    },
+    {
+      "nombre": "20 años cumplidos",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 20
+      },
+      "esperado": {
+        "anios": 20,
+        "porcentaje": 42,
+        "baseBs": 9900,
+        "bono": 4158,
+        "bonoAnual": 49896,
+        "totalGanado": null,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 3465,
+        "diferenciaMensual": 693,
+        "retroactivo": 2772
+      },
+      "pantalla": {
+        "bono": "Bs 4.158,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "20 años cumplidos · tramo 20 a 24 años · 42% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "20 años"
+          ],
+          [
+            "Porcentaje",
+            "42%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 49.896,00"
+          ]
+        ],
+        "tramoActual": "20 a 24 años",
+        "proximoTexto": "Pasa al tramo 25 años o más (50%) al cumplir 25 años — en 5 años. El bono sube de Bs 4.158,00 a Bs 4.950,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 3.465,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 4.158,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 693,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 2.772,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 20 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 20 años cae en el tramo 20 a 24 años → 42%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 42% = Bs 4.158,00."
+        ]
+      }
+    },
+    {
+      "nombre": "25 años cumplidos (tramo máximo)",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 25
+      },
+      "esperado": {
+        "anios": 25,
+        "porcentaje": 50,
+        "baseBs": 9900,
+        "bono": 4950,
+        "bonoAnual": 59400,
+        "totalGanado": null,
+        "proximaDiferencia": null,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 4125,
+        "diferenciaMensual": 825,
+        "retroactivo": 3300
+      },
+      "pantalla": {
+        "bono": "Bs 4.950,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "25 años cumplidos · tramo 25 años o más · 50% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "25 años"
+          ],
+          [
+            "Porcentaje",
+            "50%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 59.400,00"
+          ]
+        ],
+        "tramoActual": "25 años o más",
+        "proximoTexto": "Ya está en el tramo máximo de la escala (50%). El bono solo varía cuando cambia el Salario Mínimo Nacional.",
+        "proximoValor": "50%",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 4.125,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 4.950,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 825,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 3.300,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 25 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 25 años cae en el tramo 25 años o más → 50%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 50% = Bs 4.950,00."
+        ]
+      }
+    },
+    {
+      "nombre": "40 años cumplidos",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 40
+      },
+      "esperado": {
+        "anios": 40,
+        "porcentaje": 50,
+        "baseBs": 9900,
+        "bono": 4950,
+        "bonoAnual": 59400,
+        "totalGanado": null,
+        "proximaDiferencia": null,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 4125,
+        "diferenciaMensual": 825,
+        "retroactivo": 3300
+      },
+      "pantalla": {
+        "bono": "Bs 4.950,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "40 años cumplidos · tramo 25 años o más · 50% de 3 SMN (Bs 9.900)",
+        "datos": [
+          [
+            "Antigüedad",
+            "40 años"
+          ],
+          [
+            "Porcentaje",
+            "50%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 59.400,00"
+          ]
+        ],
+        "tramoActual": "25 años o más",
+        "proximoTexto": "Ya está en el tramo máximo de la escala (50%). El bono solo varía cuando cambia el Salario Mínimo Nacional.",
+        "proximoValor": "50%",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 4.125,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 4.950,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 825,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 3.300,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 40 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 40 años cae en el tramo 25 años o más → 50%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 50% = Bs 4.950,00."
+        ]
+      }
+    },
+    {
+      "nombre": "15 días trabajados y haber básico",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "3",
+        "dias": 15,
+        "haber": 5000,
+        "smnAnterior": 2750,
+        "meses": 4,
+        "anios": 9
+      },
+      "esperado": {
+        "anios": 9,
+        "porcentaje": 18,
+        "baseBs": 9900,
+        "bono": 891,
+        "bonoAnual": null,
+        "totalGanado": 5891,
+        "proximaDiferencia": 792,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 1485,
+        "diferenciaMensual": 297,
+        "retroactivo": 1188
+      },
+      "pantalla": {
+        "bono": "Bs 891,00",
+        "titulo": "Bono de antigüedad proporcional (15 días)",
+        "resumen": "9 años cumplidos · tramo 8 a 10 años · 18% de 3 SMN (Bs 9.900) · total ganado Bs 5.891,00",
+        "datos": [
+          [
+            "Antigüedad",
+            "9 años"
+          ],
+          [
+            "Porcentaje",
+            "18%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.900"
+          ],
+          [
+            "Total ganado",
+            "Bs 5.891,00"
+          ]
+        ],
+        "tramoActual": "8 a 10 años",
+        "proximoTexto": "Pasa al tramo 11 a 14 años (26%) al cumplir 11 años — en 2 años. El bono sube de Bs 1.782,00 a Bs 2.574,00 mensuales.",
+        "proximoValor": "+Bs 792,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 1.485,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 1.782,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 297,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 1.188,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 9 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 9 años cae en el tramo 8 a 10 años → 18%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.300 × 3 = Bs 9.900 (DS 23474).",
+          "4Bono mensual = Bs 9.900 × 18% = Bs 1.782,00.",
+          "5Proporcional a 15 días: Bs 1.782,00 × 15 ÷ 30 = Bs 891,00.",
+          "6Total ganado = haber básico Bs 5.000,00 + bono Bs 891,00 = Bs 5.891,00. El haber básico no altera el bono."
+        ]
+      }
+    },
+    {
+      "nombre": "ONG: base de 1 SMN",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "1",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 6,
+        "anios": 12
+      },
+      "esperado": {
+        "anios": 12,
+        "porcentaje": 26,
+        "baseBs": 3300,
+        "bono": 858,
+        "bonoAnual": 10296,
+        "totalGanado": null,
+        "proximaDiferencia": 264,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 715,
+        "diferenciaMensual": 143,
+        "retroactivo": 858
+      },
+      "pantalla": {
+        "bono": "Bs 858,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "12 años cumplidos · tramo 11 a 14 años · 26% de 1 SMN (Bs 3.300)",
+        "datos": [
+          [
+            "Antigüedad",
+            "12 años"
+          ],
+          [
+            "Porcentaje",
+            "26%"
+          ],
+          [
+            "Base (1 SMN)",
+            "Bs 3.300"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 10.296,00"
+          ]
+        ],
+        "tramoActual": "11 a 14 años",
+        "proximoTexto": "Pasa al tramo 15 a 19 años (34%) al cumplir 15 años — en 3 años. El bono sube de Bs 858,00 a Bs 1.122,00 mensuales.",
+        "proximoValor": "+Bs 264,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 715,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 858,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 143,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 858,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 12 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 12 años cae en el tramo 11 a 14 años → 26%.",
+          "3Base de cálculo = SMN × 1 SMN = Bs 3.300 × 1 = Bs 3.300 (DS 21137 Art. 13).",
+          "4Bono mensual = Bs 3.300 × 26% = Bs 858,00."
+        ]
+      }
+    },
+    {
+      "nombre": "otra base por convenio (2,5 SMN)",
+      "entradas": {
+        "modo": "anios",
+        "smn": 3300,
+        "base": "otra",
+        "dias": 30,
+        "haber": 0,
+        "smnAnterior": 2750,
+        "meses": 10,
+        "anios": 3,
+        "multiplicador": 2.5
+      },
+      "esperado": {
+        "anios": 3,
+        "porcentaje": 5,
+        "baseBs": 8250,
+        "bono": 412.5,
+        "bonoAnual": 4950,
+        "totalGanado": null,
+        "proximaDiferencia": 495,
+        "avancePorcentaje": null,
+        "bonoSmnAnterior": 343.75,
+        "diferenciaMensual": 68.75,
+        "retroactivo": 687.5
+      },
+      "pantalla": {
+        "bono": "Bs 412,50",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "3 años cumplidos · tramo 2 a 4 años · 5% de 2,5 SMN (Bs 8.250)",
+        "datos": [
+          [
+            "Antigüedad",
+            "3 años"
+          ],
+          [
+            "Porcentaje",
+            "5%"
+          ],
+          [
+            "Base (2,5 SMN)",
+            "Bs 8.250"
+          ],
+          [
+            "Bono anual (12 meses)",
+            "Bs 4.950,00"
+          ]
+        ],
+        "tramoActual": "2 a 4 años",
+        "proximoTexto": "Pasa al tramo 5 a 7 años (11%) al cumplir 5 años — en 2 años. El bono sube de Bs 412,50 a Bs 907,50 mensuales.",
+        "proximoValor": "+Bs 495,00",
+        "avance": null,
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 343,75"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 412,50"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 68,75"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 687,50"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad declarada: 3 años cumplidos.",
+          "2En la escala del DS 21060 Art. 60, 3 años cae en el tramo 2 a 4 años → 5%.",
+          "3Base de cálculo = SMN × 2,5 SMN = Bs 3.300 × 2.5 = Bs 8.250 (DS 23474).",
+          "4Bono mensual = Bs 8.250 × 5% = Bs 412,50."
+        ]
+      }
+    },
+    {
+      "nombre": "SMN escrito a mano y reliquidación larga",
+      "entradas": {
+        "modo": "fecha",
+        "smn": 3000,
+        "base": "3",
+        "dias": 30,
+        "haber": 7000.5,
+        "smnAnterior": 2500,
+        "meses": 10,
+        "ingreso": "2009-05-15",
+        "calculo": "2026-06-30"
+      },
+      "esperado": {
+        "anios": 17,
+        "porcentaje": 34,
+        "baseBs": 9000,
+        "bono": 3060,
+        "bonoAnual": null,
+        "totalGanado": 10060.5,
+        "proximaDiferencia": 720,
+        "avancePorcentaje": 42.5,
+        "bonoSmnAnterior": 2550,
+        "diferenciaMensual": 510,
+        "retroactivo": 5100
+      },
+      "pantalla": {
+        "bono": "Bs 3.060,00",
+        "titulo": "Bono de antigüedad mensual",
+        "resumen": "17 años cumplidos · tramo 15 a 19 años · 34% de 3 SMN (Bs 9.000) · total ganado Bs 10.060,50",
+        "datos": [
+          [
+            "Antigüedad",
+            "17 años"
+          ],
+          [
+            "Porcentaje",
+            "34%"
+          ],
+          [
+            "Base (3 SMN)",
+            "Bs 9.000"
+          ],
+          [
+            "Total ganado",
+            "Bs 10.060,50"
+          ]
+        ],
+        "tramoActual": "15 a 19 años",
+        "proximoTexto": "Pasa al tramo 20 a 24 años (42%) el 15 de mayo de 2029 — en 3 años. El bono sube de Bs 3.060,00 a Bs 3.780,00 mensuales.",
+        "proximoValor": "+Bs 720,00",
+        "avance": "42.5%",
+        "retro": [
+          [
+            "Bono con SMN anterior",
+            "Bs 2.550,00"
+          ],
+          [
+            "Bono con SMN nuevo",
+            "Bs 3.060,00"
+          ],
+          [
+            "Diferencia mensual",
+            "Bs 510,00"
+          ],
+          [
+            "Retroactivo a pagar",
+            "Bs 5.100,00"
+          ]
+        ],
+        "pasos": [
+          "1Antigüedad: del 15 de mayo de 2009 al 30 de junio de 2026 = 17 años cumplidos (se cuentan años completos).",
+          "2En la escala del DS 21060 Art. 60, 17 años cae en el tramo 15 a 19 años → 34%.",
+          "3Base de cálculo = SMN × 3 SMN = Bs 3.000 × 3 = Bs 9.000 (DS 23474).",
+          "4Bono mensual = Bs 9.000 × 34% = Bs 3.060,00.",
+          "5Total ganado = haber básico Bs 7.000,50 + bono Bs 3.060,00 = Bs 10.060,50. El haber básico no altera el bono."
+        ]
+      }
+    }
+  ]
+}
