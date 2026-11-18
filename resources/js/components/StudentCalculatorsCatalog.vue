@@ -1,7 +1,7 @@
 <script setup>
-import { defineAsyncComponent } from 'vue';
 import { Calculator } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
+import ActualizacionCalculadora from './calculators/actualizacion/ActualizacionCalculadora.vue';
 
 defineProps({
     initialItems: {
@@ -16,9 +16,7 @@ defineProps({
  * usando su `component` o `slug` como clave.
  */
 const calculatorComponents = {
-    // Cada calculadora se descarga recién al abrir su tarjeta.
-    RcIvaCalculator: defineAsyncComponent(() => import('./calculators/RcIvaCalculator.vue')),
-    BonoAntiguedadCalculator: defineAsyncComponent(() => import('./calculators/BonoAntiguedadCalculator.vue')),
+    ActualizacionCuentasNc3: ActualizacionCalculadora,
 };
 </script>
 

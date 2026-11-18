@@ -14,6 +14,7 @@ use App\Http\Controllers\Student\MembershipController;
 use App\Http\Controllers\Student\QuickLinkStudentController;
 use App\Http\Controllers\Student\StudyNoteController;
 use App\Http\Controllers\Student\ToolController;
+use App\Http\Controllers\Student\UfvController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -110,6 +111,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/accesos-rapidos', [QuickLinkStudentController::class, 'index'])->name('quick-links.index');
     Route::get('/calculadoras', [CalculatorController::class, 'index'])->name('calculators.index');
     Route::get('/herramientas', [ToolController::class, 'index'])->name('tools.index');
+    Route::get('/api/ufv', [UfvController::class, 'show'])->middleware('throttle:30,1')->name('api.ufv');
 });
 
 // Módulo Base: Administración de Usuarios y Roles (Capa Core)
