@@ -83,11 +83,13 @@ class AccessCode extends Model
     }
 
     /**
-     * Plan de suscripción asociado a este código prepago (si aplica).
+     * Plan asociado a este código (si aplica).
+     *
+     * Incluye planes archivados: un código canjeado conserva el nombre del plan con el que se creó.
      */
     public function plan(): BelongsTo
     {
-        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id')->withTrashed();
     }
 
     /**
