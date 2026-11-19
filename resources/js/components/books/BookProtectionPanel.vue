@@ -76,6 +76,10 @@ async function release(hold) {
     try {
         const { data: response } = await axios.post(hold.release_url);
         data.value = response.data;
+        // Si la misma persona está abierta en "¿Quién filtró esta página?", se actualiza su ficha.
+        if (lookupResult.value?.student?.id === hold.student.id) {
+            lookupResult.value.active_hold = null;
+        }
         notify('success', 'Lectura reactivada', response.message);
     } catch (error) {
         if (error?.response?.data?.data) data.value = error.response.data.data;
