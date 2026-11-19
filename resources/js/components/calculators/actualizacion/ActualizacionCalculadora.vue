@@ -389,7 +389,7 @@ function formatFechaDisplay(iso) {
                         <p v-if="selectedActivoRef" class="text-[11px] text-muted">
                             Referencia:
                             <span class="font-semibold text-foreground">
-                                {{ selectedActivoRef.vidaUtil === 'Indefinido' ? 'Vida útil indefinida' : `${selectedActivoRef.vidaUtil} años` }}
+                                {{ selectedActivoRef.vidaUtil === null ? 'Vida útil indefinida' : `${selectedActivoRef.vidaUtil} años` }}
                             </span>
                             · Coeficiente:
                             <span class="font-semibold text-foreground">

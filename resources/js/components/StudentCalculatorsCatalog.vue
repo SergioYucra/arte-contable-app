@@ -2,6 +2,7 @@
 import { Calculator } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
 import ActualizacionCalculadora from './calculators/actualizacion/ActualizacionCalculadora.vue';
+import DepAmortCalculadora from './calculators/dep-amort/DepAmortCalculadora.vue';
 
 defineProps({
     initialItems: {
@@ -17,6 +18,7 @@ defineProps({
  */
 const calculatorComponents = {
     ActualizacionCuentasNc3: ActualizacionCalculadora,
+    DepreciacionAmortizaciones: DepAmortCalculadora,
 };
 </script>
 
