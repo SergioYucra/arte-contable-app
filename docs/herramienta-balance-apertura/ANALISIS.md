@@ -43,6 +43,10 @@ de su página real (`tests/js/fixtures/balance-apertura-casos.json`): mismas cif
   que suman 90%). La nuestra muestra "Antes de imprimir" con lo que falta y bloquea el botón.
 - **Filas a medio llenar.** Su página las ignora en silencio; la nuestra las marca en rojo y dice qué
   falta ("falta la descripción", "el precio va como 1.500 o 1.500,50").
+- **Centavos.** La caja y los aportes se redondean al centavo. Su página no lo hace y, con decimales,
+  puede marcar "no cuadra" por -0,0000000000001 (3 × 1,10 contra un capital de 3,30) o imprimir aportes
+  que no suman el capital por un centavo (50% y 50% de 100,01). Si los porcentajes suman 100%, el último
+  socio absorbe ese centavo.
 - **Montos escritos a la boliviana.** "300.000" es trescientos mil (su página lo lee como 300).
 - **Cada fila muestra su cuenta:** "2 × Bs 1.500,00 = Bs 3.000,00".
 - **Documento:** totales con doble subrayado contable y líneas de firma (propietario o representante

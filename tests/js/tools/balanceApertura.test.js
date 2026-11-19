@@ -8,7 +8,7 @@ import { GRUPOS_ACTIVO_FIJO } from '../../../resources/js/components/tools/balan
 import { bs as money, formatBs, longDate } from '../../../resources/js/components/calculators/shared/formatters.js';
 
 // Su página separa "Bs" del número con un espacio común; la nuestra, con uno que no se parte.
-const bs = (n) => money(n).replace(/ /g, ' ');
+const bs = (n) => money(n).replace(/\u00A0/g, ' ');
 const { casos } = JSON.parse(readFileSync(new URL('../fixtures/balance-apertura-casos.json', import.meta.url), 'utf8'));
 
 function entradas(c) {
@@ -52,6 +52,20 @@ for (const caso of casos) {
         assert.equal(p.documento.lineas[1], `Al ${longDate(caso.entradas.fecha)} — (expresado en bolivianos)`, 'fecha del balance');
     });
 }
+
+test('activos que igualan el capital con decimales: cuadra (sin -0,00)', () => {
+    const r = armarBalance({ tipo: 'unipersonal', capital: 3.3, activos: { otros: [{ descripcion: 'Cable', cantidad: 3, precio: 1.1 }] } }, GRUPOS_ACTIVO_FIJO);
+    assert.equal(r.caja, 0);
+    assert.equal(r.cuadra, true);
+    assert.equal(r.activosSuperanCapital, false);
+});
+
+test('los aportes del documento suman exactamente el capital', () => {
+    const r = armarBalance({ tipo: 'srl', capital: 100.01, activos: {}, socios: [{ nombre: 'A', porcentaje: 50 }, { nombre: 'B', porcentaje: 50 }] }, GRUPOS_ACTIVO_FIJO);
+    const aportes = r.filas.filter((f) => f.texto.startsWith('Aporte')).map((f) => f.monto);
+    assert.deepEqual(aportes, [50.01, 50]);
+    assert.equal(Math.round(aportes.reduce((a, b) => a + b, 0) * 100), 10001);
+});
 
 test('una fila con espacios en la descripción no cuenta', () => {
     const r = armarBalance({ tipo: 'unipersonal', capital: 1000, activos: { muebles: [{ descripcion: '   ', cantidad: 1, precio: 100 }] } }, GRUPOS_ACTIVO_FIJO);

@@ -90,6 +90,17 @@ export function longDate(iso) {
     return `${Number(m[3])} de ${MONTHS[Number(m[2]) - 1]} de ${m[1]}`;
 }
 
+/** "2026-11-17" → milisegundos UTC, o null si no es una fecha real (rechaza 30 de febrero, etc.). */
+export function parseIsoDate(iso) {
+    const m = typeof iso === 'string' && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    const t = Date.UTC(y, mo - 1, d);
+    const back = new Date(t);
+    if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return null;
+    return t;
+}
+
 /** Fecha local de hoy en formato ISO ("2026-11-17"). */
 export function todayIso(date = new Date()) {
     const pad = (n) => String(n).padStart(2, '0');

@@ -1,7 +1,7 @@
 <script setup>
-import { defineAsyncComponent } from 'vue';
 import { Wrench } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
+import { lazyItem } from './utilities/lazyItem';
 
 defineProps({
     initialItems: {
@@ -13,10 +13,11 @@ defineProps({
 /**
  * Registro de componentes de herramientas.
  * Al implementar cada herramienta, créala en su propia carpeta de tools/ y regístrala aquí con
- * la clave `component` de ToolController. Cada una se descarga recién al abrir su tarjeta.
+ * la clave `component` de ToolController. Cada una se descarga recién al abrir su tarjeta (lazyItem muestra
+ * "Cargando…" y un aviso si falla la descarga).
  */
 const toolComponents = {
-    CrearBalanceAperturaTool: defineAsyncComponent(() => import('./tools/balance-apertura/BalanceAperturaTool.vue')),
+    CrearBalanceAperturaTool: lazyItem(() => import('./tools/balance-apertura/BalanceAperturaTool.vue')),
 };
 </script>
 

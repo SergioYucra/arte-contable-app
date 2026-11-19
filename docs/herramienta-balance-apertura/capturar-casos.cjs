@@ -2,7 +2,7 @@
 // llena su formulario con cada caso y lee lo que muestra su página.
 // Así se generó tests/js/fixtures/balance-apertura-casos.json (npm run test:js).
 //
-// Uso: PLAYWRIGHT_CORE=<ruta a playwright-core> node capturar-balance.cjs <carpeta-salida>
+// Uso: PLAYWRIGHT_CORE=<ruta a playwright-core> node capturar-casos.cjs <carpeta-salida>
 // (playwright-core no es dependencia del proyecto: sirve el que deja @playwright/mcp en el caché de npx).
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
 const fs = require('fs');

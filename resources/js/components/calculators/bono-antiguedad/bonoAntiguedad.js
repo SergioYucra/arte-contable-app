@@ -10,18 +10,12 @@
  * 29 de febrero cae en 1 de marzo cuando el año no es bisiesto.
  */
 
-const DAY_MS = 86400000;
+import { parseIsoDate } from '../shared/formatters.js';
 
-/** "2026-11-17" → milisegundos UTC, o null si no es una fecha real. */
-export function parseIsoDate(iso) {
-    const m = typeof iso === 'string' && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return null;
-    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
-    const t = Date.UTC(y, mo - 1, d);
-    const back = new Date(t);
-    if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return null;
-    return t;
-}
+// Se sigue exportando desde aquí (las pruebas y otras pantallas la importan de este archivo).
+export { parseIsoDate };
+
+const DAY_MS = 86400000;
 
 function toIso(t) {
     return new Date(t).toISOString().slice(0, 10);

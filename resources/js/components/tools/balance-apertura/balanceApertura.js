@@ -5,9 +5,13 @@
  * Copia exacta del cálculo de https://boliviaimpuestos.com/maletin/balance-apertura.php
  * (mismas reglas: una fila de activo cuenta si tiene descripción, cantidad y precio mayores
  * que cero; el aporte de cada socio es capital × % ÷ 100). Sin Vue ni DOM: también lo usan las pruebas.
+ *
+ * Diferencia a propósito: la caja y los aportes se redondean al centavo. Su página no lo hace y, con
+ * decimales, puede marcar "no cuadra" por -0,0000000000001 o imprimir aportes que no suman el capital
+ * por un centavo. Las cifras que se ven son las mismas.
  */
 
-const EPSILON = 0.005;
+import { round2 } from '../../calculators/shared/formatters.js';
 
 /**
  * @param {object} e
@@ -38,10 +42,11 @@ export function armarBalance(e, grupos) {
     });
     const activoFijo = categorias.reduce((sum, c) => sum + c.subtotal, 0);
 
-    const caja = capital - activoFijo;
+    // Al centavo: con decimales, capital − activos puede dar -0,0000000000001 en vez de 0.
+    const caja = round2(capital - activoFijo) || 0; // || 0: sin "-0,00"
     const activo = caja + activoFijo;
-    const diferencia = activo - capital;
-    const cuadra = Math.abs(diferencia) < EPSILON && caja >= 0;
+    // Activo siempre iguala al capital; el balance no cuadra solo si la caja queda en negativo.
+    const cuadra = caja >= 0;
 
     // Socios (solo S.R.L.): aporte = capital × % ÷ 100. Van al balance los que tienen nombre y %.
     const esSrl = e.tipo === 'srl';
@@ -49,12 +54,18 @@ export function armarBalance(e, grupos) {
         ? (e.socios ?? []).map((s) => {
               const nombre = String(s.nombre ?? '').trim();
               const porcentaje = Number(s.porcentaje) || 0;
-              return { nombre, porcentaje, aporte: (capital * porcentaje) / 100, enBalance: Boolean(nombre) && porcentaje > 0 };
+              return { nombre, porcentaje, aporte: round2((capital * porcentaje) / 100), enBalance: Boolean(nombre) && porcentaje > 0 };
           })
         : [];
     const enBalance = socios.filter((s) => s.enBalance);
     const sumaPorcentajes = enBalance.reduce((sum, s) => sum + s.porcentaje, 0);
     const porcentajesOk = !esSrl || Math.abs(sumaPorcentajes - 100) < 0.01;
+    // Si suman 100%, el último socio absorbe el centavo que pueda sobrar al redondear:
+    // así los aportes del documento suman exactamente el capital.
+    if (esSrl && porcentajesOk && enBalance.length) {
+        const otros = enBalance.slice(0, -1).reduce((sum, s) => sum + s.aporte, 0);
+        enBalance[enBalance.length - 1].aporte = round2(capital - otros);
+    }
 
     // Filas del documento, en el orden del balance.
     const filas = [
@@ -80,7 +91,6 @@ export function armarBalance(e, grupos) {
         activoFijo,
         caja,
         activo,
-        diferencia,
         cuadra,
         activosSuperanCapital: caja < 0,
         socios,

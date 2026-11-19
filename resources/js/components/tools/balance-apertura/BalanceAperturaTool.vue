@@ -6,8 +6,7 @@ import MoneyField from '../../calculators/shared/MoneyField.vue';
 import BalanceDocument from './BalanceDocument.vue';
 import { armarBalance, porcentajeTexto } from './balanceApertura';
 import { CIUDADES, GRUPOS_ACTIVO_FIJO, LIMITES, TIPOS_EMPRESA } from './catalogos';
-import { parseIsoDate } from '../../calculators/bono-antiguedad/bonoAntiguedad';
-import { bs, parseAmount, parseWhole, todayIso } from '../../calculators/shared/formatters';
+import { bs, parseAmount, parseIsoDate, parseWhole, todayIso } from '../../calculators/shared/formatters';
 import { btn, errorText, field, hint, label } from '../../subscriptions/shared';
 
 /**
@@ -84,7 +83,8 @@ function readSocio(row) {
     const errores = {};
     if (!row.nombre.trim()) errores.nombre = 'falta el nombre';
     if (porcentaje === null || porcentaje <= 0 || porcentaje > 100) errores.porcentaje = 'el porcentaje va de 0,01 a 100';
-    return { vacia: false, porcentaje: porcentaje ?? 0, errores };
+    // Un porcentaje inválido no entra al cálculo (la fila dice "no cuenta").
+    return { vacia: false, porcentaje: errores.porcentaje ? 0 : porcentaje, errores };
 }
 
 const itemsRead = computed(() => Object.fromEntries(GRUPOS_ACTIVO_FIJO.map((g) => [g.clave, form.activos[g.clave].map(readItem)])));
@@ -141,9 +141,9 @@ const empresa = computed(() => ({
 
 const subtotal = (clave) => result.value?.categorias.find((c) => c.clave === clave)?.subtotal ?? 0;
 
-/** Lo que falta para que el balance se pueda imprimir, en palabras. */
+/** Lo que falta para que el balance se pueda imprimir, en palabras (con el cálculo actual). */
 const pending = computed(() => {
-    const r = result.value;
+    const r = fresh.value;
     const list = [];
     if (capitalError.value) list.push('Escribe el capital total.');
     if (!form.razonSocial.trim()) list.push('Escribe el nombre o razón social de la empresa.');
@@ -154,7 +154,7 @@ const pending = computed(() => {
     return list;
 });
 
-const ready = computed(() => !stale.value && result.value?.cuadra && pending.value.length === 0);
+const ready = computed(() => !stale.value && pending.value.length === 0);
 
 // ---------------------------------------------------------------------
 // Imprimir o guardar como PDF (solo el documento, en tamaño carta)
@@ -171,6 +171,8 @@ function onAfterPrint() {
 
 async function printBalance() {
     if (!ready.value) return;
+    // Si quedó una impresión anterior sin cerrar (navegadores sin afterprint), se cierra primero.
+    onAfterPrint();
     printing.value = true;
     document.body.classList.add('imprimiendo-balance');
     // El navegador propone el título como nombre del PDF.
@@ -180,9 +182,19 @@ async function printBalance() {
     window.print();
 }
 
-onMounted(() => window.addEventListener('afterprint', onAfterPrint));
+// "afterprint" no llega en todos los navegadores (p. ej. iOS): también se escucha el fin del modo impresión.
+const printMedia = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('print') : null;
+const onPrintMedia = (event) => {
+    if (!event.matches) onAfterPrint();
+};
+
+onMounted(() => {
+    window.addEventListener('afterprint', onAfterPrint);
+    printMedia?.addEventListener?.('change', onPrintMedia);
+});
 onBeforeUnmount(() => {
     window.removeEventListener('afterprint', onAfterPrint);
+    printMedia?.removeEventListener?.('change', onPrintMedia);
     onAfterPrint();
 });
 
@@ -316,7 +328,7 @@ const addBtn =
                         </button>
                     </div>
                     <p v-if="Object.keys(sociosRead[i].errores).length" class="mt-1" :class="errorText">Esta fila no cuenta: {{ rowMessage(sociosRead[i]) }}.</p>
-                    <p v-else-if="result && result.socios[i]?.enBalance" class="mt-1 text-xs tabular-nums text-muted">Aporta {{ bs(result.socios[i].aporte) }}</p>
+                    <p v-else-if="fresh && fresh.socios[i]?.enBalance" class="mt-1 text-xs tabular-nums text-muted">Aporta {{ bs(fresh.socios[i].aporte) }}</p>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-between gap-2">
@@ -324,11 +336,11 @@ const addBtn =
                         <Plus class="h-3.5 w-3.5" aria-hidden="true" /> Agregar socio
                     </button>
                     <p
-                        v-if="result"
+                        v-if="fresh"
                         class="text-xs font-medium"
-                        :class="result.porcentajesOk ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                        :class="fresh.porcentajesOk ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
                     >
-                        {{ result.porcentajesOk ? 'Los aportes suman 100%' : `Suman ${porcentajeTexto(result.sumaPorcentajes)}: deben sumar 100%` }}
+                        {{ fresh.porcentajesOk ? 'Los aportes suman 100%' : `Suman ${porcentajeTexto(fresh.sumaPorcentajes)}: deben sumar 100%` }}
                     </p>
                 </div>
             </fieldset>
