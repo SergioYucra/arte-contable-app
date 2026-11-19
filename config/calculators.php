@@ -7,7 +7,7 @@
 |
 | Las dos calculadoras copian las fórmulas de boliviaimpuestos.com, que no tiene
 | una API para estos cálculos (todo ocurre en el JavaScript de sus páginas).
-| Los valores que usamos viven en resources/js/components/calculators/parametros.json.
+| Los valores que usamos viven en resources/js/components/calculators/shared/parametros.json.
 |
 | La revisión diaria (php artisan calculators:check) descarga sus dos páginas,
 | lee sus tasas y tablas, y avisa al desarrollador líder si dejan de coincidir

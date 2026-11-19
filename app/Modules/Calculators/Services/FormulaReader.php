@@ -8,7 +8,7 @@ use RuntimeException;
 
 /**
  * Lee las tasas y tablas del cálculo de boliviaimpuestos.com (sin ejecutar su código)
- * y las compara con las nuestras (resources/js/components/calculators/parametros.json).
+ * y las compara con las nuestras (resources/js/components/calculators/shared/parametros.json).
  *
  * Las dos partes se llevan a la misma forma para poder compararlas:
  *  - rc_iva: aporte_afp, aporte_solidario[{desde, hasta, tasa}], tasa, minimo_no_imponible_smn,
@@ -18,7 +18,7 @@ use RuntimeException;
  */
 class FormulaReader
 {
-    public const PARAMETERS_PATH = 'js/components/calculators/parametros.json';
+    public const PARAMETERS_PATH = 'js/components/calculators/shared/parametros.json';
 
     // ------------------------------------------------------------------
     // Lo que dice su página

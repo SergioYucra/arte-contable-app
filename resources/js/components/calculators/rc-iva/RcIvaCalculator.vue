@@ -1,12 +1,12 @@
 <script setup>
 import { computed, reactive, shallowRef, useId, watch } from 'vue';
-import BaseAlert from '../ui/BaseAlert.vue';
-import CalculationSteps from './CalculationSteps.vue';
-import MoneyField from './MoneyField.vue';
-import SmnField from './SmnField.vue';
-import parametros from './parametros.json';
+import BaseAlert from '../../ui/BaseAlert.vue';
+import CalculationSteps from '../shared/CalculationSteps.vue';
+import MoneyField from '../shared/MoneyField.vue';
+import SmnField from '../shared/SmnField.vue';
+import parametros from '../shared/parametros.json';
 import { calcularRcIva } from './rcIva';
-import { bs, bsCompact, parseAmount, percent } from './format';
+import { bs, bsCompact, parseAmount, percent } from '../shared/formatters';
 
 /**
  * Calculadora de RC-IVA para una persona con sueldo (un mes).

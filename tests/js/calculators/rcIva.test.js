@@ -3,14 +3,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { calcularRcIva } from '../../../resources/js/components/calculators/rcIva.js';
-import { bs as money } from '../../../resources/js/components/calculators/format.js';
+import { calcularRcIva } from '../../../resources/js/components/calculators/rc-iva/rcIva.js';
+import { bs as money } from '../../../resources/js/components/calculators/shared/formatters.js';
 
 // Su página separa "Bs" del número con un espacio común; la nuestra, con uno que no se parte.
 const bs = (...args) => money(...args).replace(/\u00A0/g, ' ');
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
-const params = read('../../../resources/js/components/calculators/parametros.json');
+const params = read('../../../resources/js/components/calculators/shared/parametros.json');
 const { casos } = read('../fixtures/rc-iva-casos.json');
 
 for (const caso of casos) {

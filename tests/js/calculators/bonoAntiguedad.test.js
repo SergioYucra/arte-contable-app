@@ -3,14 +3,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { addYears, aniosCumplidos, calcularBono, parseIsoDate } from '../../../resources/js/components/calculators/bonoAntiguedad.js';
-import { bs as money } from '../../../resources/js/components/calculators/format.js';
+import { addYears, aniosCumplidos, calcularBono, parseIsoDate } from '../../../resources/js/components/calculators/bono-antiguedad/bonoAntiguedad.js';
+import { bs as money } from '../../../resources/js/components/calculators/shared/formatters.js';
 
 // Su página separa "Bs" del número con un espacio común; la nuestra, con uno que no se parte.
 const bs = (...args) => money(...args).replace(/\u00A0/g, ' ');
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
-const params = read('../../../resources/js/components/calculators/parametros.json');
+const params = read('../../../resources/js/components/calculators/shared/parametros.json');
 const { casos } = read('../fixtures/bono-antiguedad-casos.json');
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
