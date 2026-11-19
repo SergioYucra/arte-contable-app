@@ -136,16 +136,17 @@ function convertirEntero(entero) {
 }
 
 /**
- * Convierte un monto numérico a letras en Title Case con `NN/100`.
- * Ej: `5000` -> `"Cinco Mil 00/100"`, `1250.50` -> `"Mil Doscientos Cincuenta 50/100"`.
+ * Convierte un monto numérico a letras con `NN/100`.
+ * Ej: `5000` -> `"Cinco Mil 00/100"` (title) o `"CINCO MIL 00/100"` (upper).
  *
  * @param {number|string} valor
+ * @param {{ caso?: 'title' | 'upper' }} [options]
  * @returns {string}
  */
-export function numeroALetras(valor) {
+export function numeroALetras(valor, { caso = 'title' } = {}) {
     const num = Number(valor);
     if (!Number.isFinite(num) || num < 0) {
-        return 'Cero 00/100';
+        return caso === 'upper' ? 'CERO 00/100' : 'Cero 00/100';
     }
 
     const redondeado = Math.round((num + Number.EPSILON) * 100) / 100;
@@ -154,6 +155,7 @@ export function numeroALetras(valor) {
 
     const textoEntero = convertirEntero(entero);
     const centavosStr = String(centavos).padStart(2, '0');
+    const resultado = `${textoEntero} ${centavosStr}/100`;
 
-    return `${textoEntero} ${centavosStr}/100`;
+    return caso === 'upper' ? resultado.toUpperCase() : resultado;
 }

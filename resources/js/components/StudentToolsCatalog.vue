@@ -3,6 +3,7 @@ import { Wrench } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
 import FacturadorTool from './tools/factura/FacturadorTool.vue';
 import ReciboCalculadora from './tools/recibo/ReciboCalculadora.vue';
+import ChequeCalculadora from './tools/cheque/ChequeCalculadora.vue';
 
 defineProps({
     initialItems: {
@@ -19,6 +20,7 @@ defineProps({
 const toolComponents = {
     CrearFacturaTool: FacturadorTool,
     CrearReciboTool: ReciboCalculadora,
+    CrearChequeTool: ChequeCalculadora,
 };
 </script>
 
