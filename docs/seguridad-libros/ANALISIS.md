@@ -228,5 +228,5 @@ ni la barra lateral, que modifica `fix/revision-3`.
   - `MembershipRulesTest` cuenta sus pasos de `migrate:rollback` en vez de fijarlos en 2.
 - **JS (`npm run test:js`):** `tests/js/books/readerPageLoader.test.js`.
 - **Navegador (Playwright):** lectura con marca, "Te quedan…", tope diario, dos dispositivos
-  (computadora y celular), un script de copiado pausado a los 75 segundos, panel, búsqueda del
+  (computadora y celular), un script de copiado pausado a las 80 páginas (unos 2 minutos), panel, búsqueda del
   código, reactivar y quitar acceso.

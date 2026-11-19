@@ -44,6 +44,14 @@ const velocityText = computed(() =>
         .join(' o ')
 );
 
+// readError ya traduce 419 y 429; aquí se suma la sesión cerrada (401), que llega en inglés.
+function panelError(error, fallback) {
+    if (error?.response?.status === 401) {
+        return 'Tu sesión terminó. Recarga la página para volver a entrar.';
+    }
+    return readError(error, fallback).message;
+}
+
 function notify(type, title, message) {
     notification.value = { type, title, message };
     setTimeout(() => {
@@ -57,7 +65,7 @@ async function refresh() {
         const { data: fresh } = await axios.get(props.urls.data);
         data.value = fresh;
     } catch (error) {
-        notify('error', 'No se pudo actualizar', readError(error).message);
+        notify('error', 'No se pudo actualizar', panelError(error));
     } finally {
         refreshing.value = false;
     }
@@ -71,7 +79,7 @@ async function release(hold) {
         notify('success', 'Lectura reactivada', response.message);
     } catch (error) {
         if (error?.response?.data?.data) data.value = error.response.data.data;
-        notify('error', 'No se pudo reactivar', readError(error).message);
+        notify('error', 'No se pudo reactivar', panelError(error));
     } finally {
         releasingId.value = null;
     }
@@ -112,7 +120,7 @@ async function confirmRevoke() {
             lookupResult.value.student.has_membership = false;
         }
     } catch (error) {
-        revokeError.value = readError(error).message;
+        revokeError.value = panelError(error);
     } finally {
         revokeBusy.value = false;
     }
@@ -138,7 +146,7 @@ async function lookup() {
         const { data: result } = await axios.get(props.urls.lookup, { params: { code: code.value } });
         lookupResult.value = result;
     } catch (error) {
-        lookupError.value = readError(error, 'No se pudo buscar el código. Inténtalo de nuevo.').message;
+        lookupError.value = panelError(error, 'No se pudo buscar el código. Inténtalo de nuevo.');
     } finally {
         lookupBusy.value = false;
     }
