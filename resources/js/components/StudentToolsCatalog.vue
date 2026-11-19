@@ -2,6 +2,9 @@
 import { Wrench } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
 import { lazyItem } from './utilities/lazyItem';
+import FacturadorTool from './tools/factura/FacturadorTool.vue';
+import ReciboCalculadora from './tools/recibo/ReciboCalculadora.vue';
+import ChequeCalculadora from './tools/cheque/ChequeCalculadora.vue';
 
 defineProps({
     initialItems: {
@@ -18,6 +21,9 @@ defineProps({
  */
 const toolComponents = {
     CrearBalanceAperturaTool: lazyItem(() => import('./tools/balance-apertura/BalanceAperturaTool.vue')),
+    CrearFacturaTool: FacturadorTool,
+    CrearReciboTool: ReciboCalculadora,
+    CrearChequeTool: ChequeCalculadora,
 };
 </script>
 
