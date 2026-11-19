@@ -5,9 +5,9 @@ namespace Tests\Feature\Student;
 use App\Core\Storage\PrivateVault;
 use App\Models\Book;
 use App\Models\BookEdition;
-use App\Models\ReadingState;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Modules\LibraryProtection\Services\ReaderDevices;
 use Database\Seeders\CoreSecuritySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -47,6 +47,9 @@ class LibraryControllerTest extends TestCase
             'email_verified_at' => now(),
         ]);
         $this->student->assignRole('User');
+
+        // Todas las peticiones salen del mismo navegador (protección "un dispositivo a la vez").
+        $this->withCookie(ReaderDevices::COOKIE, str_repeat('a', 40));
 
         $this->book = Book::create([
             'author_name' => 'Rubén Yucra',

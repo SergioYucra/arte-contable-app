@@ -61,11 +61,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/leer/{edition}', [LibraryController::class, 'read'])->whereNumber('edition')->name('library.reader');
     Route::get('/biblioteca/ediciones/{edition}/paginas/{page}', [LibraryController::class, 'streamPage'])
         ->whereNumber(['edition', 'page'])
-        ->middleware('throttle:120,1')
+        // Límite con nombre propio (LibraryProtectionServiceProvider): no comparte contador con otras rutas.
+        ->middleware('throttle:book-pages')
         ->name('library.editions.page');
     Route::post('/biblioteca/ediciones/{edition}/progreso', [LibraryController::class, 'saveProgress'])
         ->whereNumber('edition')
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,library-progress')
         ->name('library.editions.progress');
 
     // Cuaderno de Estudio (candado por membresía vigente en StudyNotePolicy)
