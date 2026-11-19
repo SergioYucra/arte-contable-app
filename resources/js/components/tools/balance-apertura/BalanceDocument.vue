@@ -2,8 +2,9 @@
 import { formatBs, longDate } from '../../calculators/shared/formatters';
 
 /**
- * El balance de apertura como documento: es lo que se ve en la vista previa y lo que se imprime.
- * Siempre en papel blanco (también en modo oscuro), para que la vista previa sea igual a la impresión.
+ * El balance de apertura como documento, con el mismo diseño que el de boliviaimpuestos.com
+ * (encabezado centrado, filas de grupo en azul marino y de subgrupo en gris azulado, letra Niramit).
+ * Siempre en colores claros, también en modo oscuro, para que la vista previa sea igual a la impresión.
  */
 defineProps({
     empresa: { type: Object, required: true }, // { razonSocial, nit, ciudad, fecha, tipo }
@@ -12,47 +13,28 @@ defineProps({
 </script>
 
 <template>
-    <article class="balance-doc rounded-sm bg-white px-4 py-8 text-slate-900 sm:px-10 sm:py-10">
-        <header class="text-center">
-            <p class="font-serif text-lg uppercase leading-snug tracking-wide sm:text-xl">{{ empresa.razonSocial || '—' }}</p>
-            <p class="mt-1 text-xs text-slate-600">NIT: {{ empresa.nit || '—' }} · {{ empresa.ciudad }}</p>
-            <h2 class="mt-6 font-serif text-xl font-semibold tracking-[0.12em] sm:text-2xl">BALANCE DE APERTURA</h2>
-            <p class="mt-1 text-sm">Al {{ longDate(empresa.fecha) }}</p>
-            <p class="text-xs text-slate-500">(Expresado en bolivianos)</p>
+    <div class="balance-doc balance-color font-['Niramit',ui-sans-serif,system-ui,sans-serif] text-[13px] text-[#16305A]">
+        <header class="mb-2.5 border-b-2 border-[#2d3663] pb-3 text-center">
+            <p class="text-[15px] font-bold uppercase tracking-[0.3px] text-[#2d3663]">{{ empresa.razonSocial || '—' }}</p>
+            <p class="text-[11.5px] text-[#5B6B82]">NIT: {{ empresa.nit || '—' }} · {{ empresa.ciudad }}</p>
+            <p class="mt-1.5 font-bold tracking-[0.5px] text-[#006ba6]">BALANCE DE APERTURA</p>
+            <p class="text-[11.5px] text-[#5B6B82]">Al {{ longDate(empresa.fecha) }} — (expresado en bolivianos)</p>
         </header>
 
-        <table class="mt-8 w-full text-[13px] tabular-nums sm:text-sm">
+        <table class="w-full border-collapse">
             <tbody>
-                <tr v-for="(fila, i) in balance.filas" :key="i">
-                    <td
-                        class="py-1.5 pe-4"
-                        :class="{
-                            'pt-4 font-bold uppercase tracking-wide': fila.nivel === 'grupo',
-                            'ps-3 font-semibold sm:ps-4': fila.nivel === 'subgrupo',
-                            'ps-6 sm:ps-8': fila.nivel === 'cuenta',
-                        }"
-                    >
-                        {{ fila.texto }}
-                    </td>
-                    <td class="w-24 py-1.5 text-end sm:w-32" :class="fila.nivel === 'cuenta' ? '' : 'font-semibold'">
-                        <span
-                            :class="{
-                                'border-b-[3px] border-double border-slate-900 pb-0.5 font-bold': fila.nivel === 'grupo',
-                                'text-rose-700': fila.monto < 0,
-                            }"
-                        >{{ formatBs(fila.monto) }}</span>
-                    </td>
+                <tr
+                    v-for="(fila, i) in balance.filas"
+                    :key="i"
+                    :class="{
+                        'bg-[#2d3663] font-bold tracking-[0.4px] text-white': fila.nivel === 'grupo',
+                        'bg-[#E7EAF3] font-semibold text-[#2d3663]': fila.nivel === 'subgrupo',
+                    }"
+                >
+                    <td class="border-b border-[#EEF2F7] px-2 py-[5px]" :class="fila.nivel === 'cuenta' && 'ps-4'">{{ fila.texto }}</td>
+                    <td class="border-b border-[#EEF2F7] px-2 py-[5px] text-end tabular-nums">{{ formatBs(fila.monto) }}</td>
                 </tr>
             </tbody>
         </table>
-
-        <footer class="mt-20 grid grid-cols-2 gap-10 text-center text-xs text-slate-600">
-            <div>
-                <div class="border-t border-slate-400 pt-1.5">{{ empresa.tipo === 'srl' ? 'Representante legal' : 'Propietario(a)' }}</div>
-            </div>
-            <div>
-                <div class="border-t border-slate-400 pt-1.5">Contador(a)</div>
-            </div>
-        </footer>
-    </article>
+    </div>
 </template>

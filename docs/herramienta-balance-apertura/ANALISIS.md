@@ -49,11 +49,23 @@ de su página real (`tests/js/fixtures/balance-apertura-casos.json`): mismas cif
   socio absorbe ese centavo.
 - **Montos escritos a la boliviana.** "300.000" es trescientos mil (su página lo lee como 300).
 - **Cada fila muestra su cuenta:** "2 × Bs 1.500,00 = Bs 3.000,00".
-- **Documento:** totales con doble subrayado contable y líneas de firma (propietario o representante
-  legal, y contador). Se imprime solo el documento, en tamaño carta; el navegador propone como nombre
-  del PDF "Balance de apertura - {empresa}".
 
-## 3. Dónde está cada cosa
+## 3. Diseño e impresión, como el original
+
+- **El documento** copia su diseño: encabezado centrado (razón social, NIT y ciudad, "BALANCE DE APERTURA"
+  en azul y la fecha), línea azul marino, filas de grupo en azul marino con letra blanca, subgrupos en gris
+  azulado y la letra **Niramit** (la de su sitio, cargada desde fonts.bunny.net solo en esta herramienta).
+  Va en una tarjeta blanca titulada "Balance de apertura".
+- **Estado del cuadre y cifras:** el recuadro azul marino "Estado del cuadre: CUADRA" con la etiqueta
+  "Activo = Patrimonio = Bs …" y las cuatro cifras (caja en azul, activo fijo en naranja, total y
+  patrimonio en verde), con sus colores.
+- **Impresión / PDF:** igual que su página, se imprime la pantalla completa de la herramienta (datos,
+  socios, activos, estado del cuadre, cifras y balance), sin el menú, la barra superior ni los botones.
+  Siempre en colores claros, aunque la app esté en modo oscuro; los fondos de color del balance se imprimen
+  aunque el navegador tenga desactivados los gráficos de fondo. Funciona con el botón y con Ctrl+P.
+  El navegador propone como nombre del PDF "Balance de apertura - {empresa}".
+
+## 4. Dónde está cada cosa
 
 | Qué | Dónde |
 |---|---|
@@ -64,13 +76,13 @@ de su página real (`tests/js/fixtures/balance-apertura-casos.json`): mismas cif
 | Pruebas contra su página | `tests/js/tools/balanceApertura.test.js` (`npm run test:js`) |
 | Script que capturó los casos | `docs/herramienta-balance-apertura/capturar-casos.cjs` |
 
-## 4. Revisión diaria
+## 5. Revisión diaria
 
 No se suma a `calculators:check`: no tiene tasas ni tablas que cambien por norma (Activo = Patrimonio
 es la regla contable de siempre). Si ellos agregan grupos de activo o pasivos, se ve en su página y
 se ajusta `catalogos.js`.
 
-## 5. Seguridad
+## 6. Seguridad
 
 No hay rutas ni endpoints nuevos y no se guarda nada: el balance se arma y se imprime en el navegador.
 Todo texto se muestra escapado (sin `v-html`). El NIT acepta solo dígitos, y los textos, cantidades y

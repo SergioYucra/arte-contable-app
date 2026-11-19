@@ -125,7 +125,7 @@ function resetSearch() {
                     <div class="flex items-center gap-3 min-w-0">
                         <button
                             type="button"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary print:hidden"
                             @click="closeItem"
                         >
                             <ArrowLeft class="h-3.5 w-3.5" />

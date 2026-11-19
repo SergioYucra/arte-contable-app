@@ -1,6 +1,6 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, useId, watch } from 'vue';
-import { Plus, Printer, X } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, reactive, shallowRef, useId, watch } from 'vue';
+import { Check, Info, Plus, Printer, X } from 'lucide-vue-next';
 import BaseAlert from '../../ui/BaseAlert.vue';
 import MoneyField from '../../calculators/shared/MoneyField.vue';
 import BalanceDocument from './BalanceDocument.vue';
@@ -11,8 +11,9 @@ import { btn, errorText, field, hint, label } from '../../subscriptions/shared';
 
 /**
  * Herramienta "Crear balance de apertura" (catálogo de Herramientas).
- * Arma el balance en el navegador con el mismo cálculo que boliviaimpuestos.com (ver balanceApertura.js)
- * y lo imprime o guarda como PDF desde el navegador. No se envía ni se guarda nada.
+ * Arma el balance en el navegador con el mismo cálculo que boliviaimpuestos.com (ver balanceApertura.js).
+ * El resultado (estado del cuadre, cifras y documento) y la impresión siguen el diseño de su página:
+ * se imprime la pantalla completa, sin menú ni botones. No se envía ni se guarda nada.
  */
 defineProps({
     item: { type: Object, default: null },
@@ -141,6 +142,18 @@ const empresa = computed(() => ({
 
 const subtotal = (clave) => result.value?.categorias.find((c) => c.clave === clave)?.subtotal ?? 0;
 
+/** Las cuatro cifras del resultado, con los colores de la página original. */
+const stats = computed(() => {
+    const r = result.value;
+    if (!r) return [];
+    return [
+        { label: 'Activo disponible (caja)', value: r.caja, color: r.caja < 0 ? 'text-[#e24b4a]' : 'text-[#006ba6] dark:text-sky-400' },
+        { label: 'Activo fijo', value: r.activoFijo, color: 'text-[#C77E12] dark:text-amber-400' },
+        { label: 'Total activo', value: r.activo, color: 'text-[#2d3663] dark:text-slate-200' },
+        { label: 'Patrimonio (capital)', value: r.capital, color: 'text-[#1E9E6E] dark:text-emerald-400' },
+    ];
+});
+
 /** Lo que falta para que el balance se pueda imprimir, en palabras (con el cálculo actual). */
 const pending = computed(() => {
     const r = fresh.value;
@@ -157,42 +170,72 @@ const pending = computed(() => {
 const ready = computed(() => !stale.value && pending.value.length === 0);
 
 // ---------------------------------------------------------------------
-// Imprimir o guardar como PDF (solo el documento, en tamaño carta)
+// Imprimir o guardar como PDF: la pantalla completa, como la página original
+// (sin menú, barra superior ni botones) y siempre en colores claros.
+// También funciona con Ctrl+P.
 // ---------------------------------------------------------------------
-const printing = ref(false);
-let savedTitle = '';
+const FONT_HREF = 'https://fonts.bunny.net/css?family=niramit:400,500,600,700&display=swap';
+let savedTitle = null;
+let wasDark = false;
+
+function loadFont() {
+    if (document.querySelector('link[data-fuente="niramit"]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = FONT_HREF;
+    link.dataset.fuente = 'niramit';
+    document.head.appendChild(link);
+}
+
+function onBeforePrint() {
+    if (savedTitle !== null) return;
+    savedTitle = document.title;
+    // El navegador propone el título como nombre del PDF.
+    if (empresa.value.razonSocial) document.title = `Balance de apertura - ${empresa.value.razonSocial}`.slice(0, 120);
+    // El papel es blanco: en modo oscuro se imprime igual en claro. Sin transiciones, para que
+    // los colores claros se apliquen de inmediato y no a mitad de la animación.
+    document.documentElement.classList.add('balance-sin-transiciones');
+    wasDark = document.documentElement.classList.contains('dark');
+    document.documentElement.classList.remove('dark');
+    void document.body.offsetHeight;
+}
 
 function onAfterPrint() {
-    if (!printing.value) return;
-    printing.value = false;
-    document.body.classList.remove('imprimiendo-balance');
+    if (savedTitle === null) return;
     document.title = savedTitle;
+    savedTitle = null;
+    if (wasDark) document.documentElement.classList.add('dark');
+    wasDark = false;
+    document.documentElement.classList.remove('balance-sin-transiciones');
 }
 
 async function printBalance() {
     if (!ready.value) return;
-    // Si quedó una impresión anterior sin cerrar (navegadores sin afterprint), se cierra primero.
-    onAfterPrint();
-    printing.value = true;
-    document.body.classList.add('imprimiendo-balance');
-    // El navegador propone el título como nombre del PDF.
-    savedTitle = document.title;
-    document.title = `Balance de apertura - ${empresa.value.razonSocial}`.slice(0, 120);
-    await nextTick();
+    // La letra del balance tiene que estar cargada antes de imprimir (máximo 2 s de espera).
+    try {
+        await Promise.race([document.fonts.load('600 13px Niramit'), new Promise((resolve) => setTimeout(resolve, 2000))]);
+    } catch {
+        // Si no carga, se imprime con la letra de respaldo.
+    }
+    onBeforePrint();
     window.print();
 }
 
-// "afterprint" no llega en todos los navegadores (p. ej. iOS): también se escucha el fin del modo impresión.
+// "afterprint" no llega en todos los navegadores (p. ej. iOS): también se escucha el modo impresión.
 const printMedia = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('print') : null;
-const onPrintMedia = (event) => {
-    if (!event.matches) onAfterPrint();
-};
+const onPrintMedia = (event) => (event.matches ? onBeforePrint() : onAfterPrint());
 
 onMounted(() => {
+    loadFont();
+    document.body.classList.add('con-balance-apertura');
+    window.addEventListener('beforeprint', onBeforePrint);
     window.addEventListener('afterprint', onAfterPrint);
     printMedia?.addEventListener?.('change', onPrintMedia);
 });
+
 onBeforeUnmount(() => {
+    document.body.classList.remove('con-balance-apertura');
+    window.removeEventListener('beforeprint', onBeforePrint);
     window.removeEventListener('afterprint', onAfterPrint);
     printMedia?.removeEventListener?.('change', onPrintMedia);
     onAfterPrint();
@@ -205,64 +248,34 @@ const segment = (active) =>
 const rowField = (error) => [field, 'min-w-0', error && 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'];
 const rowMessage = (read) => Object.values(read.errores).join('; ');
 const removeBtn =
-    'inline-flex h-9 w-9 items-center justify-center rounded-brand text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-8 sm:w-8';
+    'inline-flex h-9 w-9 items-center justify-center rounded-brand text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-8 sm:w-8 print:hidden';
 const addBtn =
-    'inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50';
+    'inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50 print:hidden';
 </script>
 
 <template>
     <div class="grid gap-6 lg:grid-cols-12 lg:gap-8">
         <!-- ============================ DATOS ============================ -->
         <form class="space-y-6 lg:col-span-5" novalidate @submit.prevent>
-            <!-- Empresa -->
+            <!-- Empresa (mismo orden que la página original) -->
             <fieldset class="space-y-4">
                 <legend class="text-base font-semibold text-foreground">Datos de la empresa</legend>
 
-                <div>
-                    <span :id="`${uid}-tipo`" :class="label">Tipo de empresa</span>
-                    <div class="mt-1.5 grid grid-cols-2 gap-1 rounded-lg border border-border bg-background p-1" role="group" :aria-labelledby="`${uid}-tipo`">
-                        <button
-                            v-for="t in TIPOS_EMPRESA"
-                            :key="t.valor"
-                            type="button"
-                            :class="segment(form.tipo === t.valor)"
-                            :aria-pressed="form.tipo === t.valor"
-                            @click="setTipo(t.valor)"
-                        >
-                            {{ t.nombre }}
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <label :for="`${uid}-razon`" :class="label">Nombre o razón social</label>
-                    <input
-                        :id="`${uid}-razon`"
-                        v-model="form.razonSocial"
-                        type="text"
-                        :maxlength="LIMITES.razonSocial"
-                        autocomplete="organization"
-                        :placeholder="form.tipo === 'srl' ? 'Mi Empresa S.R.L.' : 'Mi Empresa'"
-                        :class="field"
-                        class="mt-1.5"
-                    />
-                </div>
-
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]">
                     <div>
-                        <label :for="`${uid}-nit`" :class="label">NIT (opcional)</label>
-                        <input
-                            :id="`${uid}-nit`"
-                            :value="form.nit"
-                            type="text"
-                            inputmode="numeric"
-                            :maxlength="LIMITES.nit"
-                            autocomplete="off"
-                            placeholder="1023456789"
-                            :class="field"
-                            class="mt-1.5 tabular-nums"
-                            @input="onNit"
-                        />
+                        <span :id="`${uid}-tipo`" :class="label">Tipo de empresa</span>
+                        <div class="mt-1.5 grid grid-cols-2 gap-1 rounded-lg border border-border bg-background p-1" role="group" :aria-labelledby="`${uid}-tipo`">
+                            <button
+                                v-for="t in TIPOS_EMPRESA"
+                                :key="t.valor"
+                                type="button"
+                                :class="segment(form.tipo === t.valor)"
+                                :aria-pressed="form.tipo === t.valor"
+                                @click="setTipo(t.valor)"
+                            >
+                                {{ t.nombre }}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label :for="`${uid}-fecha`" :class="label">Fecha del balance</label>
@@ -280,28 +293,52 @@ const addBtn =
                 </div>
 
                 <div>
-                    <label :for="`${uid}-ciudad`" :class="label">Ciudad</label>
-                    <select :id="`${uid}-ciudad`" v-model="form.ciudad" :class="field" class="mt-1.5">
-                        <option v-for="c in CIUDADES" :key="c" :value="c">{{ c }}</option>
-                    </select>
+                    <label :for="`${uid}-razon`" :class="label">Nombre / razón social</label>
+                    <input
+                        :id="`${uid}-razon`"
+                        v-model="form.razonSocial"
+                        type="text"
+                        :maxlength="LIMITES.razonSocial"
+                        autocomplete="organization"
+                        :placeholder="form.tipo === 'srl' ? 'Mi Empresa S.R.L.' : 'Mi Empresa'"
+                        :class="field"
+                        class="mt-1.5"
+                    />
                 </div>
 
-                <MoneyField
-                    :id="`${uid}-capital`"
-                    v-model="form.capital"
-                    label="Capital total"
-                    hint="Todo lo que aportan para empezar: dinero y bienes."
-                    :error="capitalError"
-                />
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label :for="`${uid}-nit`" :class="label">NIT</label>
+                        <input
+                            :id="`${uid}-nit`"
+                            :value="form.nit"
+                            type="text"
+                            inputmode="numeric"
+                            :maxlength="LIMITES.nit"
+                            autocomplete="off"
+                            placeholder="1023456789"
+                            :class="field"
+                            class="mt-1.5 tabular-nums"
+                            @input="onNit"
+                        />
+                    </div>
+                    <div>
+                        <label :for="`${uid}-ciudad`" :class="label">Ciudad</label>
+                        <select :id="`${uid}-ciudad`" v-model="form.ciudad" :class="field" class="mt-1.5">
+                            <option v-for="c in CIUDADES" :key="c" :value="c">{{ c }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <MoneyField :id="`${uid}-capital`" v-model="form.capital" label="Capital total (Bs)" :error="capitalError" />
             </fieldset>
 
             <!-- Socios (solo S.R.L.) -->
-            <fieldset v-if="form.tipo === 'srl'" class="space-y-3">
-                <legend class="text-base font-semibold text-foreground">Socios y aportes</legend>
-                <p :class="hint">El aporte de cada socio es su porcentaje del capital. Entre todos deben sumar 100%.</p>
+            <fieldset v-if="form.tipo === 'srl'" class="space-y-2">
+                <legend class="mb-2 text-base font-semibold text-foreground">Socios y aportes</legend>
 
                 <div v-for="(socio, i) in form.socios" :key="socio.key">
-                    <div class="grid grid-cols-[minmax(0,1fr)_5.5rem_auto] items-center gap-1.5">
+                    <div class="grid grid-cols-[minmax(0,1fr)_4.75rem_minmax(5.5rem,auto)_auto] items-center gap-1.5">
                         <input
                             v-model="socio.nombre"
                             type="text"
@@ -316,47 +353,41 @@ const addBtn =
                                 type="text"
                                 inputmode="decimal"
                                 maxlength="6"
-                                placeholder="0"
+                                placeholder="%"
                                 :aria-label="`Porcentaje del socio ${i + 1}`"
                                 :class="rowField(sociosRead[i].errores.porcentaje)"
-                                class="pe-7 text-end tabular-nums"
+                                class="pe-6 text-end tabular-nums"
                             />
-                            <span class="pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm text-muted" aria-hidden="true">%</span>
+                            <span class="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-xs text-muted" aria-hidden="true">%</span>
                         </div>
+                        <span class="text-end text-xs tabular-nums text-muted">{{ bs(fresh?.socios[i]?.aporte ?? 0) }}</span>
                         <button type="button" :class="removeBtn" :aria-label="`Quitar socio ${i + 1}`" @click="form.socios.splice(i, 1)">
                             <X class="h-4 w-4" aria-hidden="true" />
                         </button>
                     </div>
                     <p v-if="Object.keys(sociosRead[i].errores).length" class="mt-1" :class="errorText">Esta fila no cuenta: {{ rowMessage(sociosRead[i]) }}.</p>
-                    <p v-else-if="fresh && fresh.socios[i]?.enBalance" class="mt-1 text-xs tabular-nums text-muted">Aporta {{ bs(fresh.socios[i].aporte) }}</p>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <button type="button" :class="addBtn" :disabled="form.socios.length >= LIMITES.socios" @click="addSocio">
-                        <Plus class="h-3.5 w-3.5" aria-hidden="true" /> Agregar socio
-                    </button>
-                    <p
-                        v-if="fresh"
-                        class="text-xs font-medium"
-                        :class="fresh.porcentajesOk ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
-                    >
-                        {{ fresh.porcentajesOk ? 'Los aportes suman 100%' : `Suman ${porcentajeTexto(fresh.sumaPorcentajes)}: deben sumar 100%` }}
-                    </p>
-                </div>
+                <button type="button" :class="addBtn" :disabled="form.socios.length >= LIMITES.socios" @click="addSocio">
+                    <Plus class="h-3.5 w-3.5" aria-hidden="true" /> Agregar socio
+                </button>
+                <p
+                    v-if="fresh"
+                    class="text-xs font-medium"
+                    :class="fresh.porcentajesOk ? 'text-[#1E9E6E] dark:text-emerald-400' : 'text-[#e24b4a]'"
+                >
+                    {{ fresh.porcentajesOk ? '✓ Aportes suman 100%' : `Los % suman ${porcentajeTexto(fresh.sumaPorcentajes)} (deben sumar 100%)` }}
+                </p>
             </fieldset>
 
             <!-- Activos fijos -->
             <fieldset class="space-y-3">
-                <legend class="text-base font-semibold text-foreground">Activos fijos</legend>
-                <p :class="hint">
-                    Los bienes con que empieza la empresa. La Caja/Bancos se calcula sola: capital menos activos fijos, así el Activo
-                    iguala al Patrimonio.
-                </p>
+                <legend class="mb-1 text-base font-semibold text-foreground">Activos fijos</legend>
 
-                <section v-for="g in GRUPOS_ACTIVO_FIJO" :key="g.clave" class="rounded-brand border border-border p-3" :aria-label="g.nombre">
+                <section v-for="g in GRUPOS_ACTIVO_FIJO" :key="g.clave" class="rounded-brand border border-border bg-background p-3" :aria-label="g.nombre">
                     <div class="mb-2 flex items-baseline justify-between gap-3">
                         <h3 class="text-sm font-semibold text-foreground">{{ g.nombre }}</h3>
-                        <span class="text-xs font-semibold tabular-nums text-primary">{{ bs(subtotal(g.clave)) }}</span>
+                        <span class="text-xs font-semibold tabular-nums text-[#006ba6] dark:text-sky-400">{{ bs(subtotal(g.clave)) }}</span>
                     </div>
 
                     <div v-for="(row, i) in form.activos[g.clave]" :key="row.key" class="mb-2">
@@ -385,7 +416,7 @@ const addBtn =
                                 type="text"
                                 inputmode="decimal"
                                 maxlength="14"
-                                placeholder="P. unitario"
+                                placeholder="P. unit."
                                 :aria-label="`${g.nombre}: precio unitario del ítem ${i + 1}, en bolivianos`"
                                 :class="rowField(itemsRead[g.clave][i].errores.precio)"
                                 class="text-end tabular-nums"
@@ -406,52 +437,58 @@ const addBtn =
                         <Plus class="h-3.5 w-3.5" aria-hidden="true" /> Agregar ítem
                     </button>
                 </section>
+
+                <p class="flex gap-2 rounded-brand border border-border bg-background p-3 text-xs leading-relaxed text-muted">
+                    <Info class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>
+                        La <strong class="font-semibold text-foreground">Caja/Bancos</strong> se calcula como capital − activos fijos, para que el
+                        <strong class="font-semibold text-foreground">Activo iguale al Patrimonio</strong> (capital) en la apertura.
+                    </span>
+                </p>
             </fieldset>
         </form>
 
-        <!-- ============================ BALANCE ============================ -->
-        <section class="space-y-4 lg:col-span-7" aria-label="Balance de apertura">
+        <!-- ============================ RESULTADO (diseño de la página original) ============================ -->
+        <section class="space-y-4 font-['Niramit',ui-sans-serif,system-ui,sans-serif] lg:col-span-7" aria-label="Balance de apertura">
             <BaseAlert v-if="stale" type="warning" title="Revisa el capital">
                 Corrige el capital. Mientras tanto ves el último balance válido, atenuado.
             </BaseAlert>
 
             <div v-if="result" class="space-y-4 motion-safe:transition-opacity" :class="stale && 'opacity-50'" :aria-hidden="stale ? 'true' : undefined">
-                <!-- Cómo está el cuadre -->
-                <div class="rounded-brand border border-border bg-paper p-5 sm:p-6" aria-live="polite">
-                    <p class="text-sm text-muted">{{ result.cuadra ? 'El balance cuadra' : 'El balance no cuadra' }}</p>
-                    <p
-                        class="mt-1 font-serif text-2xl leading-tight tracking-tight sm:text-3xl"
-                        :class="result.cuadra ? 'text-foreground' : 'text-rose-700 dark:text-rose-400'"
-                    >
-                        Activo {{ result.cuadra ? '=' : '≠' }} Patrimonio
+                <!-- Estado del cuadre -->
+                <div class="balance-color relative overflow-hidden rounded-[14px] bg-[#2d3663] px-5 py-5 text-white sm:px-6" aria-live="polite">
+                    <span class="pointer-events-none absolute -end-12 -top-12 h-44 w-44 rounded-full bg-[#2f7fd0]/45 blur-3xl" aria-hidden="true"></span>
+                    <p class="relative flex items-center gap-2 text-[13px] text-white/85">
+                        <span class="h-2 w-2 rounded-full" :class="result.cuadra ? 'bg-[#57D08F]' : 'bg-[#e24b4a]'" aria-hidden="true"></span>
+                        Estado del cuadre
                     </p>
-                    <dl class="mt-4 divide-y divide-border/70 text-sm">
-                        <div class="flex items-baseline justify-between gap-4 py-1.5">
-                            <dt class="text-muted">Caja / Bancos (capital menos activos fijos)</dt>
-                            <dd class="whitespace-nowrap tabular-nums" :class="result.caja < 0 ? 'font-semibold text-rose-700 dark:text-rose-400' : 'text-foreground'">{{ bs(result.caja) }}</dd>
-                        </div>
-                        <div class="flex items-baseline justify-between gap-4 py-1.5">
-                            <dt class="text-muted">Activo fijo</dt>
-                            <dd class="whitespace-nowrap tabular-nums text-foreground">{{ bs(result.activoFijo) }}</dd>
-                        </div>
-                        <div class="flex items-baseline justify-between gap-4 py-1.5">
-                            <dt class="font-semibold text-foreground">Total activo</dt>
-                            <dd class="whitespace-nowrap font-semibold tabular-nums text-foreground">{{ bs(result.activo) }}</dd>
-                        </div>
-                        <div class="flex items-baseline justify-between gap-4 py-1.5">
-                            <dt class="font-semibold text-foreground">Patrimonio (capital)</dt>
-                            <dd class="whitespace-nowrap font-semibold tabular-nums text-foreground">{{ bs(result.capital) }}</dd>
-                        </div>
-                    </dl>
+                    <p class="relative mt-1 text-4xl font-bold tracking-tight sm:text-[42px]">{{ result.cuadra ? 'CUADRA' : 'NO CUADRA' }}</p>
+                    <p
+                        v-if="result.cuadra"
+                        class="relative mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#E3F5EC] px-3 py-1.5 text-sm font-semibold text-[#12805A]"
+                    >
+                        <Check class="h-4 w-4" aria-hidden="true" /> Activo = Patrimonio = {{ bs(result.capital) }}
+                    </p>
+                    <p v-else class="relative mt-3 inline-block rounded-lg bg-[#FDECE0] px-3 py-1.5 text-sm font-semibold text-[#B4520E]">
+                        Los activos fijos ({{ bs(result.activoFijo) }}) superan el capital. Aumenta el capital.
+                    </p>
                 </div>
 
-                <BaseAlert v-if="pending.length" type="warning" title="Antes de imprimir">
+                <!-- Las cuatro cifras -->
+                <dl class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    <div v-for="s in stats" :key="s.label" class="rounded-[12px] border border-border bg-surface px-3 py-2.5">
+                        <dt class="text-[11.5px] leading-snug text-muted">{{ s.label }}</dt>
+                        <dd class="mt-0.5 text-[15px] font-semibold tabular-nums" :class="s.color">{{ bs(s.value) }}</dd>
+                    </div>
+                </dl>
+
+                <BaseAlert v-if="pending.length" type="warning" title="Antes de imprimir" class="print:hidden">
                     <ul class="list-disc space-y-0.5 ps-4">
                         <li v-for="(p, i) in pending" :key="i">{{ p }}</li>
                     </ul>
                 </BaseAlert>
 
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-2 font-sans sm:flex-row sm:items-center sm:justify-between print:hidden">
                     <p class="text-xs leading-relaxed text-muted">
                         Se abre la ventana de impresión: elige <strong class="font-semibold text-foreground">Guardar como PDF</strong> para descargarlo.
                     </p>
@@ -460,12 +497,13 @@ const addBtn =
                     </button>
                 </div>
 
-                <!-- Vista previa del documento -->
-                <div class="rounded-brand border border-border bg-slate-100 p-3 sm:p-6 dark:bg-slate-800/60">
-                    <BalanceDocument :empresa="empresa" :balance="result" class="mx-auto max-w-[42rem] shadow-md" />
+                <!-- El balance, como en la página original -->
+                <div class="balance-avoid-break rounded-[14px] border border-[#E6ECF4] bg-white px-5 pb-5 pt-[18px]">
+                    <h3 class="mb-3 text-[15px] font-bold text-[#16305A]">Balance de apertura</h3>
+                    <BalanceDocument :empresa="empresa" :balance="result" />
                 </div>
 
-                <p class="text-xs leading-relaxed text-muted">
+                <p class="font-sans text-xs leading-relaxed text-muted print:hidden">
                     Usamos el mismo cálculo que el
                     <a
                         href="https://boliviaimpuestos.com/maletin/balance-apertura.php"
@@ -478,45 +516,52 @@ const addBtn =
             </div>
         </section>
     </div>
-
-    <!-- Solo para imprimir: el documento solo, fuera del resto de la página -->
-    <Teleport to="body">
-        <div v-if="printing && result" class="balance-print">
-            <BalanceDocument :empresa="empresa" :balance="result" />
-        </div>
-    </Teleport>
 </template>
 
 <style>
-/* Global a propósito: al imprimir se oculta todo lo que no sea el balance. */
-.balance-print {
-    display: none;
+.balance-sin-transiciones *,
+.balance-sin-transiciones *::before,
+.balance-sin-transiciones *::after {
+    transition: none !important;
+    animation: none !important;
 }
 
+/*
+ * Impresión, como la página original: la pantalla completa de la herramienta, sin el menú
+ * lateral, la barra superior ni los botones. Global a propósito; solo actúa mientras la
+ * herramienta está abierta (clase "con-balance-apertura" en <body>).
+ */
 @media print {
     @page {
         size: letter;
-        margin: 18mm 16mm;
+        margin: 12mm;
     }
 
-    body.imprimiendo-balance > *:not(.balance-print) {
+    body.con-balance-apertura #app-sidebar,
+    body.con-balance-apertura .app-shell > .sticky,
+    body.con-balance-apertura .app-shell > header {
         display: none !important;
     }
 
-    body.imprimiendo-balance {
+    body.con-balance-apertura,
+    body.con-balance-apertura .app-shell {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
         background: #fff !important;
     }
 
-    body.imprimiendo-balance .balance-print {
-        display: block;
+    /* Los fondos de color (filas del balance, estado del cuadre) se imprimen aunque el navegador quite fondos. */
+    body.con-balance-apertura .balance-color {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
-    .balance-print .balance-doc {
-        max-width: 160mm;
-        margin: 0 auto;
-        padding: 0;
-        border-radius: 0;
-        box-shadow: none;
+    body.con-balance-apertura .balance-avoid-break {
+        break-inside: avoid;
+    }
+
+    body.con-balance-apertura * {
+        transition: none !important;
     }
 }
 </style>
