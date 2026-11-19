@@ -100,7 +100,13 @@ class MembershipControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Mi membresía');
-        $response->assertSee('Membresía activa');
+
+        // La cabecera Blade con "Membresía activa" se quitó junto con los accesos rápidos:
+        // ahora el estado lo dibuja el componente a partir de estos datos.
+        $membership = $response->viewData('initialMembership');
+        $this->assertTrue($membership['is_active']);
+        $this->assertSame('Membresía activa', $membership['status_label']);
+        $this->assertSame(180, $membership['days_remaining']);
     }
 
     public function test_student_can_submit_payment_proof(): void
@@ -288,9 +294,9 @@ class MembershipControllerTest extends TestCase
         $res1 = $this->actingAs($this->student)->get(route('membership.proof', $req1->id));
         $res1->assertOk();
 
-        // Other student cannot view Student A's proof (403 Forbidden)
+        // Otra persona no puede ver el comprobante, y se le responde igual que si no existiera (404).
         $otherStudent = User::factory()->create();
         $res2 = $this->actingAs($otherStudent)->get(route('membership.proof', $req1->id));
-        $res2->assertForbidden();
+        $res2->assertNotFound();
     }
 }

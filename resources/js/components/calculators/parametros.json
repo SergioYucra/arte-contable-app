@@ -1,0 +1,49 @@
+{
+    "actualizado": "2026-11-17",
+    "fuentes": {
+        "rcIva": "https://boliviaimpuestos.com/maletin/rc-iva.php",
+        "bonoAntiguedad": "https://boliviaimpuestos.com/maletin/bono-antiguedad.php"
+    },
+    "salariosMinimos": [
+        { "gestion": 2026, "monto": 3300, "norma": "DS 5516" },
+        { "gestion": 2025, "monto": 2750, "norma": "DS 5383" },
+        { "gestion": 2024, "monto": 2500, "norma": "DS 5143" },
+        { "gestion": 2023, "monto": 2362, "norma": "DS 4928" },
+        { "gestion": 2022, "monto": 2250, "norma": "DS 4711" },
+        { "gestion": 2021, "monto": 2164, "norma": "DS 4501" },
+        { "gestion": 2020, "monto": 2122, "norma": "sin incremento" },
+        { "gestion": 2019, "monto": 2122, "norma": "DS 3888" },
+        { "gestion": 2018, "monto": 2060, "norma": "DS 3544" },
+        { "gestion": 2017, "monto": 2000, "norma": "DS 3161" },
+        { "gestion": 2016, "monto": 1805, "norma": "DS 2748" },
+        { "gestion": 2015, "monto": 1656, "norma": "DS 2346" }
+    ],
+    "rcIva": {
+        "aporteAfp": 0.1271,
+        "aporteSolidario": [
+            { "desde": 13000, "hasta": 25000, "tasa": 0.0115 },
+            { "desde": 25000, "hasta": 35000, "tasa": 0.0574 },
+            { "desde": 35000, "hasta": null, "tasa": 0.1148 }
+        ],
+        "tasa": 0.13,
+        "minimoNoImponibleSmn": 2,
+        "compensacionSmn": 1,
+        "compensacionNorma": "DS 5383"
+    },
+    "bonoAntiguedad": {
+        "escala": [
+            { "desde": 2, "hasta": 4, "porcentaje": 5 },
+            { "desde": 5, "hasta": 7, "porcentaje": 11 },
+            { "desde": 8, "hasta": 10, "porcentaje": 18 },
+            { "desde": 11, "hasta": 14, "porcentaje": 26 },
+            { "desde": 15, "hasta": 19, "porcentaje": 34 },
+            { "desde": 20, "hasta": 24, "porcentaje": 42 },
+            { "desde": 25, "hasta": null, "porcentaje": 50 }
+        ],
+        "bases": [
+            { "clave": "3", "salarios": 3, "titulo": "3 salarios mínimos", "detalle": "Regla general: empresas productivas y, según la jurisprudencia, también de servicios.", "norma": "DS 23474" },
+            { "clave": "1", "salarios": 1, "titulo": "1 salario mínimo", "detalle": "ONG y entidades sin fines de lucro.", "norma": "DS 21137 art. 13" }
+        ],
+        "diasDelMes": 30
+    }
+}

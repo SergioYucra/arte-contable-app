@@ -95,8 +95,9 @@ class PaymentRequest extends Model
     /**
      * Configuración de auditoría inmutable (spatie/laravel-activitylog).
      *
-     * TODO(security): En el controlador/servicio de carga del comprobante hacia PrivateVault,
-     * validar MIME real (magic bytes), tamaño máximo y eliminación de contenido activo (CDR/antivirus).
+     * El comprobante se valida dos veces por su contenido real, no por su nombre: en el formulario
+     * (tipo y 5 MB) y en la bóveda (lista blanca en SubscriptionStorageService::PROOF_MIMES).
+     * Pendiente: analizar el archivo con antivirus, que el hosting compartido no ofrece.
      */
     public function getActivitylogOptions(): LogOptions
     {

@@ -348,6 +348,8 @@ class SubscriptionAdminController extends Controller
         $expiresAt = null;
 
         DB::transaction(function () use ($paymentRequest, $user, $plan, $request, &$expiresAt): void {
+            $this->lockStillPending($paymentRequest, 'aprobar');
+
             $now = Carbon::now();
 
             $grant = $this->membershipService->grantFromPayment($paymentRequest, $request->user());
@@ -409,7 +411,27 @@ class SubscriptionAdminController extends Controller
     }
 
     /**
-     * Rechaza una solicitud de pago indicando el motivo al alumno.
+     * Dentro de la transacción: vuelve a leer el pago con bloqueo antes de aprobarlo o rechazarlo.
+     *
+     * Desde que el estudiante puede retirar su envío, el pago puede desaparecer entre que se abre
+     * la ventana de revisión y se pulsa el botón. Sin esta relectura, aprobar un envío recién retirado
+     * intentaría dar días por un pago que ya no existe.
+     */
+    private function lockStillPending(PaymentRequest $paymentRequest, string $action): void
+    {
+        $fresh = PaymentRequest::whereKey($paymentRequest->id)->lockForUpdate()->first();
+
+        if ($fresh === null) {
+            throw ValidationException::withMessages([
+                'payment_request' => 'La persona retiró este envío antes de que lo revisaras. Actualiza la página para ver la lista al día.',
+            ]);
+        }
+
+        $this->ensurePending($fresh, $action);
+    }
+
+    /**
+     * Rechaza una solicitud de pago indicando el motivo al estudiante.
      */
     public function rejectPaymentRequest(Request $request, PaymentRequest $paymentRequest): JsonResponse
     {
@@ -423,6 +445,8 @@ class SubscriptionAdminController extends Controller
         ]);
 
         DB::transaction(function () use ($paymentRequest, $validated, $request): void {
+            $this->lockStillPending($paymentRequest, 'rechazar');
+
             $paymentRequest->update([
                 'status' => PaymentRequest::STATUS_REJECTED,
                 'admin_notes' => trim($validated['admin_notes']),

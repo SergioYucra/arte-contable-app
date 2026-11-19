@@ -124,7 +124,7 @@ class SpecialPriceTest extends TestCase
         $plans = $this->actingAs($student)->get(route('membership.index'))->viewData('initialPlans');
         $this->assertSame(150.0, $plans[0]['price']);
         $this->assertSame('Black Friday', $plans[0]['special']['label']);
-        $this->assertSame('200.00 BOB', $plans[0]['special']['regular_price_formatted']);
+        $this->assertSame('Bs 200', $plans[0]['special']['regular_price_formatted']);
         $this->assertStringContainsString('promo.webp', $plans[0]['qr_image_url']);
 
         $this->actingAs($student)->post(route('membership.payment.store'), [

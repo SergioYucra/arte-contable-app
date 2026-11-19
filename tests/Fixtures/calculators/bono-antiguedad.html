@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Fixture recortado de boliviaimpuestos.com</title></head>
+<body>
+<!-- Copia recortada de la página real (capturada el 2026-11-17): solo lo que lee la revisión diaria. -->
+<div class="seg2 seg2--col" id="bBase">
+                  <button type="button" data-s="3" class="on">3 SMN · regla general<br><small style="font-weight:500;color:var(--bi-faint)">Empresas productivas y, según la jurisprudencia, también de servicios (DS 23474)</small></button>
+                  <button type="button" data-s="1">1 SMN · ONG y entidades sin fines de lucro<br><small style="font-weight:500;color:var(--bi-faint)">No alcanzadas por el DS 23474 (DS 21137 Art. 13)</small></button>
+                  <button type="button" data-s="otra">Otra base (convenio)<br><small style="font-weight:500;color:var(--bi-faint)">Cantidad de SMN pactada en convenio de partes</small></button>
+                </div>
+<script>/* Otro script de la página (buscador, comentarios): la revisión debe ignorarlo. */ document.getElementById('railSearch');</script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var ESC=[[2,4,5],[5,7,11],[8,10,18],[11,14,26],[15,19,34],[20,24,42],[25,null,50]];
+  var SMN=[[2026,3300,'DS 5516'],[2025,2750,'DS 5383'],[2024,2500,'DS 5143'],[2023,2362,'DS 4928'],[2022,2250,'DS 4711'],[2021,2164,'DS 4501'],[2020,2122,'sin incremento'],[2019,2122,'DS 3888'],[2018,2060,'DS 3544'],[2017,2000,'DS 3161'],[2016,1805,'DS 2748'],[2015,1656,'DS 2346']];
+  var mode='fecha', base='3';
+  function fmt(n,d){d=(d===undefined)?2:d;return 'Bs '+(Number(n)||0).toLocaleString('es-BO',{minimumFractionDigits:d,maximumFractionDigits:d})}
+  function fdate(d){return d.toLocaleDateString('es-BO',{day:'2-digit',month:'long',year:'numeric'})}
+  function pd(v){if(!v)return null;var p=v.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function addY(d,n){var r=new Date(d.getTime());r.setFullYear(r.getFullYear()+n);return r}
+  function yearsBetween(a,b){var y=b.getFullYear()-a.getFullYear();var t=addY(a,y);if(t>b)y--;return Math.max(0,y)}
+  function tramo(y){for(var i=ESC.length-1;i>=0;i--){if(y>=ESC[i][0])return i}return -1}
+  function tramoLbl(t){return t[1]?t[0]+' a '+t[1]+' años':t[0]+' años o más'}
+
+  /* SMN presets */
+  var sel=$('bSmnSel');
+  SMN.forEach(function(s){var o=document.createElement('option');o.value=s[1];o.textContent=s[0]+' · Bs '+s[1].toLocaleString('es-BO')+' · '+s[2];sel.appendChild(o)});
+  var oo=document.createElement('option');oo.value='';oo.textContent='Otro valor (escriba el monto)';sel.appendChild(oo);
+  sel.addEventListener('change',function(){if(sel.value){$('bSmn').value=sel.value;}calc()});
+  $('bSmn').addEventListener('input',function(){var v=parseFloat($('bSmn').value);var hit=SMN.filter(function(s){return s[1]===v})[0];sel.value=hit?String(hit[1]):'';calc()});
+  function smnRef(){var v=parseFloat($('bSmn').value);var hits=SMN.filter(function(s){return s[1]===v});if(hits.length){var h=hits[hits.length-1];$('bSmnRef').textContent='SMN vigente para la gestión '+hits.map(function(s){return s[0]}).join(' y ')+' ('+h[2]+').'}else $('bSmnRef').textContent='Monto personalizado. Verifique el decreto de incremento salarial vigente.'}
+
+  /* defaults */
+  var hoy=new Date(); $('bCalc').value=iso(hoy); $('bIng').value=iso(addY(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()),-6));
+  $('bMeses').value=String(Math.max(1,hoy.getMonth()));
+
+  $('bMode').addEventListener('click',function(e){var b=e.target.closest('button[data-s]');if(!b)return;mode=b.dataset.s;[].forEach.call(this.children,function(x){x.classList.toggle('on',x===b)});$('bWrapFecha').style.display=mode==='fecha'?'':'none';$('bWrapAnios').style.display=mode==='anios'?'':'none';calc()});
+  $('bBase').addEventListener('click',function(e){var b=e.target.closest('button[data-s]');if(!b)return;base=b.dataset.s;[].forEach.call(this.children,function(x){x.classList.toggle('on',x===b)});$('bWrapMult').style.display=base==='otra'?'':'none';calc()});
+
+  function calc(){
+    smnRef();
+    var smn=parseFloat($('bSmn').value)||0;
+    var mult=base==='otra'?(parseFloat($('bMult').value)||0):parseFloat(base);
+    var dias=Math.min(30,Math.max(0,parseInt($('bDias').value,10)||0)); if(String($('bDias').value)!==String(dias)&&$('bDias').value!=='')$('bDias').value=dias;
+    var haber=parseFloat($('bHaber').value)||0;
+    var ing=null, fc=null, anios;
+    if(mode==='fecha'){ing=pd($('bIng').value);fc=pd($('bCalc').value)||hoy;if(!ing||ing>fc){anios=0}else anios=yearsBetween(ing,fc)}
+    else {anios=Math.max(0,parseInt($('bAnios').value,10)||0)}
+    var ti=tramo(anios), pct=ti>=0?ESC[ti][2]:0, baseBs=smn*mult, bonoPleno=baseBs*pct/100, bono=bonoPleno*dias/30;
+    var baseTxt=(mult%1===0?mult:mult.toLocaleString('es-BO'))+' SMN';
+
+    /* hero */
+    $('bOut').textContent=fmt(bono);
+    $('bDot').style.background=ti>=0?'#57D08F':'#F5B94A';
+    if(ti<0){ $('bLbl').textContent='Aún no corresponde bono';
+      $('bSub').innerHTML='<b>'+anios+' año'+(anios===1?'':'s')+'</b> de antigüedad. El derecho nace al cumplir <b>2 años</b> (DS 21060 Art. 60).'+(ing?' Lo cumple el <b>'+fdate(addY(ing,2))+'</b>.':'');
+    } else { $('bLbl').textContent=dias<30?'Bono de antigüedad proporcional ('+dias+' días)':'Bono de antigüedad mensual';
+      $('bSub').innerHTML='<b>'+anios+' años</b> cumplidos · tramo <b>'+tramoLbl(ESC[ti])+'</b> · <b>'+pct+'%</b> de '+baseTxt+' ('+fmt(baseBs,0)+')'+(haber?' · total ganado <b>'+fmt(haber+bono)+'</b>':'');
+    }
+    /* stats */
+    $('bStats').innerHTML=[
+      ['Antigüedad',anios+' años','#2d3663'],
+      ['Porcentaje',pct+'%','#006ba6'],
+      ['Base ('+baseTxt+')',fmt(baseBs,0),'#C77E12'],
+      [haber?'Total ganado':'Bono anual (12 meses)',haber?fmt(haber+bono):fmt(bonoPleno*12),'#1E9E6E'],
+    ].map(function(s){return '<div class="stat"><div class="stat__k">'+s[0]+'</div><div style="margin-top:2px"><span class="stat__v" style="color:'+s[2]+';font-size:18px">'+s[1]+'</span></div></div>'}).join('');
+
+    /* tabla */
+    $('bTabla').querySelector('tbody').innerHTML=ESC.map(function(t,i){var m=baseBs*t[2]/100;return '<tr class="'+(i===ti?'on':(i<ti?'off':''))+'"><td>'+tramoLbl(t)+'</td><td>'+t[2]+'%</td><td>'+fmt(m)+'</td><td>'+fmt(m*12)+'</td></tr>'}).join('')
+      +'<tr><td colspan="4" style="font-size:12px;color:var(--bi-faint);padding-top:10px">Con SMN '+fmt(smn,0)+' × '+baseTxt+' = '+fmt(baseBs,0)+' de base. Menos de 2 años: sin bono.</td></tr>';
+
+    /* próximo tramo */
+    var nx=ti+1<ESC.length?ESC[ti+1]:null, html='';
+    if(nx){ var nb=baseBs*nx[2]/100, dif=nb-bonoPleno, falta=nx[0]-anios;
+      var when=ing?('el <b>'+fdate(addY(ing,nx[0]))+'</b>'):('al cumplir <b>'+nx[0]+' años</b>');
+      html='<div class="bnx"><div class="bnx__d">'+(ti<0?'Su primer bono llega ':'Pasa al tramo <b>'+tramoLbl(nx)+'</b> ('+nx[2]+'%) ')+when+' — en '+falta+' año'+(falta===1?'':'s')+'. El bono sube de '+fmt(bonoPleno)+' a <b>'+fmt(nb)+'</b> mensuales.</div><div class="bnx__v">+'+fmt(dif)+'</div></div>';
+      if(ing){ var ini=ti>=0?addY(ing,ESC[ti][0]):ing, fin=addY(ing,nx[0]), p=Math.max(0,Math.min(100,(fc-ini)/(fin-ini)*100));
+        html+='<div class="tl" style="margin-top:18px"><div class="tl__track"><div class="tl__fill" style="width:'+p.toFixed(1)+'%"></div><div class="tl__now" style="left:calc('+p.toFixed(1)+'% - 1px)"></div></div><div class="tl__ends"><div><b>'+(ti>=0?pct+'%':'sin bono')+'</b>desde '+fdate(ini)+'</div><div class="r"><b>'+nx[2]+'%</b>desde '+fdate(fin)+'</div></div></div>';
+      }
+    } else html='<div class="bnx"><div class="bnx__d">Ya está en el <b>tramo máximo</b> de la escala (50%). El bono solo varía cuando cambia el Salario Mínimo Nacional.</div><div class="bnx__v">50%</div></div>';
+    $('bNext').innerHTML=html;
+
+    /* pasos */
+    var st=[];
+    if(mode==='fecha'&&ing) st.push('Antigüedad: del '+fdate(ing)+' al '+fdate(fc)+' = <b>'+anios+' años cumplidos</b> (se cuentan años completos).');
+    else st.push('Antigüedad declarada: <b>'+anios+' años cumplidos</b>.');
+    st.push(ti>=0?('En la escala del DS 21060 Art. 60, '+anios+' años cae en el tramo <b>'+tramoLbl(ESC[ti])+'</b> → <b>'+pct+'%</b>.'):'Con menos de 2 años no hay tramo aplicable → 0%.');
+    st.push('Base de cálculo = SMN × '+baseTxt+' = '+fmt(smn,0)+' × '+(base==='otra'?mult:base)+' = <b>'+fmt(baseBs,0)+'</b>'+(base==='1'?' (DS 21137 Art. 13).':' (DS 23474).'));
+    st.push('Bono mensual = '+fmt(baseBs,0)+' × '+pct+'% = <b>'+fmt(bonoPleno)+'</b>.');
+    if(dias<30) st.push('Proporcional a '+dias+' días: '+fmt(bonoPleno)+' × '+dias+' ÷ 30 = <b>'+fmt(bono)+'</b>.');
+    if(haber) st.push('Total ganado = haber básico '+fmt(haber)+' + bono '+fmt(bono)+' = <b>'+fmt(haber+bono)+'</b>. El haber básico no altera el bono.');
+    $('bSteps').innerHTML=st.map(function(t,i){return '<div class="step"><span class="step__n">'+(i+1)+'</span><span>'+t+'</span></div>'}).join('');
+
+    /* retroactivo */
+    var smnA=parseFloat($('bSmnAnt').value)||0, meses=Math.max(0,parseInt($('bMeses').value,10)||0);
+    var bonoA=smnA*mult*pct/100, difM=bonoPleno-bonoA;
+    $('bRetro').innerHTML=[
+      ['Bono con SMN anterior',fmt(bonoA),fmt(smnA,0)+' × '+baseTxt+' × '+pct+'%'],
+      ['Bono con SMN nuevo',fmt(bonoPleno),fmt(smn,0)+' × '+baseTxt+' × '+pct+'%'],
+      ['Diferencia mensual',fmt(difM),'nuevo − anterior'],
+      ['Retroactivo a pagar',fmt(difM*meses),fmt(difM)+' × '+meses+' mes'+(meses===1?'':'es'),true],
+    ].map(function(c){return '<div class="cmp__card'+(c[3]?' best':'')+'">'+(c[3]?'<span class="cmp__best">TOTAL</span>':'')+'<div class="cmp__t">'+c[0]+'</div><div class="cmp__v">'+c[1]+'</div><div class="cmp__d">'+c[2]+'</div></div>'}).join('');
+  }
+  ['bIng','bCalc','bAnios','bMult','bHaber','bDias','bSmnAnt','bMeses'].forEach(function(id){$(id).addEventListener('input',calc);$(id).addEventListener('change',calc)});
+  $('bGo').addEventListener('click',calc);
+  calc();
+})();
+</script>
+</body>
+</html>

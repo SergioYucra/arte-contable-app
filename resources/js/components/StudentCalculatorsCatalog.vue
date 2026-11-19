@@ -1,6 +1,10 @@
 <script setup>
+import { defineAsyncComponent } from 'vue';
 import { Calculator } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
+import ActualizacionCalculadora from './calculators/actualizacion/ActualizacionCalculadora.vue';
+import DepAmortCalculadora from './calculators/dep-amort/DepAmortCalculadora.vue';
+import ReexpresionCalculadora from './calculators/reexpresion/ReexpresionCalculadora.vue';
 
 defineProps({
     initialItems: {
@@ -14,7 +18,15 @@ defineProps({
  * Al implementar cada calculadora, importa su componente y regístralo aquí
  * usando su `component` o `slug` como clave.
  */
-const calculatorComponents = {};
+const calculatorComponents = {
+    ActualizacionCuentasNc3: ActualizacionCalculadora,
+    DepreciacionAmortizaciones: DepAmortCalculadora,
+    ReexpresionMonedaExtranjera: ReexpresionCalculadora,
+    RcIvaCalculator: defineAsyncComponent(() => import('./calculators/RcIvaCalculator.vue')),
+    BonoAntiguedadCalculator: defineAsyncComponent(() => import('./calculators/BonoAntiguedadCalculator.vue')),
+    RcIvaCalculator: defineAsyncComponent(() => import('./calculators/RcIvaCalculator.vue')),
+    BonoAntiguedadCalculator: defineAsyncComponent(() => import('./calculators/BonoAntiguedadCalculator.vue')),
+};
 </script>
 
 <template>
