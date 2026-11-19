@@ -9,7 +9,9 @@ use Illuminate\Notifications\Notification;
 /**
  * Correo al administrador cuando la protección de los libros detecta algo.
  *
- * Los textos llegan escapados por la plantilla de Laravel (MailMessage escapa cada línea).
+ * Las líneas llevan texto que escribió el estudiante (su nombre). La plantilla escapa el HTML,
+ * y el Markdown queda escapado porque LibraryProtectionServiceProvider activa
+ * Markdown::withSecuredEncoding(): un nombre con "[texto](enlace)" no se vuelve un enlace.
  */
 class ReadingAlertNotification extends Notification
 {

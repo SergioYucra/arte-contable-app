@@ -53,6 +53,22 @@ class ReadingPauseTest extends ProtectionTestCase
         });
     }
 
+    public function test_a_name_with_markdown_cannot_put_links_in_the_admin_email(): void
+    {
+        config()->set('library.protection.trap_strikes', ['limit' => 1, 'window_minutes' => 30]);
+        $attacker = $this->makeStudent(['name' => 'Juan [Entrar al panel](https://evil.example/login) ![x](https://evil.example/p.png)']);
+
+        $this->readPage($attacker, 999)->assertStatus(423);
+
+        Notification::assertSentTo($this->superAdmin, ReadingAlertNotification::class, function (ReadingAlertNotification $n) {
+            $html = (string) $n->toMail($this->superAdmin)->render();
+
+            return ! str_contains($html, 'href="https://evil.example')
+                && ! str_contains($html, 'src="https://evil.example')
+                && str_contains($html, 'Entrar al panel');
+        });
+    }
+
     public function test_a_normal_reading_pace_is_never_paused(): void
     {
         $this->subscribe($this->student);

@@ -8,6 +8,7 @@ use App\Modules\LibraryProtection\Services\ReadingDecision;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,6 +25,11 @@ class LibraryProtectionServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        // Los correos al administrador incluyen el nombre que escribió el estudiante. Sin esto,
+        // Laravel no escapa el Markdown de lo que se imprime con {{ }} y un nombre como
+        // "[Panel](https://sitio-falso)" se volvería un enlace dentro de un correo oficial.
+        Markdown::withSecuredEncoding();
+
         RateLimiter::for('book-pages', function (Request $request): Limit {
             $user = $request->user();
             $perMinute = max(1, (int) config('library.protection.pages_per_minute', 30));
