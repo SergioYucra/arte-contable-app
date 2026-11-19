@@ -1,8 +1,8 @@
 // Formatos y lectura de lo que escribe la persona. Correr con: npm run test:js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bs, bsCompact, longDate, parseAmount, parseWhole, percent } from '../../../resources/js/components/calculators/format.js';
-import { tiempoHasta } from '../../../resources/js/components/calculators/bonoAntiguedad.js';
+import { bs, bsCompact, longDate, parseAmount, parseWhole, percent } from '../../../resources/js/components/calculators/shared/formatters.js';
+import { tiempoHasta } from '../../../resources/js/components/calculators/bono-antiguedad/bonoAntiguedad.js';
 
 test('montos en bolivianos', () => {
     const nbsp = '\u00A0';

@@ -1,10 +1,7 @@
 <script setup>
-import { defineAsyncComponent } from 'vue';
 import { Calculator } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
-import ActualizacionCalculadora from './calculators/actualizacion/ActualizacionCalculadora.vue';
-import DepAmortCalculadora from './calculators/dep-amort/DepAmortCalculadora.vue';
-import ReexpresionCalculadora from './calculators/reexpresion/ReexpresionCalculadora.vue';
+import { lazyItem } from './utilities/lazyItem';
 
 defineProps({
     initialItems: {
@@ -15,17 +12,17 @@ defineProps({
 
 /**
  * Registro de componentes de calculadoras.
- * Al implementar cada calculadora, importa su componente y regístralo aquí
- * usando su `component` o `slug` como clave.
+ * Al implementar cada calculadora, créala en su propia carpeta de calculators/ (las piezas
+ * comunes están en calculators/shared/) y regístrala aquí con la clave `component` de
+ * CalculatorController. Cada una se descarga recién al abrir su tarjeta (lazyItem muestra
+ * "Cargando…" y un aviso si falla la descarga).
  */
 const calculatorComponents = {
-    ActualizacionCuentasNc3: ActualizacionCalculadora,
-    DepreciacionAmortizaciones: DepAmortCalculadora,
-    ReexpresionMonedaExtranjera: ReexpresionCalculadora,
-    RcIvaCalculator: defineAsyncComponent(() => import('./calculators/RcIvaCalculator.vue')),
-    BonoAntiguedadCalculator: defineAsyncComponent(() => import('./calculators/BonoAntiguedadCalculator.vue')),
-    RcIvaCalculator: defineAsyncComponent(() => import('./calculators/RcIvaCalculator.vue')),
-    BonoAntiguedadCalculator: defineAsyncComponent(() => import('./calculators/BonoAntiguedadCalculator.vue')),
+    ActualizacionCuentasNc3: lazyItem(() => import('./calculators/actualizacion/ActualizacionCalculadora.vue')),
+    DepreciacionAmortizaciones: lazyItem(() => import('./calculators/dep-amort/DepAmortCalculadora.vue')),
+    ReexpresionMonedaExtranjera: lazyItem(() => import('./calculators/reexpresion/ReexpresionCalculadora.vue')),
+    RcIvaCalculator: lazyItem(() => import('./calculators/rc-iva/RcIvaCalculator.vue')),
+    BonoAntiguedadCalculator: lazyItem(() => import('./calculators/bono-antiguedad/BonoAntiguedadCalculator.vue')),
 };
 </script>
 

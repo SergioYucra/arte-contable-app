@@ -1,5 +1,5 @@
 <script setup>
-import { field, hint as hintClass, label as labelClass, errorText } from '../subscriptions/shared';
+import { field, hint as hintClass, label as labelClass, errorText } from '../../subscriptions/shared';
 
 /**
  * Campo de monto en bolivianos. Acepta "15000", "15.000" o "15.000,50"; quien lo usa lo

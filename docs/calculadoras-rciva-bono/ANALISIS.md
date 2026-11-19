@@ -87,9 +87,9 @@ para el próximo tramo (resta años, no fechas). La nuestra dice "mañana", "en 
 
 | Qué | Dónde |
 |---|---|
-| Tasas, tablas y salarios mínimos (única fuente) | `resources/js/components/calculators/parametros.json` |
-| Fórmulas (funciones puras, sin Vue) | `resources/js/components/calculators/rcIva.js`, `bonoAntiguedad.js` |
-| Pantallas | `RcIvaCalculator.vue`, `BonoAntiguedadCalculator.vue` (registradas en `StudentCalculatorsCatalog.vue`) |
+| Tasas, tablas y salarios mínimos (única fuente) | `resources/js/components/calculators/shared/parametros.json` |
+| Fórmulas (funciones puras, sin Vue) | `resources/js/components/calculators/rc-iva/rcIva.js`, `bono-antiguedad/bonoAntiguedad.js` |
+| Pantallas | `rc-iva/RcIvaCalculator.vue`, `bono-antiguedad/BonoAntiguedadCalculator.vue`; piezas compartidas en `calculators/shared/` (registradas en `StudentCalculatorsCatalog.vue`) |
 | Pruebas de fórmulas contra su página | `tests/js/calculators/*.test.js` + `tests/js/fixtures/*.json` (`npm run test:js`) |
 | Revisión diaria | `app/Modules/Calculators` (`php artisan calculators:check`) y `config/calculators.php` |
 | Pruebas de la revisión | `tests/Feature/Calculators` + `tests/Fixtures/calculators/*.html` (copias recortadas de sus páginas) |

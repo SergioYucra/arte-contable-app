@@ -1,13 +1,13 @@
 <script setup>
 import { computed, reactive, shallowRef, useId, watch } from 'vue';
-import BaseAlert from '../ui/BaseAlert.vue';
-import CalculationSteps from './CalculationSteps.vue';
-import MoneyField from './MoneyField.vue';
-import SmnField from './SmnField.vue';
-import parametros from './parametros.json';
+import BaseAlert from '../../ui/BaseAlert.vue';
+import CalculationSteps from '../shared/CalculationSteps.vue';
+import MoneyField from '../shared/MoneyField.vue';
+import SmnField from '../shared/SmnField.vue';
+import parametros from '../shared/parametros.json';
 import { addYears, calcularBono, parseIsoDate, tiempoHasta } from './bonoAntiguedad';
-import { bs, bsCompact, longDate, parseAmount, parseWhole, todayIso } from './format';
-import { errorText, field, hint, label } from '../subscriptions/shared';
+import { bs, bsCompact, longDate, parseAmount, parseWhole, todayIso } from '../shared/formatters';
+import { errorText, field, hint, label } from '../../subscriptions/shared';
 
 /**
  * Calculadora del bono de antigüedad (DS 21060 art. 60) y su reliquidación.

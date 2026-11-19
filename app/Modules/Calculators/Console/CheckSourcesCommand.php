@@ -162,8 +162,8 @@ class CheckSourcesCommand extends Command
             '',
             'Qué hacer:',
             '1. Abrir su página (enlaces abajo) y confirmar el cambio.',
-            '2. Si corresponde, actualizar resources/js/components/calculators/parametros.json',
-            '   (y rcIva.js o bonoAntiguedad.js si cambió la fórmula). Luego: npm run test:js y npm run build.',
+            '2. Si corresponde, actualizar resources/js/components/calculators/shared/parametros.json',
+            '   (y rc-iva/rcIva.js o bono-antiguedad/bonoAntiguedad.js si cambió la fórmula). Luego: npm run test:js y npm run build.',
             '3. Guardar la huella nueva en config/calculators.php: php artisan calculators:check --show-fingerprint',
             'Detalle en docs/calculadoras-rciva-bono/ANALISIS.md.',
         ], $this->footer()));

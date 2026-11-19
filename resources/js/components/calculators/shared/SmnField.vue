@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue';
-import { bs, parseAmount } from './format';
-import { field, hint, label as labelClass, errorText } from '../subscriptions/shared';
+import { bs, parseAmount } from './formatters';
+import { field, hint, label as labelClass, errorText } from '../../subscriptions/shared';
 
 /**
  * Salario mínimo nacional: se elige por año (con su decreto) o se escribe a mano.

@@ -1,6 +1,7 @@
 <script setup>
 import { Wrench } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
+import { lazyItem } from './utilities/lazyItem';
 import FacturadorTool from './tools/factura/FacturadorTool.vue';
 import ReciboCalculadora from './tools/recibo/ReciboCalculadora.vue';
 import ChequeCalculadora from './tools/cheque/ChequeCalculadora.vue';
@@ -14,10 +15,12 @@ defineProps({
 
 /**
  * Registro de componentes de herramientas.
- * Al implementar cada herramienta, importa su componente y regístralo aquí
- * usando su `component` o `slug` como clave.
+ * Al implementar cada herramienta, créala en su propia carpeta de tools/ y regístrala aquí con
+ * la clave `component` de ToolController. Cada una se descarga recién al abrir su tarjeta (lazyItem muestra
+ * "Cargando…" y un aviso si falla la descarga).
  */
 const toolComponents = {
+    CrearBalanceAperturaTool: lazyItem(() => import('./tools/balance-apertura/BalanceAperturaTool.vue')),
     CrearFacturaTool: FacturadorTool,
     CrearReciboTool: ReciboCalculadora,
     CrearChequeTool: ChequeCalculadora,
