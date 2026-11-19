@@ -50,19 +50,19 @@ de su página real (`tests/js/fixtures/balance-apertura-casos.json`): mismas cif
 - **Montos escritos a la boliviana.** "300.000" es trescientos mil (su página lo lee como 300).
 - **Cada fila muestra su cuenta:** "2 × Bs 1.500,00 = Bs 3.000,00".
 
-## 3. Diseño e impresión, como el original
+## 3. Diseño: pantalla propia; documento e impresión como el original
 
-- **El documento** copia su diseño: encabezado centrado (razón social, NIT y ciudad, "BALANCE DE APERTURA"
-  en azul y la fecha), línea azul marino, filas de grupo en azul marino con letra blanca, subgrupos en gris
-  azulado y la letra **Niramit** (la de su sitio, cargada desde fonts.bunny.net solo en esta herramienta).
-  Va en una tarjeta blanca titulada "Balance de apertura".
-- **Estado del cuadre y cifras:** el recuadro azul marino "Estado del cuadre: CUADRA" con la etiqueta
-  "Activo = Patrimonio = Bs …" y las cuatro cifras (caja en azul, activo fijo en naranja, total y
-  patrimonio en verde), con sus colores.
-- **Impresión / PDF:** igual que su página, se imprime la pantalla completa de la herramienta (datos,
-  socios, activos, estado del cuadre, cifras y balance), sin el menú, la barra superior ni los botones.
-  Siempre en colores claros, aunque la app esté en modo oscuro; los fondos de color del balance se imprimen
-  aunque el navegador tenga desactivados los gráficos de fondo. Funciona con el botón y con Ctrl+P.
+- **La pantalla** tiene el diseño de nuestra app (como las calculadoras): formulario, recuadro "El balance
+  cuadra" con sus cifras, avisos y el botón para imprimir.
+- **La vista previa del documento** es igual a la de su página (`BalanceDocument.vue`): encabezado centrado,
+  línea azul marino, filas de grupo en azul marino con letra blanca, subgrupos en gris azulado y la letra
+  **Niramit**, dentro de la tarjeta blanca "Balance de apertura".
+- **Lo que se imprime o guarda como PDF** es una hoja aparte (`BalancePrintSheet.vue`) igual a la impresión
+  de su página: datos de la empresa, socios, activos fijos, "Estado del cuadre: CUADRA", las cuatro cifras y
+  el balance, con sus medidas y colores. Solo cambia "Maletín" por "Herramientas" en la ruta de arriba.
+  La hoja vive en el documento pero no se ve en pantalla; al imprimir se ve solo ella, así que también
+  funciona con Ctrl+P y sale igual aunque la app esté en modo oscuro.
+- Las letras Niramit y Lora (las de su sitio) se cargan desde fonts.bunny.net solo en esta herramienta.
   El navegador propone como nombre del PDF "Balance de apertura - {empresa}".
 
 ## 4. Dónde está cada cosa
@@ -72,7 +72,8 @@ de su página real (`tests/js/fixtures/balance-apertura-casos.json`): mismas cif
 | Cálculo (sin Vue) | `resources/js/components/tools/balance-apertura/balanceApertura.js` |
 | Opciones (tipos, ciudades, grupos, límites) | `tools/balance-apertura/catalogos.js` |
 | Pantalla | `tools/balance-apertura/BalanceAperturaTool.vue` (registrada en `StudentToolsCatalog.vue`) |
-| Documento (vista previa e impresión) | `tools/balance-apertura/BalanceDocument.vue` |
+| Documento (vista previa) | `tools/balance-apertura/BalanceDocument.vue` |
+| Hoja que se imprime (igual al original) | `tools/balance-apertura/BalancePrintSheet.vue` |
 | Pruebas contra su página | `tests/js/tools/balanceApertura.test.js` (`npm run test:js`) |
 | Script que capturó los casos | `docs/herramienta-balance-apertura/capturar-casos.cjs` |
 

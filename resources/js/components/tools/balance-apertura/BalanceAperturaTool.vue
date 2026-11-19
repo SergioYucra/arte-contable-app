@@ -1,9 +1,10 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, shallowRef, useId, watch } from 'vue';
-import { Check, Info, Plus, Printer, X } from 'lucide-vue-next';
+import { Info, Plus, Printer, X } from 'lucide-vue-next';
 import BaseAlert from '../../ui/BaseAlert.vue';
 import MoneyField from '../../calculators/shared/MoneyField.vue';
 import BalanceDocument from './BalanceDocument.vue';
+import BalancePrintSheet from './BalancePrintSheet.vue';
 import { armarBalance, porcentajeTexto } from './balanceApertura';
 import { CIUDADES, GRUPOS_ACTIVO_FIJO, LIMITES, TIPOS_EMPRESA } from './catalogos';
 import { bs, parseAmount, parseIsoDate, parseWhole, todayIso } from '../../calculators/shared/formatters';
@@ -12,8 +13,8 @@ import { btn, errorText, field, hint, label } from '../../subscriptions/shared';
 /**
  * Herramienta "Crear balance de apertura" (catálogo de Herramientas).
  * Arma el balance en el navegador con el mismo cálculo que boliviaimpuestos.com (ver balanceApertura.js).
- * El resultado (estado del cuadre, cifras y documento) y la impresión siguen el diseño de su página:
- * se imprime la pantalla completa, sin menú ni botones. No se envía ni se guarda nada.
+ * La pantalla tiene diseño propio; la vista previa del documento y la hoja que se imprime
+ * (BalancePrintSheet) son iguales a las de su página. No se envía ni se guarda nada.
  */
 defineProps({
     item: { type: Object, default: null },
@@ -142,18 +143,6 @@ const empresa = computed(() => ({
 
 const subtotal = (clave) => result.value?.categorias.find((c) => c.clave === clave)?.subtotal ?? 0;
 
-/** Las cuatro cifras del resultado, con los colores de la página original. */
-const stats = computed(() => {
-    const r = result.value;
-    if (!r) return [];
-    return [
-        { label: 'Activo disponible (caja)', value: r.caja, color: r.caja < 0 ? 'text-[#e24b4a]' : 'text-[#006ba6] dark:text-sky-400' },
-        { label: 'Activo fijo', value: r.activoFijo, color: 'text-[#C77E12] dark:text-amber-400' },
-        { label: 'Total activo', value: r.activo, color: 'text-[#2d3663] dark:text-slate-200' },
-        { label: 'Patrimonio (capital)', value: r.capital, color: 'text-[#1E9E6E] dark:text-emerald-400' },
-    ];
-});
-
 /** Lo que falta para que el balance se pueda imprimir, en palabras (con el cálculo actual). */
 const pending = computed(() => {
     const r = fresh.value;
@@ -170,20 +159,19 @@ const pending = computed(() => {
 const ready = computed(() => !stale.value && pending.value.length === 0);
 
 // ---------------------------------------------------------------------
-// Imprimir o guardar como PDF: la pantalla completa, como la página original
-// (sin menú, barra superior ni botones) y siempre en colores claros.
-// También funciona con Ctrl+P.
+// Imprimir o guardar como PDF. Lo que sale es BalancePrintSheet: una hoja igual a la
+// impresión de la página original (siempre en el documento, oculta en pantalla). Así
+// también funciona con Ctrl+P y no depende del tema (claro u oscuro) de la app.
 // ---------------------------------------------------------------------
-const FONT_HREF = 'https://fonts.bunny.net/css?family=niramit:400,500,600,700&display=swap';
+const FONT_HREF = 'https://fonts.bunny.net/css?family=niramit:400,500,600,700|lora:400,500&display=swap';
 let savedTitle = null;
-let wasDark = false;
 
-function loadFont() {
-    if (document.querySelector('link[data-fuente="niramit"]')) return;
+function loadFonts() {
+    if (document.querySelector('link[data-fuente="balance-apertura"]')) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = FONT_HREF;
-    link.dataset.fuente = 'niramit';
+    link.dataset.fuente = 'balance-apertura';
     document.head.appendChild(link);
 }
 
@@ -192,52 +180,40 @@ function onBeforePrint() {
     savedTitle = document.title;
     // El navegador propone el título como nombre del PDF.
     if (empresa.value.razonSocial) document.title = `Balance de apertura - ${empresa.value.razonSocial}`.slice(0, 120);
-    // El papel es blanco: en modo oscuro se imprime igual en claro. Sin transiciones, para que
-    // los colores claros se apliquen de inmediato y no a mitad de la animación.
-    document.documentElement.classList.add('balance-sin-transiciones');
-    wasDark = document.documentElement.classList.contains('dark');
-    document.documentElement.classList.remove('dark');
-    void document.body.offsetHeight;
 }
 
 function onAfterPrint() {
     if (savedTitle === null) return;
     document.title = savedTitle;
     savedTitle = null;
-    if (wasDark) document.documentElement.classList.add('dark');
-    wasDark = false;
-    document.documentElement.classList.remove('balance-sin-transiciones');
 }
 
 async function printBalance() {
     if (!ready.value) return;
-    // La letra del balance tiene que estar cargada antes de imprimir (máximo 2 s de espera).
+    // Las letras de la hoja tienen que estar cargadas antes de imprimir (máximo 2 s de espera).
     try {
-        await Promise.race([document.fonts.load('600 13px Niramit'), new Promise((resolve) => setTimeout(resolve, 2000))]);
+        await Promise.race([
+            Promise.all([document.fonts.load('600 13px Niramit'), document.fonts.load('16px Lora')]),
+            new Promise((resolve) => setTimeout(resolve, 2000)),
+        ]);
     } catch {
-        // Si no carga, se imprime con la letra de respaldo.
+        // Si no cargan, se imprime con las letras de respaldo.
     }
     onBeforePrint();
     window.print();
 }
 
-// "afterprint" no llega en todos los navegadores (p. ej. iOS): también se escucha el modo impresión.
-const printMedia = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('print') : null;
-const onPrintMedia = (event) => (event.matches ? onBeforePrint() : onAfterPrint());
-
 onMounted(() => {
-    loadFont();
+    loadFonts();
     document.body.classList.add('con-balance-apertura');
     window.addEventListener('beforeprint', onBeforePrint);
     window.addEventListener('afterprint', onAfterPrint);
-    printMedia?.addEventListener?.('change', onPrintMedia);
 });
 
 onBeforeUnmount(() => {
     document.body.classList.remove('con-balance-apertura');
     window.removeEventListener('beforeprint', onBeforePrint);
     window.removeEventListener('afterprint', onAfterPrint);
-    printMedia?.removeEventListener?.('change', onPrintMedia);
     onAfterPrint();
 });
 
@@ -248,9 +224,9 @@ const segment = (active) =>
 const rowField = (error) => [field, 'min-w-0', error && 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'];
 const rowMessage = (read) => Object.values(read.errores).join('; ');
 const removeBtn =
-    'inline-flex h-9 w-9 items-center justify-center rounded-brand text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-8 sm:w-8 print:hidden';
+    'inline-flex h-9 w-9 items-center justify-center rounded-brand text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-8 sm:w-8';
 const addBtn =
-    'inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50 print:hidden';
+    'inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50';
 </script>
 
 <template>
@@ -448,47 +424,49 @@ const addBtn =
             </fieldset>
         </form>
 
-        <!-- ============================ RESULTADO (diseño de la página original) ============================ -->
-        <section class="space-y-4 font-['Niramit',ui-sans-serif,system-ui,sans-serif] [font-variant-ligatures:none] lg:col-span-7" aria-label="Balance de apertura">
+        <!-- ============================ RESULTADO ============================ -->
+        <section class="space-y-4 lg:col-span-7" aria-label="Balance de apertura">
             <BaseAlert v-if="stale" type="warning" title="Revisa el capital">
                 Corrige el capital. Mientras tanto ves el último balance válido, atenuado.
             </BaseAlert>
 
             <div v-if="result" class="space-y-4 motion-safe:transition-opacity" :class="stale && 'opacity-50'" :aria-hidden="stale ? 'true' : undefined">
-                <!-- Estado del cuadre -->
-                <div class="balance-color relative overflow-hidden rounded-[14px] bg-[#2d3663] px-5 py-5 text-white sm:px-6" aria-live="polite">
-                    <span class="pointer-events-none absolute -end-12 -top-12 h-44 w-44 rounded-full bg-[#2f7fd0]/45 blur-3xl" aria-hidden="true"></span>
-                    <p class="relative flex items-center gap-2 text-[13px] text-white/85">
-                        <span class="h-2 w-2 rounded-full" :class="result.cuadra ? 'bg-[#57D08F]' : 'bg-[#e24b4a]'" aria-hidden="true"></span>
-                        Estado del cuadre
-                    </p>
-                    <p class="relative mt-1 text-4xl font-bold tracking-tight sm:text-[42px]">{{ result.cuadra ? 'CUADRA' : 'NO CUADRA' }}</p>
+                <!-- Cómo está el cuadre -->
+                <div class="rounded-brand border border-border bg-paper p-5 sm:p-6" aria-live="polite">
+                    <p class="text-sm text-muted">{{ result.cuadra ? 'El balance cuadra' : 'El balance no cuadra' }}</p>
                     <p
-                        v-if="result.cuadra"
-                        class="relative mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#E3F5EC] px-3 py-1.5 text-sm font-semibold text-[#12805A]"
+                        class="mt-1 font-serif text-2xl leading-tight tracking-tight sm:text-3xl"
+                        :class="result.cuadra ? 'text-foreground' : 'text-rose-700 dark:text-rose-400'"
                     >
-                        <Check class="h-4 w-4" aria-hidden="true" /> Activo = Patrimonio = {{ bs(result.capital) }}
+                        Activo {{ result.cuadra ? '=' : '≠' }} Patrimonio
                     </p>
-                    <p v-else class="relative mt-3 inline-block rounded-lg bg-[#FDECE0] px-3 py-1.5 text-sm font-semibold text-[#B4520E]">
-                        Los activos fijos ({{ bs(result.activoFijo) }}) superan el capital. Aumenta el capital.
-                    </p>
+                    <dl class="mt-4 divide-y divide-border/70 text-sm">
+                        <div class="flex items-baseline justify-between gap-4 py-1.5">
+                            <dt class="text-muted">Caja / Bancos (capital menos activos fijos)</dt>
+                            <dd class="whitespace-nowrap tabular-nums" :class="result.caja < 0 ? 'font-semibold text-rose-700 dark:text-rose-400' : 'text-foreground'">{{ bs(result.caja) }}</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-4 py-1.5">
+                            <dt class="text-muted">Activo fijo</dt>
+                            <dd class="whitespace-nowrap tabular-nums text-foreground">{{ bs(result.activoFijo) }}</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-4 py-1.5">
+                            <dt class="font-semibold text-foreground">Total activo</dt>
+                            <dd class="whitespace-nowrap font-semibold tabular-nums text-foreground">{{ bs(result.activo) }}</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-4 py-1.5">
+                            <dt class="font-semibold text-foreground">Patrimonio (capital)</dt>
+                            <dd class="whitespace-nowrap font-semibold tabular-nums text-foreground">{{ bs(result.capital) }}</dd>
+                        </div>
+                    </dl>
                 </div>
 
-                <!-- Las cuatro cifras -->
-                <dl class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                    <div v-for="s in stats" :key="s.label" class="rounded-[12px] border border-border bg-surface px-3 py-2.5">
-                        <dt class="text-[11.5px] leading-snug text-muted">{{ s.label }}</dt>
-                        <dd class="mt-0.5 text-[15px] font-semibold tabular-nums" :class="s.color">{{ bs(s.value) }}</dd>
-                    </div>
-                </dl>
-
-                <BaseAlert v-if="pending.length" type="warning" title="Antes de imprimir" class="print:hidden">
+                <BaseAlert v-if="pending.length" type="warning" title="Antes de imprimir">
                     <ul class="list-disc space-y-0.5 ps-4">
                         <li v-for="(p, i) in pending" :key="i">{{ p }}</li>
                     </ul>
                 </BaseAlert>
 
-                <div class="flex flex-col gap-2 font-sans sm:flex-row sm:items-center sm:justify-between print:hidden">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-xs leading-relaxed text-muted">
                         Se abre la ventana de impresión: elige <strong class="font-semibold text-foreground">Guardar como PDF</strong> para descargarlo.
                     </p>
@@ -497,13 +475,13 @@ const addBtn =
                     </button>
                 </div>
 
-                <!-- El balance, como en la página original -->
-                <div class="balance-avoid-break rounded-[14px] border border-[#E6ECF4] bg-white px-5 pb-5 pt-[18px]">
+                <!-- Vista previa del documento: igual a la de la página original -->
+                <div class="rounded-[14px] border border-[#E6ECF4] bg-white px-5 pb-5 pt-[18px] font-['Niramit',ui-sans-serif,system-ui,sans-serif] [font-variant-ligatures:none]">
                     <h3 class="mb-3 text-[15px] font-bold text-[#16305A]">Balance de apertura</h3>
                     <BalanceDocument :empresa="empresa" :balance="result" />
                 </div>
 
-                <p class="font-sans text-xs leading-relaxed text-muted print:hidden">
+                <p class="text-xs leading-relaxed text-muted">
                     Usamos el mismo cálculo que el
                     <a
                         href="https://boliviaimpuestos.com/maletin/balance-apertura.php"
@@ -516,52 +494,37 @@ const addBtn =
             </div>
         </section>
     </div>
+
+    <!-- Lo que se imprime: siempre en el documento, oculto en pantalla -->
+    <Teleport to="body">
+        <div v-if="result" class="balance-print" aria-hidden="true">
+            <BalancePrintSheet :form="form" :balance="result" :empresa="empresa" />
+        </div>
+    </Teleport>
 </template>
 
 <style>
-.balance-sin-transiciones *,
-.balance-sin-transiciones *::before,
-.balance-sin-transiciones *::after {
-    transition: none !important;
-    animation: none !important;
+/* Global a propósito: en pantalla la hoja de impresión no se ve; al imprimir se ve solo ella. */
+.balance-print {
+    display: none;
 }
 
-/*
- * Impresión, como la página original: la pantalla completa de la herramienta, sin el menú
- * lateral, la barra superior ni los botones. Global a propósito; solo actúa mientras la
- * herramienta está abierta (clase "con-balance-apertura" en <body>).
- */
 @media print {
     @page {
         size: letter;
         margin: 12mm;
     }
 
-    body.con-balance-apertura #app-sidebar,
-    body.con-balance-apertura .app-shell > .sticky,
-    body.con-balance-apertura .app-shell > header {
+    body.con-balance-apertura > *:not(.balance-print) {
         display: none !important;
     }
 
-    body.con-balance-apertura,
-    body.con-balance-apertura .app-shell {
-        padding-left: 0 !important;
-        margin-left: 0 !important;
+    body.con-balance-apertura {
         background: #fff !important;
     }
 
-    /* Los fondos de color (filas del balance, estado del cuadre) se imprimen aunque el navegador quite fondos. */
-    body.con-balance-apertura .balance-color {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    body.con-balance-apertura .balance-avoid-break {
-        break-inside: avoid;
-    }
-
-    body.con-balance-apertura * {
-        transition: none !important;
+    body.con-balance-apertura .balance-print {
+        display: block;
     }
 }
 </style>
