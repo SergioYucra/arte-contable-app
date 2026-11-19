@@ -36,7 +36,7 @@ PASIVO + PATRIMONIO → Patrimonio → "Aporte {socio} ({%})" por socio, o "Capi
 **Igual:** el cálculo, las filas del documento y sus textos. Se prueba contra 9 casos capturados
 de su página real (`tests/js/fixtures/balance-apertura-casos.json`): mismas cifras, mismas filas.
 
-**Mejoras de pantalla (no cambian ningún monto):**
+**Mejoras (en los 9 casos capturados las cifras son idénticas a las suyas):**
 
 - **No se imprime un balance que no cuadra.** Su página deja imprimir con la Caja en negativo
   (cuando los activos fijos superan el capital) y con aportes que no suman el capital (porcentajes
