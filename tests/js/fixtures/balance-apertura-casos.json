@@ -1,0 +1,1130 @@
+{
+  "fuente": "https://boliviaimpuestos.com/maletin/balance-apertura.php",
+  "capturado": "2026-11-19T01:58:01.482Z",
+  "casos": [
+    {
+      "nombre": "unipersonal sin activos fijos",
+      "entradas": {
+        "tipo": "unipersonal",
+        "fecha": "2026-01-02",
+        "razonSocial": "Mi Empresa",
+        "nit": "1023456789",
+        "ciudad": "La Paz - Bolivia",
+        "capital": 300000,
+        "activos": {
+          "muebles": [],
+          "equipos": [],
+          "herramientas": [],
+          "otros": []
+        },
+        "socios": []
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 300.000,00"
+          ],
+          [
+            "Activo fijo",
+            "Bs 0,00"
+          ],
+          [
+            "Total activo",
+            "Bs 300.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 300.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 300.000,00",
+        "avisoSocios": null,
+        "aportes": [],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 0,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "MI EMPRESA",
+          "lineas": [
+            "NIT: 1023456789 · La Paz - Bolivia",
+            "Al 2 de enero de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "300.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "300.000,00"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "300.000,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "300.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "300.000,00"
+            ],
+            [
+              "",
+              "Capital",
+              "300.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "unipersonal con activos en tres grupos",
+      "entradas": {
+        "tipo": "unipersonal",
+        "fecha": "2026-03-15",
+        "razonSocial": "Librería El Saber",
+        "nit": "4455667",
+        "ciudad": "Cochabamba - Bolivia",
+        "capital": 300000,
+        "activos": {
+          "muebles": [
+            {
+              "descripcion": "Escritorio",
+              "cantidad": 2,
+              "precio": 1500
+            },
+            {
+              "descripcion": "Silla",
+              "cantidad": 4,
+              "precio": 350
+            }
+          ],
+          "equipos": [
+            {
+              "descripcion": "Laptop",
+              "cantidad": 3,
+              "precio": 6500.5
+            }
+          ],
+          "herramientas": [],
+          "otros": [
+            {
+              "descripcion": "Vitrina",
+              "cantidad": 1,
+              "precio": 2000
+            }
+          ]
+        },
+        "socios": []
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 274.098,50"
+          ],
+          [
+            "Activo fijo",
+            "Bs 25.901,50"
+          ],
+          [
+            "Total activo",
+            "Bs 300.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 300.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 300.000,00",
+        "avisoSocios": null,
+        "aportes": [],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 4.400,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 19.501,50"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 2.000,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "LIBRERÍA EL SABER",
+          "lineas": [
+            "NIT: 4455667 · Cochabamba - Bolivia",
+            "Al 15 de marzo de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "300.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "274.098,50"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "274.098,50"
+            ],
+            [
+              "barep__s",
+              "Activo Fijo",
+              "25.901,50"
+            ],
+            [
+              "",
+              "Muebles y Enseres",
+              "4.400,00"
+            ],
+            [
+              "",
+              "Equipo de Computación",
+              "19.501,50"
+            ],
+            [
+              "",
+              "Otros Activos",
+              "2.000,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "300.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "300.000,00"
+            ],
+            [
+              "",
+              "Capital",
+              "300.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "activos fijos mayores que el capital",
+      "entradas": {
+        "tipo": "unipersonal",
+        "fecha": "2026-06-30",
+        "razonSocial": "Taller Rápido",
+        "nit": "998877",
+        "ciudad": "Santa Cruz - Bolivia",
+        "capital": 10000,
+        "activos": {
+          "muebles": [],
+          "equipos": [
+            {
+              "descripcion": "Servidor",
+              "cantidad": 1,
+              "precio": 15000
+            }
+          ],
+          "herramientas": [],
+          "otros": []
+        },
+        "socios": []
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs -5.000,00"
+          ],
+          [
+            "Activo fijo",
+            "Bs 15.000,00"
+          ],
+          [
+            "Total activo",
+            "Bs 10.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 10.000,00"
+          ]
+        ],
+        "cuadre": "Bs 0,00",
+        "veredicto": "Los activos fijos (Bs 15.000,00) superan el capital. Aumenta el capital.",
+        "avisoSocios": null,
+        "aportes": [],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 15.000,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "TALLER RÁPIDO",
+          "lineas": [
+            "NIT: 998877 · Santa Cruz - Bolivia",
+            "Al 30 de junio de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "10.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "-5.000,00"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "-5.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Fijo",
+              "15.000,00"
+            ],
+            [
+              "",
+              "Equipo de Computación",
+              "15.000,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "10.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "10.000,00"
+            ],
+            [
+              "",
+              "Capital",
+              "10.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "activos fijos iguales al capital",
+      "entradas": {
+        "tipo": "unipersonal",
+        "fecha": "2026-06-30",
+        "razonSocial": "Justo",
+        "nit": "1",
+        "ciudad": "Oruro - Bolivia",
+        "capital": 5000,
+        "activos": {
+          "muebles": [],
+          "equipos": [],
+          "herramientas": [
+            {
+              "descripcion": "Taladro",
+              "cantidad": 10,
+              "precio": 500
+            }
+          ],
+          "otros": []
+        },
+        "socios": []
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 0,00"
+          ],
+          [
+            "Activo fijo",
+            "Bs 5.000,00"
+          ],
+          [
+            "Total activo",
+            "Bs 5.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 5.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 5.000,00",
+        "avisoSocios": null,
+        "aportes": [],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 0,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 5.000,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "JUSTO",
+          "lineas": [
+            "NIT: 1 · Oruro - Bolivia",
+            "Al 30 de junio de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "5.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "0,00"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "0,00"
+            ],
+            [
+              "barep__s",
+              "Activo Fijo",
+              "5.000,00"
+            ],
+            [
+              "",
+              "Herramientas",
+              "5.000,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "5.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "5.000,00"
+            ],
+            [
+              "",
+              "Capital",
+              "5.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "S.R.L. con dos socios al 60 y 40 %",
+      "entradas": {
+        "tipo": "srl",
+        "fecha": "2026-02-01",
+        "razonSocial": "Andes Consultores S.R.L.",
+        "nit": "302010025",
+        "ciudad": "Sucre - Bolivia",
+        "capital": 100000,
+        "activos": {
+          "muebles": [
+            {
+              "descripcion": "Mesa de reuniones",
+              "cantidad": 1,
+              "precio": 4200.75
+            }
+          ],
+          "equipos": [
+            {
+              "descripcion": "Impresora",
+              "cantidad": 2,
+              "precio": 1899.9
+            }
+          ],
+          "herramientas": [],
+          "otros": []
+        },
+        "socios": [
+          {
+            "nombre": "Ana Quispe",
+            "porcentaje": 60
+          },
+          {
+            "nombre": "Luis Mamani",
+            "porcentaje": 40
+          }
+        ]
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 91.999,45"
+          ],
+          [
+            "Activo fijo",
+            "Bs 8.000,55"
+          ],
+          [
+            "Total activo",
+            "Bs 100.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 100.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 100.000,00",
+        "avisoSocios": "✓ Aportes suman 100%",
+        "aportes": [
+          "Bs 60.000,00",
+          "Bs 40.000,00"
+        ],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 4.200,75"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 3.799,80"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "ANDES CONSULTORES S.R.L.",
+          "lineas": [
+            "NIT: 302010025 · Sucre - Bolivia",
+            "Al 1 de febrero de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "100.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "91.999,45"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "91.999,45"
+            ],
+            [
+              "barep__s",
+              "Activo Fijo",
+              "8.000,55"
+            ],
+            [
+              "",
+              "Muebles y Enseres",
+              "4.200,75"
+            ],
+            [
+              "",
+              "Equipo de Computación",
+              "3.799,80"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "100.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "100.000,00"
+            ],
+            [
+              "",
+              "Aporte Ana Quispe (60,00%)",
+              "60.000,00"
+            ],
+            [
+              "",
+              "Aporte Luis Mamani (40,00%)",
+              "40.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "S.R.L. con tres socios que suman 90 %",
+      "entradas": {
+        "tipo": "srl",
+        "fecha": "2026-02-01",
+        "razonSocial": "Tres Hermanos S.R.L.",
+        "nit": "556677",
+        "ciudad": "Tarija - Bolivia",
+        "capital": 90000,
+        "activos": {
+          "muebles": [],
+          "equipos": [],
+          "herramientas": [],
+          "otros": []
+        },
+        "socios": [
+          {
+            "nombre": "Uno",
+            "porcentaje": 30
+          },
+          {
+            "nombre": "Dos",
+            "porcentaje": 30
+          },
+          {
+            "nombre": "Tres",
+            "porcentaje": 30
+          }
+        ]
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 90.000,00"
+          ],
+          [
+            "Activo fijo",
+            "Bs 0,00"
+          ],
+          [
+            "Total activo",
+            "Bs 90.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 90.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 90.000,00",
+        "avisoSocios": "Los % suman 90,00% (deben sumar 100%)",
+        "aportes": [
+          "Bs 27.000,00",
+          "Bs 27.000,00",
+          "Bs 27.000,00"
+        ],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 0,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "TRES HERMANOS S.R.L.",
+          "lineas": [
+            "NIT: 556677 · Tarija - Bolivia",
+            "Al 1 de febrero de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "90.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "90.000,00"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "90.000,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "90.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "90.000,00"
+            ],
+            [
+              "",
+              "Aporte Uno (30,00%)",
+              "27.000,00"
+            ],
+            [
+              "",
+              "Aporte Dos (30,00%)",
+              "27.000,00"
+            ],
+            [
+              "",
+              "Aporte Tres (30,00%)",
+              "27.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "S.R.L. con porcentajes con decimales",
+      "entradas": {
+        "tipo": "srl",
+        "fecha": "2026-12-31",
+        "razonSocial": "Decimales S.R.L.",
+        "nit": "123",
+        "ciudad": "Potosí - Bolivia",
+        "capital": 150000,
+        "activos": {
+          "muebles": [],
+          "equipos": [],
+          "herramientas": [],
+          "otros": [
+            {
+              "descripcion": "Software",
+              "cantidad": 1,
+              "precio": 3333.33
+            }
+          ]
+        },
+        "socios": [
+          {
+            "nombre": "A",
+            "porcentaje": 33.33
+          },
+          {
+            "nombre": "B",
+            "porcentaje": 33.33
+          },
+          {
+            "nombre": "C",
+            "porcentaje": 33.34
+          }
+        ]
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 146.666,67"
+          ],
+          [
+            "Activo fijo",
+            "Bs 3.333,33"
+          ],
+          [
+            "Total activo",
+            "Bs 150.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 150.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 150.000,00",
+        "avisoSocios": "✓ Aportes suman 100%",
+        "aportes": [
+          "Bs 49.995,00",
+          "Bs 49.995,00",
+          "Bs 50.010,00"
+        ],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 0,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 3.333,33"
+          ]
+        ],
+        "documento": {
+          "empresa": "DECIMALES S.R.L.",
+          "lineas": [
+            "NIT: 123 · Potosí - Bolivia",
+            "Al 31 de diciembre de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "150.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "146.666,67"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "146.666,67"
+            ],
+            [
+              "barep__s",
+              "Activo Fijo",
+              "3.333,33"
+            ],
+            [
+              "",
+              "Otros Activos",
+              "3.333,33"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "150.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "150.000,00"
+            ],
+            [
+              "",
+              "Aporte A (33,33%)",
+              "49.995,00"
+            ],
+            [
+              "",
+              "Aporte B (33,33%)",
+              "49.995,00"
+            ],
+            [
+              "",
+              "Aporte C (33,34%)",
+              "50.010,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "filas incompletas no cuentan",
+      "entradas": {
+        "tipo": "unipersonal",
+        "fecha": "2026-05-05",
+        "razonSocial": "Filas",
+        "nit": "777",
+        "ciudad": "Beni - Bolivia",
+        "capital": 50000,
+        "activos": {
+          "muebles": [
+            {
+              "descripcion": "",
+              "cantidad": 3,
+              "precio": 100
+            },
+            {
+              "descripcion": "Estante",
+              "cantidad": 0,
+              "precio": 800
+            }
+          ],
+          "equipos": [
+            {
+              "descripcion": "Monitor",
+              "cantidad": 2,
+              "precio": 0
+            },
+            {
+              "descripcion": "Teclado",
+              "cantidad": 5,
+              "precio": 120
+            }
+          ],
+          "herramientas": [],
+          "otros": []
+        },
+        "socios": []
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 49.400,00"
+          ],
+          [
+            "Activo fijo",
+            "Bs 600,00"
+          ],
+          [
+            "Total activo",
+            "Bs 50.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 50.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 50.000,00",
+        "avisoSocios": null,
+        "aportes": [],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 600,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "FILAS",
+          "lineas": [
+            "NIT: 777 · Beni - Bolivia",
+            "Al 5 de mayo de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "50.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "49.400,00"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "49.400,00"
+            ],
+            [
+              "barep__s",
+              "Activo Fijo",
+              "600,00"
+            ],
+            [
+              "",
+              "Equipo de Computación",
+              "600,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "50.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "50.000,00"
+            ],
+            [
+              "",
+              "Capital",
+              "50.000,00"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "nombre": "S.R.L. con un socio sin nombre",
+      "entradas": {
+        "tipo": "srl",
+        "fecha": "2026-08-08",
+        "razonSocial": "Socio Anónimo S.R.L.",
+        "nit": "808080",
+        "ciudad": "Pando - Bolivia",
+        "capital": 40000,
+        "activos": {
+          "muebles": [],
+          "equipos": [],
+          "herramientas": [],
+          "otros": []
+        },
+        "socios": [
+          {
+            "nombre": "Carla",
+            "porcentaje": 50
+          },
+          {
+            "nombre": "",
+            "porcentaje": 50
+          }
+        ]
+      },
+      "pantalla": {
+        "datos": [
+          [
+            "Activo disponible (caja)",
+            "Bs 40.000,00"
+          ],
+          [
+            "Activo fijo",
+            "Bs 0,00"
+          ],
+          [
+            "Total activo",
+            "Bs 40.000,00"
+          ],
+          [
+            "Patrimonio (capital)",
+            "Bs 40.000,00"
+          ]
+        ],
+        "cuadre": "CUADRA",
+        "veredicto": "Activo = Patrimonio = Bs 40.000,00",
+        "avisoSocios": "Los % suman 50,00% (deben sumar 100%)",
+        "aportes": [
+          "Bs 20.000,00",
+          "Bs 20.000,00"
+        ],
+        "subtotales": [
+          [
+            "Muebles y Enseres",
+            "Bs 0,00"
+          ],
+          [
+            "Equipo de Computación",
+            "Bs 0,00"
+          ],
+          [
+            "Herramientas",
+            "Bs 0,00"
+          ],
+          [
+            "Otros Activos",
+            "Bs 0,00"
+          ]
+        ],
+        "documento": {
+          "empresa": "SOCIO ANÓNIMO S.R.L.",
+          "lineas": [
+            "NIT: 808080 · Pando - Bolivia",
+            "Al 8 de agosto de 2026 — (expresado en bolivianos)"
+          ],
+          "filas": [
+            [
+              "barep__g",
+              "ACTIVO",
+              "40.000,00"
+            ],
+            [
+              "barep__s",
+              "Activo Disponible",
+              "40.000,00"
+            ],
+            [
+              "",
+              "Caja / Bancos",
+              "40.000,00"
+            ],
+            [
+              "barep__g",
+              "PASIVO + PATRIMONIO",
+              "40.000,00"
+            ],
+            [
+              "barep__s",
+              "Patrimonio",
+              "40.000,00"
+            ],
+            [
+              "",
+              "Aporte Carla (50,00%)",
+              "20.000,00"
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

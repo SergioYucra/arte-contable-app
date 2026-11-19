@@ -1,4 +1,5 @@
 <script setup>
+import { defineAsyncComponent } from 'vue';
 import { Wrench } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
 
@@ -11,10 +12,12 @@ defineProps({
 
 /**
  * Registro de componentes de herramientas.
- * Al implementar cada herramienta, importa su componente y regístralo aquí
- * usando su `component` o `slug` como clave.
+ * Al implementar cada herramienta, créala en su propia carpeta de tools/ y regístrala aquí con
+ * la clave `component` de ToolController. Cada una se descarga recién al abrir su tarjeta.
  */
-const toolComponents = {};
+const toolComponents = {
+    CrearBalanceAperturaTool: defineAsyncComponent(() => import('./tools/balance-apertura/BalanceAperturaTool.vue')),
+};
 </script>
 
 <template>
