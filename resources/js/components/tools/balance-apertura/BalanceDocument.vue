@@ -13,7 +13,7 @@ defineProps({
 </script>
 
 <template>
-    <div class="balance-doc balance-color font-['Niramit',ui-sans-serif,system-ui,sans-serif] text-[13px] text-[#16305A]">
+    <div class="balance-doc balance-color font-['Niramit',ui-sans-serif,system-ui,sans-serif] text-[13px] [font-variant-ligatures:none] text-[#16305A]">
         <header class="mb-2.5 border-b-2 border-[#2d3663] pb-3 text-center">
             <p class="text-[15px] font-bold uppercase tracking-[0.3px] text-[#2d3663]">{{ empresa.razonSocial || '—' }}</p>
             <p class="text-[11.5px] text-[#5B6B82]">NIT: {{ empresa.nit || '—' }} · {{ empresa.ciudad }}</p>

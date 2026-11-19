@@ -449,7 +449,7 @@ const addBtn =
         </form>
 
         <!-- ============================ RESULTADO (diseño de la página original) ============================ -->
-        <section class="space-y-4 font-['Niramit',ui-sans-serif,system-ui,sans-serif] lg:col-span-7" aria-label="Balance de apertura">
+        <section class="space-y-4 font-['Niramit',ui-sans-serif,system-ui,sans-serif] [font-variant-ligatures:none] lg:col-span-7" aria-label="Balance de apertura">
             <BaseAlert v-if="stale" type="warning" title="Revisa el capital">
                 Corrige el capital. Mientras tanto ves el último balance válido, atenuado.
             </BaseAlert>
