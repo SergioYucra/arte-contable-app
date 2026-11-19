@@ -20,17 +20,22 @@ import {
     Play,
     RefreshCw,
     Search,
+    ShieldCheck,
     Shrink,
+    Smartphone,
     Sparkles,
     StickyNote,
     Unlock,
+    WifiOff,
     X,
     ZoomIn,
     ZoomOut,
+    Hourglass,
 } from 'lucide-vue-next';
 import BookCard from './books/BookCard.vue';
 import BookTocDrawer from './books/BookTocDrawer.vue';
 import LibrarySkeleton from './books/LibrarySkeleton.vue';
+import { createPageLoader, LOW_PAGES_WARNING, noticeFor } from './books/readerPageLoader.js';
 import StudyNotebookPanel from './notes/StudyNotebookPanel.vue';
 import BaseToast from './ui/BaseToast.vue';
 
@@ -87,6 +92,11 @@ const props = defineProps({
     userName: {
         type: String,
         default: 'Estudiante',
+    },
+    // "Leer aquí": pasa la lectura a este dispositivo (módulo LibraryProtection).
+    readerClaimUrl: {
+        type: String,
+        default: '/biblioteca/lector/aqui',
     },
 });
 
@@ -284,6 +294,18 @@ const isPageLoading = ref(false);
 const pageLoadError = ref(false);
 const isSavingProgress = ref(false);
 
+// Páginas protegidas: se piden con fetch y llegan con la marca de agua de quien lee.
+// Si el servidor no entrega la página, `readerNotice` explica por qué y qué hacer.
+const PAGE_LOAD_DELAY_MS = 250;
+const pageLoader = createPageLoader();
+const pageSrc = ref('');
+const readerNotice = ref(null);
+const remainingToday = ref(null);
+const isClaimingReader = ref(false);
+let pageLoadTimer = null;
+let pageLoadController = null;
+let pageLoadSeq = 0;
+
 // Notificaciones Toast
 const toast = ref({
     show: false,
@@ -393,10 +415,19 @@ function openHeroTocDrawer() {
 // =========================================================================
 // VISOR INTEGRADO DE ESTUDIO Y GUARDADO DE PROGRESO (ReadingState)
 // =========================================================================
+// Acceso completo por edición (el servidor lo envía en `full_access`): una membresía de un
+// solo libro no abre los demás. Sin ese dato, se usa la membresía general.
+function editionHasFullAccess(edition) {
+    if (edition && typeof edition.full_access === 'boolean') return edition.full_access;
+    return hasActiveMembership.value;
+}
+
+const readerHasFullAccess = computed(() => editionHasFullAccess(readerEdition.value));
+
 const maxNavigablePage = computed(() => {
     if (!readerEdition.value) return 1;
     const total = Math.max(1, Number(readerEdition.value.total_pages || 1));
-    if (hasActiveMembership.value) {
+    if (readerHasFullAccess.value) {
         return total;
     }
     const sample = Number(readerEdition.value.sample_pages_count || 0);
@@ -405,7 +436,7 @@ const maxNavigablePage = computed(() => {
 });
 
 const isPaywallGatePage = computed(() => {
-    if (!readerEdition.value || hasActiveMembership.value) return false;
+    if (!readerEdition.value || readerHasFullAccess.value) return false;
     const sample = Number(readerEdition.value.sample_pages_count || 0);
     return currentPage.value > sample;
 });
@@ -471,7 +502,7 @@ function isChapterCompletedInReader(chapter, index, tocArray) {
 }
 
 function isReaderPageUnlocked(page) {
-    if (hasActiveMembership.value) return true;
+    if (readerHasFullAccess.value) return true;
     const sample = Number(readerEdition.value?.sample_pages_count || 0);
     return Number(page) <= sample;
 }
@@ -501,16 +532,148 @@ function openReader({ book, edition, page = 1 }) {
         window.innerWidth >= 1024 &&
         Array.isArray(targetEdition.toc) &&
         targetEdition.toc.length > 0;
-    pageLoadError.value = false;
-    isPageLoading.value = !isPaywallGatePage.value;
     isReaderOpen.value = true;
     document.body.classList.add('overflow-hidden');
     resetReaderScroll();
-
-    if (!isPaywallGatePage.value) {
-        persistReadingProgress(targetEdition, currentPage.value);
-    }
+    // El avance se guarda cuando la página llega (loadCurrentPage), no antes.
+    schedulePageLoad({ immediate: true });
 }
+
+// =========================================================================
+// CARGA PROTEGIDA DE PÁGINAS (marca de agua, un dispositivo, tope diario)
+// =========================================================================
+function cancelPageLoad() {
+    clearTimeout(pageLoadTimer);
+    pageLoadTimer = null;
+    pageLoadController?.abort();
+    pageLoadController = null;
+}
+
+/**
+ * Pide la página actual tras una breve espera: al arrastrar la barra o mantener la flecha,
+ * solo se pide la página donde la persona se detiene (no cuenta páginas que no leyó).
+ */
+function schedulePageLoad({ immediate = false } = {}) {
+    cancelPageLoad();
+    readerNotice.value = null;
+    pageLoadError.value = false;
+
+    if (!isReaderOpen.value || !readerEdition.value || isPaywallGatePage.value) {
+        isPageLoading.value = false;
+        return;
+    }
+
+    isPageLoading.value = true;
+    pageLoadTimer = setTimeout(loadCurrentPage, immediate ? 0 : PAGE_LOAD_DELAY_MS);
+}
+
+async function loadCurrentPage() {
+    const edition = readerEdition.value;
+    const page = currentPage.value;
+    const url = currentReaderPageUrl.value;
+    if (!edition || !url) return;
+
+    const controller = new AbortController();
+    pageLoadController = controller;
+    const seq = ++pageLoadSeq;
+
+    const result = await pageLoader.load(url, { signal: controller.signal });
+    if (seq !== pageLoadSeq || result.aborted) return;
+    pageLoadController = null;
+
+    if (result.ok) {
+        if (result.src === pageSrc.value) {
+            isPageLoading.value = false;
+        }
+        pageSrc.value = result.src;
+        if (result.remaining !== null) {
+            remainingToday.value = result.remaining;
+        }
+        persistReadingProgress(edition, page);
+        return;
+    }
+
+    isPageLoading.value = false;
+
+    if (result.code === 'membresia') {
+        // La membresía de esta edición ya no está vigente: se muestra la cortina de membresía.
+        edition.full_access = false;
+        if (currentPage.value <= Number(edition.sample_pages_count || 0)) {
+            readerNotice.value = noticeFor('error');
+        }
+        return;
+    }
+
+    readerNotice.value = result;
+}
+
+async function handleReaderNoticeAction() {
+    const notice = readerNotice.value;
+    if (!notice) return;
+
+    if (notice.action === 'close') {
+        closeReader();
+        return;
+    }
+
+    if (notice.action === 'reload') {
+        window.location.reload();
+        return;
+    }
+
+    if (notice.action === 'claim') {
+        isClaimingReader.value = true;
+        try {
+            await axios.post(props.readerClaimUrl);
+            showReaderToast('success', 'Listo', 'Ahora lees en este dispositivo.');
+        } catch (error) {
+            const status = error?.response?.status;
+            readerNotice.value = noticeFor(status === 429 ? 'muy_rapido' : status === 419 ? 'sesion_vencida' : 'error');
+            return;
+        } finally {
+            isClaimingReader.value = false;
+        }
+    }
+
+    schedulePageLoad({ immediate: true });
+}
+
+let toastTimer = null;
+
+function showReaderToast(type, title, message) {
+    clearTimeout(toastTimer);
+    toast.value = { show: true, type, title, message };
+    toastTimer = setTimeout(() => {
+        toast.value.show = false;
+    }, 4000);
+}
+
+function handleReaderImageError() {
+    isPageLoading.value = false;
+    pageLoadError.value = true;
+    readerNotice.value = noticeFor('error');
+}
+
+const showRemainingWarning = computed(
+    () => remainingToday.value !== null && remainingToday.value < LOW_PAGES_WARNING
+);
+
+const readerNoticeIcon = computed(() => {
+    switch (readerNotice.value?.code) {
+        case 'otro_dispositivo':
+            return Smartphone;
+        case 'limite_diario':
+        case 'lectura_pausada':
+        case 'muy_rapido':
+            return Hourglass;
+        case 'sin_conexion':
+            return WifiOff;
+        case 'sesion_vencida':
+            return Lock;
+        default:
+            return BookOpen;
+    }
+});
 
 function handleHeroContinueClick() {
     if (!continueReadingState.value) return;
@@ -539,6 +702,12 @@ function closeReader() {
     isReaderTocOpen.value = false;
     isReaderNotebookOpen.value = false;
     document.body.classList.remove('overflow-hidden');
+
+    // Libera las páginas guardadas en memoria al salir del lector.
+    cancelPageLoad();
+    pageLoader.clear();
+    pageSrc.value = '';
+    readerNotice.value = null;
 }
 
 function goToReaderPage(targetPage) {
@@ -547,19 +716,15 @@ function goToReaderPage(targetPage) {
     if (clamped === currentPage.value) return;
 
     currentPage.value = clamped;
-    pageLoadError.value = false;
-    isPageLoading.value = !isPaywallGatePage.value;
     resetReaderScroll();
-
-    if (!isPaywallGatePage.value) {
-        persistReadingProgress(readerEdition.value, clamped);
-    }
+    // El avance se guarda cuando la página llega (loadCurrentPage).
+    schedulePageLoad();
 }
 
 async function persistReadingProgress(edition, pageNumber) {
     if (!edition || !edition.save_progress_url) return;
     const sample = Number(edition.sample_pages_count || 0);
-    if (!hasActiveMembership.value && pageNumber > sample) return;
+    if (!editionHasFullAccess(edition) && pageNumber > sample) return;
 
     isSavingProgress.value = true;
     try {
@@ -637,6 +802,14 @@ function handleReaderKeydown(event) {
     }
 
     if (!isReaderOpen.value) return;
+
+    // Imprimir o guardar la página no está disponible dentro del lector.
+    if ((event.metaKey || event.ctrlKey) && ['p', 's'].includes(event.key.toLowerCase())) {
+        event.preventDefault();
+        showReaderToast('info', 'Copia personal', 'Para proteger el libro, sus páginas no se pueden imprimir ni guardar.');
+        return;
+    }
+
     if (event.target?.tagName === 'INPUT') return;
 
     if (event.key === 'Escape') {
@@ -688,6 +861,8 @@ onBeforeUnmount(() => {
     themeObserver?.disconnect();
     themeObserver = null;
     document.body.classList.remove('overflow-hidden');
+    cancelPageLoad();
+    pageLoader.clear();
 });
 </script>
 
@@ -1027,6 +1202,14 @@ onBeforeUnmount(() => {
              VISOR EDUCATIVO DE ESTUDIO (Estilo Perlego / O'Reilly / Kindle Web)
              =============================================================== -->
         <Teleport to="body">
+            <!-- Al imprimir con el lector abierto, sale este aviso en vez de la página del libro -->
+            <div
+                v-if="isReaderOpen"
+                class="hidden print:flex fixed inset-0 items-center justify-center bg-white p-10 text-center text-lg font-semibold text-slate-900"
+            >
+                Por protección de los derechos del autor, las páginas de los libros no se pueden imprimir.
+            </div>
+
             <Transition
                 enter-active-class="transition duration-200 ease-out"
                 enter-from-class="opacity-0"
@@ -1037,12 +1220,13 @@ onBeforeUnmount(() => {
             >
                 <div
                     v-if="isReaderOpen && readerBook && readerEdition"
-                    class="fixed inset-0 z-50 flex flex-col select-none transition-colors duration-200"
+                    class="fixed inset-0 z-50 flex flex-col select-none transition-colors duration-200 print:hidden"
                     :class="isDayReader ? 'bg-slate-100 text-slate-900' : 'bg-slate-950 text-slate-100'"
                     role="dialog"
                     aria-modal="true"
                     :aria-label="`Modo Estudio: ${readerBook.title}`"
                     @contextmenu.prevent
+                    @dragstart.prevent
                 >
                     <!-- Barra superior continua de progreso del libro -->
                     <div
@@ -1417,6 +1601,24 @@ onBeforeUnmount(() => {
 
                         <!-- Escenario Central de Lectura con Botones Laterales Flotantes -->
                         <div class="flex-1 flex flex-col overflow-hidden relative">
+                            <!-- Aviso de páginas que quedan hoy (tope diario de lectura) -->
+                            <div
+                                v-if="showRemainingWarning && !readerNotice && !isPaywallGatePage"
+                                class="absolute top-3 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold shadow-sm"
+                                :class="
+                                    isDayReader
+                                        ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                        : 'border-amber-500/30 bg-amber-500/15 text-amber-200'
+                                "
+                                role="status"
+                            >
+                                <Hourglass class="h-3.5 w-3.5" aria-hidden="true" />
+                                <span v-if="remainingToday === 0">Ya leíste tus páginas nuevas de hoy; puedes repasar las que viste</span>
+                                <span v-else>
+                                    Te {{ remainingToday === 1 ? 'queda 1 página nueva' : `quedan ${remainingToday} páginas nuevas` }} por hoy
+                                </span>
+                            </div>
+
                             <!-- Botón flotante izquierdo (Página anterior, estilo Kindle Web) -->
                             <button
                                 v-if="currentPage > 1"
@@ -1485,7 +1687,7 @@ onBeforeUnmount(() => {
                                 <!-- Hoja Editorial Protegida WebP -->
                                 <div
                                     v-else
-                                    class="relative flex items-center justify-center m-auto transition-all duration-200"
+                                    class="relative flex flex-col items-center justify-center gap-2 m-auto transition-all duration-200"
                                     :style="
                                         isFitToPage
                                             ? { maxWidth: '100%' }
@@ -1500,41 +1702,102 @@ onBeforeUnmount(() => {
                                         <span class="text-xs">Cargando página {{ currentPage }}...</span>
                                     </div>
 
+                                    <!-- Aviso cuando la página no se entrega: qué pasó, por qué y qué hacer -->
                                     <div
-                                        v-if="pageLoadError"
-                                        class="aspect-[3/4] w-72 sm:w-[440px] rounded-xl bg-slate-900 border border-slate-800 p-8 flex flex-col items-center justify-center text-center gap-3"
+                                        v-else-if="readerNotice"
+                                        class="w-[min(100%,26rem)] rounded-2xl border p-6 sm:p-8 flex flex-col items-center text-center gap-3 shadow-2xl"
+                                        :class="isDayReader ? 'bg-white border-slate-200' : 'bg-slate-900/95 border-slate-800'"
+                                        role="alert"
                                     >
-                                        <BookOpen class="h-8 w-8 text-slate-500" />
-                                        <p class="text-sm font-semibold text-slate-200">
-                                            No se pudo cargar la página {{ currentPage }}
+                                        <div
+                                            class="flex h-12 w-12 items-center justify-center rounded-2xl border"
+                                            :class="
+                                                readerNotice.tone === 'warning'
+                                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                                                    : readerNotice.tone === 'error'
+                                                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-500'
+                                                      : 'bg-sky-500/10 border-sky-500/30 text-sky-500'
+                                            "
+                                        >
+                                            <component :is="readerNoticeIcon" class="h-6 w-6" aria-hidden="true" />
+                                        </div>
+                                        <h4
+                                            class="text-base sm:text-lg font-bold leading-snug"
+                                            :class="isDayReader ? 'text-slate-900' : 'text-white'"
+                                        >
+                                            {{ readerNotice.title }}
+                                        </h4>
+                                        <p
+                                            class="text-sm leading-relaxed"
+                                            :class="isDayReader ? 'text-slate-600' : 'text-slate-300'"
+                                        >
+                                            {{ readerNotice.message }}
                                         </p>
-                                        <p class="text-xs text-slate-400 max-w-xs">
-                                            Verifica que las láminas WebP de esta edición hayan sido procesadas en el depósito privado.
+                                        <p
+                                            v-if="readerNotice.retryAtText && readerNotice.code !== 'lectura_pausada'"
+                                            class="text-xs font-semibold"
+                                            :class="isDayReader ? 'text-amber-700' : 'text-amber-300'"
+                                        >
+                                            Puedes leer páginas nuevas desde el {{ readerNotice.retryAtText }} (hora de Bolivia).
                                         </p>
+                                        <div class="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2 w-full">
+                                            <button
+                                                type="button"
+                                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl font-semibold text-sm px-5 py-2.5 transition disabled:opacity-60"
+                                                :class="isDayReader ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-sky-500 hover:bg-sky-400 text-slate-950'"
+                                                :disabled="isClaimingReader"
+                                                @click="handleReaderNoticeAction"
+                                            >
+                                                <Smartphone v-if="readerNotice.action === 'claim'" class="h-4 w-4" aria-hidden="true" />
+                                                <RefreshCw v-else-if="readerNotice.action === 'retry'" class="h-4 w-4" aria-hidden="true" />
+                                                <span>{{ isClaimingReader ? 'Cambiando…' : readerNotice.actionLabel }}</span>
+                                            </button>
+                                            <button
+                                                v-if="readerNotice.action !== 'close'"
+                                                type="button"
+                                                class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border font-medium text-sm px-4 py-2.5 transition"
+                                                :class="
+                                                    isDayReader
+                                                        ? 'border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                                        : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200'
+                                                "
+                                                @click="closeReader"
+                                            >
+                                                Volver a la biblioteca
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <!-- Contenedor de hoja de papel con sombra realista -->
                                     <div
-                                        v-show="!isPageLoading && !pageLoadError"
+                                        v-show="!isPageLoading && !readerNotice && pageSrc"
                                         class="relative rounded-md overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.65)] ring-1 ring-black/15 bg-white"
                                     >
                                         <img
-                                            :key="currentReaderPageUrl"
-                                            :src="currentReaderPageUrl"
+                                            v-if="pageSrc"
+                                            :key="pageSrc"
+                                            :src="pageSrc"
                                             :alt="`${readerBook.title} - Página ${currentPage}`"
                                             :class="
                                                 isFitToPage
-                                                    ? 'max-h-[calc(100dvh-9.25rem)] w-auto max-w-full object-contain pointer-events-none select-none block'
+                                                    ? 'max-h-[calc(100dvh-12.5rem)] w-auto max-w-full object-contain pointer-events-none select-none block'
                                                     : 'w-full h-auto pointer-events-none select-none block'
                                             "
                                             draggable="false"
                                             @load="isPageLoading = false"
-                                            @error="
-                                                isPageLoading = false;
-                                                pageLoadError = true;
-                                            "
+                                            @error="handleReaderImageError"
                                         />
                                     </div>
+
+                                    <!-- Recordatorio de copia personal (la página lleva la misma marca) -->
+                                    <p
+                                        v-show="!isPageLoading && !readerNotice && pageSrc"
+                                        class="inline-flex items-center gap-1.5 text-[11px]"
+                                        :class="isDayReader ? 'text-slate-500' : 'text-slate-400'"
+                                    >
+                                        <ShieldCheck class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                        <span>Copia personal de {{ userName }} · No se puede compartir</span>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -1636,12 +1899,10 @@ onBeforeUnmount(() => {
         </Teleport>
 
         <!-- Sistema de notificaciones -->
+        <!-- BaseToast espera un objeto { type, title, message } o null en v-model. -->
         <BaseToast
-            :show="toast.show"
-            :type="toast.type"
-            :title="toast.title"
-            :message="toast.message"
-            @close="toast.show = false"
+            :model-value="toast.show ? toast : null"
+            @update:model-value="toast.show = false"
         />
     </div>
 </template>

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Student;
 
-use App\Core\Storage\PrivateVault;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookEdition;
@@ -10,12 +9,13 @@ use App\Models\ReadingState;
 use App\Models\StudyNote;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Modules\LibraryProtection\Services\ProtectedPages;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class LibraryController extends Controller
 {
@@ -28,7 +28,9 @@ class LibraryController extends Controller
         $user = $request->user();
         $user->loadMissing('subscriptions');
         $membership = $this->getMembershipSummary($user);
-        $hasFullAccess = $membership['is_active'];
+        // Acceso completo por edición: una suscripción de un solo libro no abre los demás.
+        $isStaff = $user->hasAnyRole('SuperAdmin', 'Admin');
+        $hasFullAccess = fn (int $editionId): bool => $isStaff || $user->hasActiveSubscription($editionId);
 
         // 1. Cargar libros publicados con sus ediciones (priorizando listas y vigentes)
         $booksCollection = Book::where('is_published', true)
@@ -139,7 +141,8 @@ class LibraryController extends Controller
                     'edition_name' => $ed->edition_name,
                     'total_pages' => $totalPages,
                     'sample_pages_count' => $samplePages,
-                    'max_allowed_page' => $hasFullAccess ? $totalPages : min($totalPages, $samplePages),
+                    'max_allowed_page' => $hasFullAccess((int) $ed->id) ? $totalPages : min($totalPages, $samplePages),
+                    'full_access' => $hasFullAccess((int) $ed->id),
                     'status' => $ed->status,
                     'is_ready' => $ed->status === BookEdition::STATUS_READY && $totalPages > 0,
                     'is_current' => (bool) $ed->is_current,
@@ -204,44 +207,17 @@ class LibraryController extends Controller
     }
 
     /**
-     * Transmite de forma protegida una página WebP de la edición aplicando el Paywall en servidor.
+     * Entrega una página WebP de la edición con la marca de agua de quien la lee.
+     *
+     * Las reglas (muestra gratuita, membresía de la edición, un dispositivo a la vez, tope
+     * diario, pausa por lectura no humana) viven en el módulo LibraryProtection.
      */
-    public function streamPage(Request $request, BookEdition $edition, int $page): StreamedResponse
+    public function streamPage(Request $request, BookEdition $edition, int $page, ProtectedPages $pages): Response
     {
         /** @var User $user */
         $user = $request->user();
-        $isAdmin = $user->can('manage-users');
 
-        $edition->loadMissing('book');
-        $book = $edition->book;
-
-        if (! $isAdmin) {
-            if (
-                $book === null ||
-                $book->trashed() ||
-                ! $book->is_published ||
-                $edition->status !== BookEdition::STATUS_READY
-            ) {
-                abort(404, 'Esta edición no se encuentra disponible para lectura.');
-            }
-        }
-
-        $totalPages = (int) $edition->total_pages;
-        if ($page < 1 || $totalPages < 1 || $page > $totalPages) {
-            abort(404, 'Número de página fuera de rango.');
-        }
-
-        $hasFullAccess = $isAdmin || $user->hasActiveSubscription();
-        $maxAllowedPage = $hasFullAccess ? $totalPages : (int) $edition->sample_pages_count;
-
-        if ($page > $maxAllowedPage) {
-            abort(403, 'Se requiere una membresía activa para leer más allá de las páginas de muestra gratuita.');
-        }
-
-        return PrivateVault::streamInline(
-            "editions/{$edition->id}/page-{$page}.webp",
-            "edicion-{$edition->id}-pagina-{$page}.webp"
-        );
+        return $pages->respond($request, $user, $edition, $page);
     }
 
     /**
@@ -278,7 +254,7 @@ class LibraryController extends Controller
         ]);
 
         $lastPage = (int) $validated['last_page'];
-        $hasFullAccess = $isAdmin || $user->hasActiveSubscription();
+        $hasFullAccess = $isAdmin || $user->hasActiveSubscription((int) $edition->id);
         $maxAllowedPage = $hasFullAccess ? $totalPages : (int) $edition->sample_pages_count;
 
         if ($lastPage > $maxAllowedPage) {
@@ -395,4 +371,3 @@ class LibraryController extends Controller
         ];
     }
 }
-

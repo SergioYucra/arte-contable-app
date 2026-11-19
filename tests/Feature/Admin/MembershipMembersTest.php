@@ -9,6 +9,7 @@ use App\Models\PaymentRequest;
 use App\Models\ReadingState;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Modules\LibraryProtection\Services\ReaderDevices;
 use Carbon\Carbon;
 use Database\Seeders\CoreSecuritySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -104,6 +105,8 @@ class MembershipMembersTest extends TestCase
         $edition = $this->editionWithPage(25);
         ReadingState::create(['user_id' => $student->id, 'book_edition_id' => $edition->id, 'last_page' => 25]);
 
+        // Las dos lecturas salen del mismo navegador (protección "un dispositivo a la vez").
+        $this->withCookie(ReaderDevices::COOKIE, str_repeat('b', 40));
         $this->actingAs($student)->get(route('library.editions.page', ['edition' => $edition->id, 'page' => 25]))->assertOk();
 
         $this->actingAs($this->admin)

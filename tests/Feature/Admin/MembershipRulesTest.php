@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\CoreSecuritySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -260,8 +261,10 @@ class MembershipRulesTest extends TestCase
 
     public function test_migration_backfills_history_for_existing_subscriptions(): void
     {
-        // Deshace el precio especial y el historial (las dos últimas migraciones) para crear datos "de antes".
-        $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
+        // Deshace el historial, el precio especial y las migraciones posteriores para crear datos "de antes".
+        // Se cuentan los pasos en vez de fijarlos: así una migración nueva no rompe esta prueba.
+        $steps = DB::table('migrations')->where('migration', '>=', '2026_11_15_000001_create_subscription_grants_table')->count();
+        $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
         $student = User::factory()->create();
         $payment = PaymentRequest::factory()->approved()->create(['user_id' => $student->id, 'reviewed_by' => $this->admin->id]);

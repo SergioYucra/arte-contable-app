@@ -10,6 +10,7 @@
                     'initialOpenReader' => $initialOpenReader ?? null,
                     'membershipUrl' => $membershipUrl,
                     'userName' => auth()->user()->name,
+                    'readerClaimUrl' => route('library.reader.claim'),
                 ]) }}"
             ></div>
         </div>
