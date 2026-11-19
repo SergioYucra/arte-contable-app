@@ -465,7 +465,7 @@ function handleLimpiarClick() {
                         @click="emit('imprimir')"
                     >
                         <Printer class="h-3.5 w-3.5" />
-                        <span>Imprimir PDF</span>
+                        <span>Imprimir / Guardar como PDF</span>
                     </button>
                 </div>
             </div>
