@@ -1,6 +1,7 @@
 <script setup>
 import { Wrench } from 'lucide-vue-next';
 import UtilityModuleCatalog from './utilities/UtilityModuleCatalog.vue';
+import FacturadorTool from './tools/factura/FacturadorTool.vue';
 
 defineProps({
     initialItems: {
@@ -14,7 +15,9 @@ defineProps({
  * Al implementar cada herramienta, importa su componente y regístralo aquí
  * usando su `component` o `slug` como clave.
  */
-const toolComponents = {};
+const toolComponents = {
+    CrearFacturaTool: FacturadorTool,
+};
 </script>
 
 <template>
