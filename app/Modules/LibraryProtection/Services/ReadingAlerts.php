@@ -61,9 +61,7 @@ final class ReadingAlerts
 
     public function watermarkUnavailable(string $reason): void
     {
-        Log::error('library_protection.watermark_unavailable', ['reason' => $reason]);
-
-        $this->send(
+        $sent = $this->send(
             'watermark-unavailable',
             new ReadingAlertNotification(
                 subject: 'Libros: el lector no puede mostrar páginas',
@@ -77,14 +75,20 @@ final class ReadingAlerts
                 actionUrl: route('admin.library-protection.index'),
             ),
         );
+
+        // Una línea por aviso (no una por cada página pedida mientras el lector está detenido).
+        if ($sent) {
+            Log::error('library_protection.watermark_unavailable', ['reason' => $reason]);
+        }
     }
 
-    private function send(string $key, ReadingAlertNotification $notification): void
+    /** Devuelve si el aviso salió (false si ya se avisó lo mismo en la última hora). */
+    private function send(string $key, ReadingAlertNotification $notification): bool
     {
         $minutes = max(1, (int) config('library.protection.alert_repeat_minutes', 60));
 
         if (! Cache::add('library-protection:alert:'.$key, true, now()->addMinutes($minutes))) {
-            return;
+            return false;
         }
 
         defer(function () use ($notification): void {
@@ -101,5 +105,7 @@ final class ReadingAlerts
                 report($e);
             }
         }, always: true);
+
+        return true;
     }
 }

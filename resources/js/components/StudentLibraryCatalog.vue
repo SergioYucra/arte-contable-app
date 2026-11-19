@@ -710,13 +710,23 @@ function closeReader() {
     readerNotice.value = null;
 }
 
-function goToReaderPage(targetPage) {
+function goToReaderPage(targetPage, { waitForRelease = false } = {}) {
     if (!readerEdition.value) return;
     const clamped = Math.max(1, Math.min(maxNavigablePage.value, Number(targetPage || 1)));
     if (clamped === currentPage.value) return;
 
     currentPage.value = clamped;
     resetReaderScroll();
+
+    // Mientras se arrastra la barra no se pide nada: se pide al soltarla (@change), así las
+    // páginas por las que solo se pasó no cuentan para el límite de hoy.
+    if (waitForRelease) {
+        cancelPageLoad();
+        readerNotice.value = null;
+        isPageLoading.value = !isPaywallGatePage.value;
+        return;
+    }
+
     // El avance se guarda cuando la página llega (loadCurrentPage).
     schedulePageLoad();
 }
@@ -1869,7 +1879,8 @@ onBeforeUnmount(() => {
                                 aria-label="Deslizador de páginas"
                                 class="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-sky-500"
                                 :class="isDayReader ? 'bg-slate-200' : 'bg-slate-800'"
-                                @input="goToReaderPage($event.target.value)"
+                                @input="goToReaderPage($event.target.value, { waitForRelease: true })"
+                                @change="schedulePageLoad()"
                             />
                             <span
                                 class="text-[11px] font-mono font-semibold shrink-0"

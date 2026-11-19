@@ -41,13 +41,15 @@ return [
         'daily_page_limit' => (int) env('LIBRARY_DAILY_PAGE_LIMIT', 300),
 
         // Lectura más rápida de lo humano: N páginas nuevas en M minutos pausan la lectura.
+        // Holgado para quien hojea buscando algo (80 en 5 min = una página nueva cada ~4 s
+        // durante 5 minutos seguidos); un script al límite por minuto llega en menos de 3.
         'velocity_rules' => [
-            ['pages' => 60, 'minutes' => 5],
-            ['pages' => 120, 'minutes' => 30],
+            ['pages' => 80, 'minutes' => 5],
+            ['pages' => 150, 'minutes' => 30],
         ],
 
         // Pedidos que el lector nunca hace (página fuera de rango, pasada la muestra sin
-        // membresía, edición no publicada). Con este número en la ventana, se pausa.
+        // membresía). Con este número en la ventana, se pausa.
         'trap_strikes' => [
             'limit' => 5,
             'window_minutes' => 30,

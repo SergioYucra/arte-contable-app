@@ -103,6 +103,25 @@ class ReaderDeviceTest extends ProtectionTestCase
         $this->readPage($this->student, 2)->assertOk();
     }
 
+    public function test_reading_from_many_connections_alerts_the_admin(): void
+    {
+        Notification::fake();
+        config()->set('library.protection.sharing_alert', ['device_switches' => 50, 'distinct_ips' => 3, 'window_hours' => 24]);
+        $this->subscribe($this->student);
+
+        foreach (['181.115.10.1', '181.115.10.2', '181.115.10.2', '200.87.4.9'] as $i => $ip) {
+            $this->withServerVariables(['REMOTE_ADDR' => $ip]);
+            // Volver a una página ya vista también cuenta: la conexión es lo que importa.
+            $this->readPage($this->student, $i === 2 ? 1 : $i + 1)->assertOk();
+        }
+
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'posible_cuenta_compartida',
+            'causer_id' => $this->student->id,
+        ]);
+        Notification::assertSentTo($this->superAdmin, ReadingAlertNotification::class);
+    }
+
     public function test_staff_can_read_on_several_devices(): void
     {
         $admin = $this->makeStudent();

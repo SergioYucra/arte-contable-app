@@ -77,7 +77,9 @@ guías de OWASP más específicas:
    (`Sec-Fetch-Dest: document`), redirige al lector en esa página. Sin esas cabeceras
    (navegadores antiguos), se acepta.
 2. **Pausa vigente:** responde 423 `lectura_pausada`, con la hora en que termina.
-3. **Edición publicada y página dentro del libro:** si no, 404 y suma una marca trampa.
+3. **Edición publicada y página dentro del libro:** si no, 404. Pedir una página fuera del
+   libro suma una marca trampa; una edición recién despublicada no suma (quien la tenía
+   abierta reintenta con todo derecho).
 4. **Un dispositivo a la vez** (`ReaderDevices`): cada navegador recibe una cookie cifrada y
    solo-HTTP, `lector_dispositivo`, con un valor aleatorio. La cuenta guarda el hash del
    dispositivo con el turno.
@@ -90,14 +92,16 @@ guías de OWASP más específicas:
 6. **Tope diario:** 300 páginas distintas por día (hora de Bolivia). Volver a una página ya
    vista no cuenta. Al llegar, responde 429 `limite_diario`.
 7. **Registro** en `book_page_views`: persona, edición, página, día, visitas e IP.
-8. **Velocidad no humana:** 60 páginas nuevas en 5 minutos, o 120 en 30, pausan la lectura
-   6 horas y mandan un correo al administrador.
+8. **Velocidad no humana:** 80 páginas nuevas en 5 minutos, o 150 en 30, pausan la lectura
+   6 horas y mandan un correo al administrador. Lo leído antes de que terminara la última
+   pausa no se vuelve a contar: al reactivar, la cuenta empieza de cero.
 
 Además:
 - **Pedidos trampa:** 5 en 30 minutos pausan la lectura (motivo "pidió páginas que el lector
   nunca pide").
-- **Cuenta compartida:** 6 cambios de dispositivo o 5 IP distintas en 24 horas generan un
-  aviso, sin pausa.
+- **Cuenta compartida:** 6 cambios de dispositivo o 5 conexiones (IP) distintas en 24 horas
+  generan un aviso, sin pausa. Las IP de cada cuenta se guardan en la caché durante la
+  ventana.
 - **Límite por minuto:** `RateLimiter::for('book-pages')`, 30 por minuto por persona (120 para
   el personal), con contador propio.
 - **Personal (SuperAdmin/Admin):** sin tope, pausa ni límite de dispositivo. Lo que lee queda
@@ -119,8 +123,9 @@ caracteres que se confunden en una foto (0/O, 1/I/L). El administrador lo busca 
 
 - Las páginas se piden con `fetch` y se muestran como `blob:`. Se guardan en memoria las
   últimas 6 y se liberan al cerrar el lector.
-- Espera de 250 ms antes de pedir: al arrastrar la barra o mantener la flecha, solo se pide
-  la página donde la persona se detiene.
+- Espera de 250 ms antes de pedir: al mantener la flecha solo se pide la página donde la
+  persona se detiene, y la barra de páginas pide recién al soltarla. Las páginas por las que
+  solo se pasó no cuentan para el límite de hoy.
 - Un aviso propio para cada caso, con la fórmula *qué pasó → por qué → qué hacer*: otro
   dispositivo ("Leer aquí"), límite de hoy, lectura pausada, muy rápido, sin conexión,
   sesión vencida, lector detenido.
@@ -146,13 +151,22 @@ tocó porque la modifica `fix/revision-3`.
 
 Cada acción del administrador queda en `activity('security')`.
 
+### Correos al administrador
+
+Llevan el nombre que escribió el estudiante. `LibraryProtectionServiceProvider` activa
+`Markdown::withSecuredEncoding()`, la opción segura de Laravel. Así un nombre como
+`[Panel](https://sitio-falso)` no se convierte en un enlace dentro de un correo oficial; lo
+encontró la revisión de seguridad y una prueba lo comprueba. La opción vale para todos los
+correos Markdown de la aplicación; hoy no hay otros que dependan de que se interprete Markdown
+en lo que se imprime con `{{ }}`.
+
 ### Configuración (`config/library.php`, clave `protection`)
 
 | Clave | Por defecto | Variable de entorno |
 |---|---|---|
 | `pages_per_minute` | 30 | `LIBRARY_PAGES_PER_MINUTE` |
 | `daily_page_limit` | 300 | `LIBRARY_DAILY_PAGE_LIMIT` |
-| `velocity_rules` | 60 en 5 min, 120 en 30 min | — |
+| `velocity_rules` | 80 en 5 min, 150 en 30 min | — |
 | `trap_strikes` | 5 en 30 min | — |
 | `pause_hours` | 6 | `LIBRARY_PAUSE_HOURS` |
 | `device_idle_minutes` | 10 | — |
@@ -177,6 +191,9 @@ ni la barra lateral, que modifica `fix/revision-3`.
   rastro y la marca la identifica.
 - **Muchas cuentas falsas** solo obtienen las páginas de muestra (12 por defecto).
   Recomendación: no subir la muestra por encima de unas 20 páginas.
+- **Pedidos simultáneos:** el tope diario y el cambio de dispositivo se revisan sin bloqueo
+  de base de datos. Con muchos pedidos al mismo tiempo se pueden pasar unas pocas páginas del
+  tope; el límite por minuto (30) acota cuántas.
 - **IP reales detrás de Cloudflare:** sin `TRUSTED_PROXIES`, todas las lecturas parecen venir
   de la misma IP y el aviso de "conexiones distintas" no sirve.
 
@@ -203,7 +220,7 @@ ni la barra lateral, que modifica `fix/revision-3`.
 
 ## 8. Pruebas
 
-- **PHPUnit, `tests/Feature/LibraryProtection/`:** 39 pruebas (tope, velocidad, trampas,
+- **PHPUnit, `tests/Feature/LibraryProtection/`:** 43 pruebas (tope, velocidad, trampas,
   dispositivos, marca de agua, falla cerrado, acceso por edición, panel, limpieza y
   diagnóstico).
   - Requieren GD con WebP y FreeType: imagen local `arte-php83-gd:local`.
@@ -211,5 +228,5 @@ ni la barra lateral, que modifica `fix/revision-3`.
   - `MembershipRulesTest` cuenta sus pasos de `migrate:rollback` en vez de fijarlos en 2.
 - **JS (`npm run test:js`):** `tests/js/books/readerPageLoader.test.js`.
 - **Navegador (Playwright):** lectura con marca, "Te quedan…", tope diario, dos dispositivos
-  (computadora y celular), un script de copiado pausado a las 60 páginas, panel, búsqueda del
+  (computadora y celular), un script de copiado pausado a los 75 segundos, panel, búsqueda del
   código, reactivar y quitar acceso.

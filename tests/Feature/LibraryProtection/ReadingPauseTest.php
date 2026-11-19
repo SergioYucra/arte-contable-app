@@ -65,7 +65,9 @@ class ReadingPauseTest extends ProtectionTestCase
 
             return ! str_contains($html, 'href="https://evil.example')
                 && ! str_contains($html, 'src="https://evil.example')
-                && str_contains($html, 'Entrar al panel');
+                && str_contains($html, 'Entrar al panel')
+                // El botón legítimo del correo sigue funcionando.
+                && str_contains($html, 'href="'.route('admin.library-protection.index').'"');
         });
     }
 
@@ -138,6 +140,37 @@ class ReadingPauseTest extends ProtectionTestCase
         $this->actingAs($this->superAdmin)
             ->postJson(route('admin.library-protection.holds.release', $hold))
             ->assertStatus(422);
+    }
+
+    public function test_after_reactivation_the_same_pages_do_not_pause_again(): void
+    {
+        $this->subscribe($this->student);
+        foreach (range(1, 4) as $page) {
+            $this->readPage($this->student, $page);
+        }
+        $hold = ReadingHold::sole();
+
+        Carbon::setTestNow(now()->addMinute());
+        $this->actingAs($this->superAdmin)->postJson(route('admin.library-protection.holds.release', $hold))->assertOk();
+
+        // Las 4 páginas de antes siguen dentro de los 5 minutos, pero ya se juzgaron.
+        $this->readPage($this->student, 5)->assertOk();
+        $this->readPage($this->student, 6)->assertOk();
+        $this->assertSame(1, ReadingHold::count());
+        Carbon::setTestNow();
+    }
+
+    public function test_retrying_a_book_that_was_just_unpublished_does_not_pause(): void
+    {
+        config()->set('library.protection.trap_strikes', ['limit' => 2, 'window_minutes' => 30]);
+        $this->readPage($this->student, 1)->assertOk();
+        $this->book->update(['is_published' => false]);
+
+        foreach (range(1, 4) as $ignored) {
+            $this->readPage($this->student, 2)->assertNotFound()->assertJsonPath('code', 'no_disponible');
+        }
+
+        $this->assertSame(0, ReadingHold::count());
     }
 
     public function test_staff_reading_is_never_paused(): void

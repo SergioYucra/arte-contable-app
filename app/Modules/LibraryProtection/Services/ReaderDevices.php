@@ -4,7 +4,6 @@ namespace App\Modules\LibraryProtection\Services;
 
 use App\Models\Activity;
 use App\Models\User;
-use App\Modules\LibraryProtection\Models\BookPageView;
 use App\Modules\LibraryProtection\Models\ReadingLease;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -39,22 +38,20 @@ final class ReaderDevices
         $hash = $this->deviceHash($request);
         $lease = $this->leaseFor($user, $request, $hash);
 
-        if ($lease->wasRecentlyCreated) {
-            return true;
+        if (! $lease->wasRecentlyCreated && ! hash_equals($lease->device_hash, $hash)) {
+            $idleLimit = Carbon::now()->subMinutes(max(1, (int) config('library.protection.device_idle_minutes', 10)));
+            if ($lease->last_seen_at->greaterThan($idleLimit)) {
+                return false;
+            }
+
+            $this->switchTo($lease, $user, $request, $hash, automatic: true);
+        } elseif (! $lease->wasRecentlyCreated) {
+            $this->touch($lease, $request);
         }
 
-        if (hash_equals($lease->device_hash, $hash)) {
-            $this->touch($lease, $user, $request);
-
-            return true;
+        if ($this->rememberIp($user, $request)) {
+            $this->checkSharing($user);
         }
-
-        $idleLimit = Carbon::now()->subMinutes(max(1, (int) config('library.protection.device_idle_minutes', 10)));
-        if ($lease->last_seen_at->greaterThan($idleLimit)) {
-            return false;
-        }
-
-        $this->switchTo($lease, $user, $request, $hash, automatic: true);
 
         return true;
     }
@@ -70,7 +67,7 @@ final class ReaderDevices
         }
 
         if (hash_equals($lease->device_hash, $hash)) {
-            $this->touch($lease, $user, $request);
+            $this->touch($lease, $request);
 
             return;
         }
@@ -114,7 +111,7 @@ final class ReaderDevices
         );
     }
 
-    private function touch(ReadingLease $lease, User $user, Request $request): void
+    private function touch(ReadingLease $lease, Request $request): void
     {
         $ipChanged = $request->ip() !== null && $lease->ip_address !== $request->ip();
 
@@ -127,10 +124,34 @@ final class ReaderDevices
             'ip_address' => $request->ip(),
             'last_seen_at' => Carbon::now(),
         ])->save();
+    }
 
-        if ($ipChanged) {
-            $this->checkSharing($user);
+    /**
+     * Guarda las conexiones (IP) desde donde leyó la cuenta en la ventana del aviso.
+     * Devuelve true si esta IP es nueva en la ventana.
+     */
+    private function rememberIp(User $user, Request $request): bool
+    {
+        $ip = $request->ip();
+        if ($ip === null || $ip === '') {
+            return false;
         }
+
+        $windowHours = max(1, (int) config('library.protection.sharing_alert.window_hours', 24));
+        $key = "library-protection:ips:{$user->id}";
+        $now = Carbon::now()->getTimestamp();
+        $cutoff = $now - $windowHours * 3600;
+
+        $ips = array_filter((array) Cache::get($key, []), fn ($seenAt) => (int) $seenAt >= $cutoff);
+        $isNew = ! array_key_exists($ip, $ips);
+
+        // Se escribe solo si la IP es nueva o su fecha tiene más de una hora (pocas escrituras).
+        if ($isNew || (int) $ips[$ip] < $now - 3600) {
+            $ips[$ip] = $now;
+            Cache::put($key, $ips, now()->addHours($windowHours));
+        }
+
+        return $isNew;
     }
 
     private function switchTo(ReadingLease $lease, User $user, Request $request, string $hash, bool $automatic): void
@@ -177,12 +198,11 @@ final class ReaderDevices
             ->where('created_at', '>=', $since)
             ->count();
 
-        $ips = BookPageView::query()
-            ->where('user_id', $user->id)
-            ->where('last_viewed_at', '>=', $since)
-            ->whereNotNull('ip_address')
-            ->distinct()
-            ->count('ip_address');
+        $cutoff = $since->getTimestamp();
+        $ips = count(array_filter(
+            (array) Cache::get("library-protection:ips:{$user->id}", []),
+            fn ($seenAt) => (int) $seenAt >= $cutoff,
+        ));
 
         $tooManySwitches = $switches >= max(1, (int) ($config['device_switches'] ?? 6));
         $tooManyIps = $ips >= max(1, (int) ($config['distinct_ips'] ?? 5));

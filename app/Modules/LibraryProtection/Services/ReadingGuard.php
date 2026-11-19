@@ -54,8 +54,10 @@ final class ReadingGuard
             && $book->is_published
             && $edition->status === BookEdition::STATUS_READY;
 
+        // No cuenta como pedido trampa: el administrador puede despublicar un libro mientras
+        // alguien lo tiene abierto, y esa persona reintentaría con todo derecho.
         if (! $isStaff && ! $isAvailable) {
-            return $this->trap($user, 'edicion_no_disponible', 404, 'no_disponible', 'Esta edición no está disponible para lectura.');
+            return ReadingDecision::deny(404, 'no_disponible', 'Esta edición no está disponible para lectura en este momento.');
         }
 
         if ($page < 1 || $page > (int) $edition->total_pages) {
@@ -174,13 +176,23 @@ final class ReadingGuard
 
     private function checkVelocity(User $user): ?ReadingHold
     {
+        // Lo leído antes de que terminara la última pausa ya se juzgó: si el administrador la
+        // reactiva, la cuenta empieza de cero y no vuelve a pausarse con las mismas páginas.
+        $lastHold = ReadingHold::where('user_id', $user->id)->latest('id')->first();
+        $lastHoldEnd = $lastHold === null ? null : ($lastHold->released_at ?? $lastHold->ends_at);
+
         foreach ((array) config('library.protection.velocity_rules', []) as $rule) {
             $pages = max(1, (int) ($rule['pages'] ?? 0));
             $minutes = max(1, (int) ($rule['minutes'] ?? 0));
 
+            $since = Carbon::now()->subMinutes($minutes);
+            if ($lastHoldEnd !== null && $lastHoldEnd->greaterThan($since)) {
+                $since = $lastHoldEnd;
+            }
+
             $newPages = BookPageView::query()
                 ->where('user_id', $user->id)
-                ->where('first_viewed_at', '>=', Carbon::now()->subMinutes($minutes))
+                ->where('first_viewed_at', '>=', $since)
                 ->count();
 
             if ($newPages >= $pages) {
