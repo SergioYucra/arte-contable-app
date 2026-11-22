@@ -116,11 +116,19 @@ Además:
 - **Personal (SuperAdmin/Admin):** sin tope, pausa ni límite de dispositivo. Lo que lee queda
   registrado y lleva marca de agua.
 
-`PageWatermarker` dibuja la marca con GD en cada pedido (unos 110 ms por página de
-1200×1697 px):
-- en diagonal, en mosaico y tenue (≈15 %): nombre, correo a medias, fecha y código;
-- al pie, más legible: "Copia personal de … · Código … · fecha · Prohibido compartir";
-- el código en las dos esquinas superiores, para que recortar una no lo borre.
+`PageWatermarker` dibuja la marca con GD en cada pedido (unos 150 ms por página de
+1200×1697 px; casi todo es volver a codificar el WebP):
+- el código en las dos esquinas superiores, para que recortar una no lo borre;
+- al pie: "Copia personal de … · Código … · fecha · Prohibido compartir";
+- cerca del centro, pequeño y tenue (≈22 %): "Código: …". Se ubica en el hueco en blanco más
+  cercano al centro (entre párrafos, junto a un título corto), porque encima del texto no se
+  leería y estorbaría. La posición depende solo de la página. Sobrevive a una captura recortada
+  a los márgenes.
+
+El correo ya no se imprime: el código identifica a la persona sin exponerlo.
+
+Hasta el 2026-11-22 había además una diagonal en mosaico (nombre, correo a medias, fecha y
+código) sobre toda la página. Se quitó a pedido del revisor porque estorbaba la lectura.
 
 El **código del lector** (`reader_codes`, por ejemplo `K7QM-3XPA`) es aleatorio y no usa
 caracteres que se confunden en una foto (0/O, 1/I/L). El administrador lo busca en el panel.
@@ -212,8 +220,11 @@ ni la barra lateral, que modifica `fix/revision-3`.
 
 ## 5. Lo que queda (riesgo residual)
 
-- **Capturas de pantalla:** siguen siendo posibles, pero cada una lleva nombre, correo a
-  medias, fecha y código.
+- **Capturas de pantalla:** siguen siendo posibles, pero cada una lleva el código arriba, al
+  centro y al pie, y el nombre y la fecha al pie.
+- **Borrar la marca a mano:** sin la diagonal, son cuatro textos pequeños en lugares
+  predecibles. Alguien con paciencia y un editor de imágenes puede taparlos página por página.
+  Eso es lento, y el registro de lectura igual muestra quién abrió esas páginas y cuándo.
 - **Una persona paciente** puede copiar 300 páginas por día de forma "humana". El registro deja
   rastro y la marca la identifica.
 - **Muchas cuentas falsas** solo obtienen las páginas de muestra (12 por defecto).
@@ -251,7 +262,7 @@ ni la barra lateral, que modifica `fix/revision-3`.
 
 ## 8. Pruebas
 
-- **PHPUnit, `tests/Feature/LibraryProtection/`:** 49 pruebas (tope, aviso de ritmo y pausa,
+- **PHPUnit, `tests/Feature/LibraryProtection/`:** 50 pruebas (tope, aviso de ritmo y pausa,
   trampas, dispositivos, marca de agua, falla cerrado, página dañada, motivo para el
   administrador, acceso por edición, panel, limpieza y diagnóstico).
   - Requieren GD con WebP y FreeType: imagen local `arte-php83-gd:local`.

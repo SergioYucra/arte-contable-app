@@ -33,13 +33,44 @@ class PageWatermarkTest extends ProtectionTestCase
         $this->assertSame([240, 320], [imagesx($image), imagesy($image)]);
     }
 
-    public function test_the_mark_covers_the_page_and_the_footer(): void
+    public function test_the_mark_is_on_top_in_the_middle_and_at_the_foot_but_not_across_the_page(): void
     {
         $image = imagecreatefromstring((string) $this->readPage($this->student, 1)->getContent());
 
         // La página original es blanca: todo lo que no es blanco lo puso la marca.
-        $this->assertGreaterThan(200, $this->markedPixels($image, 0, 40, 240, 260), 'La diagonal no se ve en el cuerpo de la página.');
+        $this->assertGreaterThan(20, $this->markedPixels($image, 0, 0, 240, 24), 'Falta el código en las esquinas de arriba.');
+        $this->assertGreaterThan(20, $this->markedPixels($image, 40, 140, 200, 180), 'Falta el código al centro.');
         $this->assertGreaterThan(20, $this->markedPixels($image, 0, 300, 240, 320), 'Falta la línea "Copia personal de…" al pie.');
+
+        // Sin diagonal: el resto del cuerpo de la página queda limpio.
+        $this->assertSame(0, $this->markedPixels($image, 0, 40, 240, 130), 'Hay marca sobre el texto de arriba.');
+        $this->assertSame(0, $this->markedPixels($image, 0, 190, 240, 290), 'Hay marca sobre el texto de abajo.');
+    }
+
+    public function test_the_middle_code_goes_in_a_blank_gap_instead_of_over_the_text(): void
+    {
+        // Una "línea de texto" negra justo en el centro de la página.
+        $page = imagecreatetruecolor(240, 320);
+        imagefill($page, 0, 0, (int) imagecolorallocate($page, 255, 255, 255));
+        imagefilledrectangle($page, 0, 148, 239, 176, (int) imagecolorallocate($page, 0, 0, 0));
+        ob_start();
+        imagewebp($page, null, 90);
+        Storage::disk(PrivateVault::DISK)->put("editions/{$this->edition->id}/page-2.webp", (string) ob_get_clean());
+
+        $image = imagecreatefromstring((string) $this->readPage($this->student, 2)->assertOk()->getContent());
+
+        $aboveOrBelow = $this->markedPixels($image, 0, 100, 240, 146) + $this->markedPixels($image, 0, 179, 240, 225);
+        $this->assertGreaterThan(20, $aboveOrBelow, 'El código no quedó en el hueco junto a la línea.');
+    }
+
+    public function test_the_mark_shows_the_code_but_never_the_email(): void
+    {
+        $stamp = WatermarkStamp::for($this->student, 'K7QM-3XPA');
+
+        $this->assertSame('Código: K7QM-3XPA', $stamp->centerText());
+        $this->assertStringContainsString($this->student->name, $stamp->footerText());
+        $this->assertStringContainsString('K7QM-3XPA', $stamp->footerText());
+        $this->assertStringNotContainsString('@', $stamp->centerText().$stamp->footerText());
     }
 
     public function test_page_response_is_not_cacheable_nor_sniffable(): void
@@ -65,13 +96,6 @@ class PageWatermarkTest extends ProtectionTestCase
         $typed = strtolower(str_replace('-', ' ', $code));
         $this->assertSame($this->student->id, $codes->find($typed)?->user_id);
         $this->assertNull($codes->find('no-existe'));
-    }
-
-    public function test_email_is_shown_half_hidden(): void
-    {
-        $this->assertSame('j***z@gmail.com', WatermarkStamp::maskEmail('juan.perez@gmail.com'));
-        $this->assertSame('a***@x.com', WatermarkStamp::maskEmail('ab@x.com'));
-        $this->assertSame('***', WatermarkStamp::maskEmail('sin-arroba'));
     }
 
     public function test_reader_stops_instead_of_serving_pages_without_mark(): void

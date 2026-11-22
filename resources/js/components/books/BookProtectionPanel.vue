@@ -141,7 +141,7 @@ async function lookup() {
     lookupResult.value = null;
 
     if (code.value.replace(/[^a-z0-9]/gi, '').length !== 8) {
-        lookupError.value = 'El código tiene 8 letras y números, por ejemplo K7QM-3XPA. Está en las esquinas de arriba y al pie de cada página.';
+        lookupError.value = 'El código tiene 8 letras y números, por ejemplo K7QM-3XPA. Está arriba, al centro y al pie de cada página.';
         return;
     }
 
@@ -304,7 +304,7 @@ function initial(name) {
                     ¿Quién filtró esta página?
                 </h2>
                 <p :class="[hint, 'mt-1']">
-                    Si te llega una foto o captura de un libro, busca el código impreso en las esquinas de arriba o al pie
+                    Si te llega una foto o captura de un libro, busca el código impreso arriba, al centro o al pie de la página
                     (por ejemplo <span class="font-mono font-semibold text-foreground">K7QM-3XPA</span>) y escríbelo aquí.
                 </p>
             </div>
