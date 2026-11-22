@@ -9,12 +9,12 @@ use App\Models\User;
 use App\Modules\LibraryProtection\Models\BookPageView;
 use App\Modules\LibraryProtection\Models\ReadingHold;
 use App\Modules\LibraryProtection\Services\ReaderCodes;
+use App\Modules\LibraryProtection\Services\ReadingGuard;
 use App\Support\HumanDate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -31,6 +31,8 @@ class ProtectionPanelController extends Controller
     private const RECENT_DAYS = 14;
 
     private const LOOKUP_DAYS = 30;
+
+    public function __construct(private readonly ReadingGuard $guard) {}
 
     public function index(): View
     {
@@ -68,8 +70,9 @@ class ProtectionPanelController extends Controller
             'released_by' => $admin->id,
         ])->save();
 
-        // Empieza de cero: las marcas de pedidos trampa que llevaron a la pausa ya no cuentan.
-        Cache::forget("library-protection:strikes:{$hold->user_id}");
+        // Empieza de cero: ni las marcas de pedidos trampa ni el aviso de ritmo cuentan ya; si
+        // vuelve a leer muy rápido, primero se le avisa otra vez.
+        $this->guard->startOver((int) $hold->user_id);
 
         activity('security')
             ->causedBy($admin)

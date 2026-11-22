@@ -92,9 +92,18 @@ guías de OWASP más específicas:
 6. **Tope diario:** 300 páginas distintas por día (hora de Bolivia). Volver a una página ya
    vista no cuenta. Al llegar, responde 429 `limite_diario`.
 7. **Registro** en `book_page_views`: persona, edición, página, día, visitas e IP.
-8. **Velocidad no humana:** 80 páginas nuevas en 5 minutos, o 150 en 30, pausan la lectura
-   6 horas y mandan un correo al administrador. Lo leído antes de que terminara la última
-   pausa no se vuelve a contar: al reactivar, la cuenta empieza de cero.
+8. **Velocidad no humana:** 80 páginas nuevas en 5 minutos, o 150 en 30.
+   - **La primera vez solo se avisa:** responde 429 `ritmo_rapido` ("Vas más rápido de lo que
+     se puede leer… para ir a un tema, usa el temario o escribe el número de página"), queda
+     `aviso_de_ritmo` en la bitácora y la cuenta empieza de cero. No hay correo ni pausa.
+     "Seguir leyendo" entrega la página sin volver a contarla. Así no se castiga a quien hojea
+     rápido buscando un tema.
+   - **Si sigue a ese ritmo** dentro de las 24 horas siguientes al aviso
+     (`velocity_warning_hours`), se pausa la lectura 6 horas y se manda un correo al
+     administrador ("Ya se le había avisado que fuera más despacio").
+   - Lo leído antes de que terminara la última pausa no se vuelve a contar. Al reactivar, la
+     cuenta empieza de cero y se borra el aviso: si vuelve a ir muy rápido, primero se le
+     avisa otra vez.
 
 Además:
 - **Pedidos trampa:** 5 en 30 minutos pausan la lectura (motivo "pidió páginas que el lector
@@ -116,8 +125,22 @@ Además:
 El **código del lector** (`reader_codes`, por ejemplo `K7QM-3XPA`) es aleatorio y no usa
 caracteres que se confunden en una foto (0/O, 1/I/L). El administrador lo busca en el panel.
 
-**Falla cerrado:** si GD, WebP, FreeType o la fuente faltan, el lector responde 503
-`lector_detenido` y avisa al administrador. Nunca entrega una página sin marca.
+**Falla cerrado:** nunca se entrega una página sin marca. Hay dos casos, y en los dos el lector
+responde 503 `lector_detenido` y antes manda un correo al administrador (uno por hora), así que
+"Ya avisamos al administrador" es cierto:
+- **Al servidor le falta algo** (GD, WebP, FreeType o la fuente): falla con todas las páginas.
+  Pasó en el Docker de `arte-contable-compose`, que instalaba GD sin WebP; se corrige con
+  `libwebp-dev` y `--with-webp` (arte-contable-compose #2).
+- **Una página puntual no se puede abrir** (archivo dañado): falla solo esa página, el correo
+  dice qué libro y qué página, y las demás se siguen leyendo.
+
+Lo que no se entrega (página dañada o archivo que falta) **no se descuenta** del tope de hoy ni
+cuenta para el ritmo.
+
+**El administrador ve el motivo en el lector:** si quien lee es SuperAdmin o Admin, la respuesta
+trae `detail` con el motivo técnico y qué hacer (por ejemplo, "La extensión GD de PHP no tiene
+soporte WebP. Corre php artisan libros:diagnostico…"), y el lector lo muestra en un recuadro
+"Motivo (solo lo ven los administradores)". A un estudiante nunca se le manda.
 
 ### En el lector (`StudentLibraryCatalog.vue` + `books/readerPageLoader.js`)
 
@@ -127,8 +150,11 @@ caracteres que se confunden en una foto (0/O, 1/I/L). El administrador lo busca 
   persona se detiene, y la barra de páginas pide recién al soltarla. Las páginas por las que
   solo se pasó no cuentan para el límite de hoy.
 - Un aviso propio para cada caso, con la fórmula *qué pasó → por qué → qué hacer*: otro
-  dispositivo ("Leer aquí"), límite de hoy, lectura pausada, muy rápido, sin conexión,
-  sesión vencida, lector detenido.
+  dispositivo ("Leer aquí"), límite de hoy, lectura pausada, aviso de ritmo, muy rápido, sin
+  conexión, sesión vencida, lector detenido y servidor ocupado.
+- "Lector detenido" (con "Ya avisamos al administrador") sale solo cuando el servidor lo dice
+  con ese código. Un 502, 503 o 504 sin código viene del hosting o de un mantenimiento: sale
+  "El servidor no responde ahora", sin prometer un aviso que nadie mandó.
 - "Te quedan N páginas nuevas por hoy" cuando quedan menos de 30.
 - "Copia personal de {nombre} · No se puede compartir" bajo la página.
 - Fricción ligera: sin clic derecho ni arrastre, Ctrl+P y Ctrl+S bloqueados, y al imprimir
@@ -167,6 +193,7 @@ en lo que se imprime con `{{ }}`.
 | `pages_per_minute` | 30 | `LIBRARY_PAGES_PER_MINUTE` |
 | `daily_page_limit` | 300 | `LIBRARY_DAILY_PAGE_LIMIT` |
 | `velocity_rules` | 80 en 5 min, 150 en 30 min | — |
+| `velocity_warning_hours` | 24 (si vuelve a ir muy rápido en ese plazo, se pausa) | — |
 | `trap_strikes` | 5 en 30 min | — |
 | `pause_hours` | 6 | `LIBRARY_PAUSE_HOURS` |
 | `device_idle_minutes` | 10 | — |
@@ -191,6 +218,10 @@ ni la barra lateral, que modifica `fix/revision-3`.
   rastro y la marca la identifica.
 - **Muchas cuentas falsas** solo obtienen las páginas de muestra (12 por defecto).
   Recomendación: no subir la muestra por encima de unas 20 páginas.
+- **El aviso antes de la pausa le da más margen a un programa:** uno que ignora el aviso llega a
+  unas 160 páginas (unos 5 minutos, por el límite de 30 por minuto) antes de la pausa, en vez de
+  80. Todas llevan su marca y el tope de 300 por día no cambia. Es el precio de no pausar a un
+  estudiante que hojea rápido; las trampas siguen pausando sin aviso previo.
 - **Pedidos simultáneos:** el tope diario y el cambio de dispositivo se revisan sin bloqueo
   de base de datos. Con muchos pedidos al mismo tiempo se pueden pasar unas pocas páginas del
   tope; el límite por minuto (30) acota cuántas.
@@ -220,9 +251,9 @@ ni la barra lateral, que modifica `fix/revision-3`.
 
 ## 8. Pruebas
 
-- **PHPUnit, `tests/Feature/LibraryProtection/`:** 43 pruebas (tope, velocidad, trampas,
-  dispositivos, marca de agua, falla cerrado, acceso por edición, panel, limpieza y
-  diagnóstico).
+- **PHPUnit, `tests/Feature/LibraryProtection/`:** 49 pruebas (tope, aviso de ritmo y pausa,
+  trampas, dispositivos, marca de agua, falla cerrado, página dañada, motivo para el
+  administrador, acceso por edición, panel, limpieza y diagnóstico).
   - Requieren GD con WebP y FreeType: imagen local `arte-php83-gd:local`.
   - `LibraryControllerTest` y `MembershipMembersTest` ahora envían una cookie de dispositivo.
   - `MembershipRulesTest` cuenta sus pasos de `migrate:rollback` en vez de fijarlos en 2.
@@ -230,3 +261,7 @@ ni la barra lateral, que modifica `fix/revision-3`.
 - **Navegador (Playwright):** lectura con marca, "Te quedan…", tope diario, dos dispositivos
   (computadora y celular), un script de copiado pausado a las 80 páginas (unos 2 minutos), panel, búsqueda del
   código, reactivar y quitar acceso.
+  - Con el umbral bajado solo para la prueba: el aviso de ritmo, "Seguir leyendo" y la pausa si
+    sigue igual.
+  - Una página dañada: la estudiante ve el mensaje simple, el administrador ve el motivo, la
+    página no se descuenta y las demás se siguen leyendo.

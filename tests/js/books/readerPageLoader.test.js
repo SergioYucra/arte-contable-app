@@ -82,6 +82,7 @@ test('cada código del servidor se convierte en su aviso, con el mensaje del ser
         [429, 'limite_diario', 'close'],
         [423, 'lectura_pausada', 'close'],
         [429, 'muy_rapido', 'retry'],
+        [429, 'ritmo_rapido', 'retry'],
         [503, 'lector_detenido', 'retry'],
         [403, 'fuera_del_lector', 'retry'],
     ];
@@ -114,6 +115,9 @@ test('sin código, se deduce del estado; sin conexión y sesión vencida tienen 
     assert.equal(codeFor(401, undefined), 'sesion_vencida');
     assert.equal(codeFor(500, undefined), 'error');
     assert.equal(codeFor(409, 'codigo_raro'), 'otro_dispositivo');
+    assert.equal(codeFor(502, undefined), 'servidor_ocupado');
+    assert.equal(codeFor(503, undefined), 'servidor_ocupado');
+    assert.equal(codeFor(504, undefined), 'servidor_ocupado');
 
     const offline = createPageLoader({ urlApi: fakeUrlApi(), fetchImpl: async () => { throw new TypeError('Failed to fetch'); } });
     assert.equal((await offline.load('/p/1')).code, 'sin_conexion');
@@ -132,6 +136,37 @@ test('un pedido cancelado (cambio rápido de página) no muestra aviso', async (
     });
 
     assert.deepEqual(await loader.load('/p/1'), { ok: false, aborted: true });
+});
+
+test('un 503 del hosting (sin código del lector) no promete que se avisó al administrador', async () => {
+    const loader = createPageLoader({
+        urlApi: fakeUrlApi(),
+        fetchImpl: async () => new Response('<html>503 Service Unavailable</html>', { status: 503, headers: { 'Content-Type': 'text/html' } }),
+    });
+    const result = await loader.load('/p/3');
+
+    assert.equal(result.code, 'servidor_ocupado');
+    assert.equal(result.action, 'retry');
+    assert.doesNotMatch(`${result.title} ${result.message}`, /avis/i);
+    assert.equal(result.detail, null);
+});
+
+test('el motivo técnico que el servidor manda a administradores llega al aviso', async () => {
+    const withDetail = createPageLoader({
+        urlApi: fakeUrlApi(),
+        fetchImpl: async () =>
+            jsonResponse(503, { code: 'lector_detenido', message: 'No se pudo marcar.', detail: 'La extensión GD de PHP no tiene soporte WebP.' }),
+    });
+    const notice = await withDetail.load('/p/3');
+    assert.equal(notice.code, 'lector_detenido');
+    assert.equal(notice.detail, 'La extensión GD de PHP no tiene soporte WebP.');
+
+    // A un estudiante el servidor no le manda motivo: el aviso no tiene detalle.
+    const withoutDetail = createPageLoader({
+        urlApi: fakeUrlApi(),
+        fetchImpl: async () => jsonResponse(503, { code: 'lector_detenido', message: 'Ya avisamos al administrador.' }),
+    });
+    assert.equal((await withoutDetail.load('/p/3')).detail, null);
 });
 
 test('sin mensaje del servidor se usa el texto propio del aviso', () => {

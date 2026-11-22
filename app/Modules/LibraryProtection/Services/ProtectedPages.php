@@ -25,12 +25,16 @@ final class ProtectedPages
 
     public function respond(Request $request, User $user, BookEdition $edition, int $page): Response
     {
+        $isStaff = $user->hasAnyRole('SuperAdmin', 'Admin');
+
         // Falla cerrado antes de registrar nada: sin marca de agua no sale ninguna página.
         $unavailable = $this->watermarker->unavailableReason();
         if ($unavailable !== null) {
             $this->alerts->watermarkUnavailable($unavailable);
 
-            return $this->stopped();
+            return $this->stopped($isStaff
+                ? "{$unavailable} Corre \"php artisan libros:diagnostico\" en el servidor para ver qué falta."
+                : null);
         }
 
         $decision = $this->guard->check($user, $edition, $page, $request);
@@ -46,7 +50,10 @@ final class ProtectedPages
         $path = PrivateVault::validatePath("editions/{$edition->id}/page-{$page}.webp");
         $disk = Storage::disk(PrivateVault::DISK);
 
+        // Lo que no se entrega no se descuenta del tope de hoy ni cuenta para el ritmo.
         if (! $disk->exists($path) || $disk->mimeType($path) !== 'image/webp') {
+            $this->guard->forgetView($decision);
+
             return ReadingDecision::deny(404, 'no_disponible', 'Esta página todavía no está lista. Intenta de nuevo más tarde.')->toResponse();
         }
 
@@ -57,8 +64,12 @@ final class ProtectedPages
             );
         } catch (WatermarkUnavailable $e) {
             report($e);
+            $this->guard->forgetView($decision);
+            $this->alerts->pageUnreadable($edition, $page, $e->getMessage());
 
-            return $this->stopped();
+            return $this->stopped($isStaff
+                ? "No se pudo poner la marca de agua a la página {$page} de esta edición: {$e->getMessage()} Si pasa solo con esta página, su archivo puede estar dañado: vuelve a subir las páginas de la edición."
+                : null);
         }
 
         $headers = [
@@ -78,8 +89,22 @@ final class ProtectedPages
         return response($bytes, 200, $headers);
     }
 
-    private function stopped(): Response
+    /**
+     * Lector detenido. Antes de llegar aquí siempre se avisó al administrador por correo (un
+     * aviso por hora), así que el mensaje al estudiante es cierto. El personal ve además el
+     * motivo técnico ($staffDetail), y no se le dice "ya avisamos al administrador".
+     */
+    private function stopped(?string $staffDetail): Response
     {
+        if ($staffDetail !== null) {
+            return ReadingDecision::deny(
+                503,
+                'lector_detenido',
+                'El servidor no pudo ponerle la marca de agua a la página, así que no la entrega.',
+                detail: $staffDetail,
+            )->toResponse();
+        }
+
         return ReadingDecision::deny(
             503,
             'lector_detenido',

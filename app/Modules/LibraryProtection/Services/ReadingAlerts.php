@@ -2,6 +2,7 @@
 
 namespace App\Modules\LibraryProtection\Services;
 
+use App\Models\BookEdition;
 use App\Models\User;
 use App\Modules\LibraryProtection\Models\ReadingHold;
 use App\Modules\LibraryProtection\Notifications\ReadingAlertNotification;
@@ -79,6 +80,40 @@ final class ReadingAlerts
         // Una línea por aviso (no una por cada página pedida mientras el lector está detenido).
         if ($sent) {
             Log::error('library_protection.watermark_unavailable', ['reason' => $reason]);
+        }
+    }
+
+    /**
+     * Una página puntual no se pudo marcar (el servidor sí puede marcar las demás): lo más
+     * probable es que su archivo esté dañado. Un aviso por edición, no uno por página.
+     */
+    public function pageUnreadable(BookEdition $edition, int $page, string $reason): void
+    {
+        $edition->loadMissing('book');
+        $title = trim(($edition->book?->title ?? 'Libro sin título').' · '.($edition->edition_name ?? ''), ' ·');
+
+        $sent = $this->send(
+            "page-unreadable:{$edition->id}",
+            new ReadingAlertNotification(
+                subject: 'Libros: una página no se pudo mostrar',
+                headline: 'Una página de un libro no se pudo mostrar',
+                lines: [
+                    "Libro: {$title}, página {$page}.",
+                    'El servidor no pudo ponerle la marca de agua a esa página, así que no la entregó. Quien la pidió vio "El lector no está disponible ahora" y la página no se le descontó.',
+                    "Detalle técnico: {$reason}",
+                    'Si pasa con una sola página, lo más probable es que su archivo esté dañado: vuelve a subir las páginas de esa edición desde Libros y ediciones.',
+                ],
+                actionText: 'Abrir Libros y ediciones',
+                actionUrl: route('admin.books.index'),
+            ),
+        );
+
+        if ($sent) {
+            Log::error('library_protection.page_unreadable', [
+                'edition_id' => $edition->id,
+                'page' => $page,
+                'reason' => $reason,
+            ]);
         }
     }
 

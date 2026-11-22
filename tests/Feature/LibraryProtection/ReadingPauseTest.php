@@ -21,7 +21,7 @@ class ReadingPauseTest extends ProtectionTestCase
         Notification::fake();
     }
 
-    public function test_reading_faster_than_a_person_pauses_the_account_and_alerts_the_admin(): void
+    public function test_reading_too_fast_the_first_time_only_warns(): void
     {
         $this->subscribe($this->student);
 
@@ -29,13 +29,35 @@ class ReadingPauseTest extends ProtectionTestCase
             $this->readPage($this->student, $page)->assertOk();
         }
 
-        $this->readPage($this->student, 4)
-            ->assertStatus(423)
-            ->assertJsonPath('code', 'lectura_pausada');
+        $response = $this->readPage($this->student, 4)
+            ->assertStatus(429)
+            ->assertJsonPath('code', 'ritmo_rapido');
+        $this->assertStringContainsString('se pausará por 6 horas', $response->json('message'));
+        $this->assertStringContainsString('temario', $response->json('message'));
+
+        // Sin pausa ni correo: solo queda en la bitácora.
+        $this->assertSame(0, ReadingHold::count());
+        Notification::assertNothingSent();
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'security',
+            'event' => 'aviso_de_ritmo',
+            'causer_id' => $this->student->id,
+        ]);
+
+        // "Seguir leyendo" entrega la página que provocó el aviso.
+        $this->readPage($this->student, 4)->assertOk();
+    }
+
+    public function test_going_on_at_that_pace_after_the_warning_pauses_and_alerts_the_admin(): void
+    {
+        $this->subscribe($this->student);
+        $this->readUntilPaused();
 
         $hold = ReadingHold::where('user_id', $this->student->id)->sole();
         $this->assertSame(ReadingHold::REASON_VELOCITY, $hold->reason);
+        // Cuenta solo las páginas pedidas después del aviso.
         $this->assertSame(4, $hold->details['pages']);
+        $this->assertNotEmpty($hold->details['aviso_previo']);
         $this->assertTrue($hold->ends_at->between(now()->addHours(5), now()->addHours(7)));
 
         // Mientras dure la pausa, ni siquiera las páginas ya vistas se entregan.
@@ -48,9 +70,32 @@ class ReadingPauseTest extends ProtectionTestCase
         ]);
 
         Notification::assertSentTo($this->superAdmin, ReadingAlertNotification::class, function (ReadingAlertNotification $n) {
+            $lines = implode(' ', $n->lines);
+
             return str_contains($n->subject, $this->student->name)
-                && str_contains(implode(' ', $n->lines), 'más rápido de lo que una persona puede leer');
+                && str_contains($lines, 'más rápido de lo que una persona puede leer')
+                && str_contains($lines, 'Ya se le había avisado');
         });
+    }
+
+    public function test_the_warning_expires_and_a_new_fast_stretch_is_warned_again(): void
+    {
+        $this->subscribe($this->student);
+        Carbon::setTestNow(now());
+
+        foreach (range(1, 3) as $page) {
+            $this->readPage($this->student, $page)->assertOk();
+        }
+        $this->readPage($this->student, 4)->assertStatus(429)->assertJsonPath('code', 'ritmo_rapido');
+
+        Carbon::setTestNow(now()->addHours(25));
+        foreach (range(5, 7) as $page) {
+            $this->readPage($this->student, $page)->assertOk();
+        }
+        $this->readPage($this->student, 8)->assertStatus(429)->assertJsonPath('code', 'ritmo_rapido');
+
+        $this->assertSame(0, ReadingHold::count());
+        Carbon::setTestNow();
     }
 
     public function test_a_name_with_markdown_cannot_put_links_in_the_admin_email(): void
@@ -102,9 +147,7 @@ class ReadingPauseTest extends ProtectionTestCase
     public function test_the_pause_ends_by_itself(): void
     {
         $this->subscribe($this->student);
-        foreach (range(1, 4) as $page) {
-            $this->readPage($this->student, $page);
-        }
+        $this->readUntilPaused();
         $this->readPage($this->student, 1)->assertStatus(423);
 
         Carbon::setTestNow(now()->addHours(7));
@@ -115,9 +158,7 @@ class ReadingPauseTest extends ProtectionTestCase
     public function test_admin_can_reactivate_reading_and_it_is_logged(): void
     {
         $this->subscribe($this->student);
-        foreach (range(1, 4) as $page) {
-            $this->readPage($this->student, $page);
-        }
+        $this->readUntilPaused();
         $hold = ReadingHold::sole();
 
         $this->actingAs($this->superAdmin)
@@ -145,17 +186,32 @@ class ReadingPauseTest extends ProtectionTestCase
     public function test_after_reactivation_the_same_pages_do_not_pause_again(): void
     {
         $this->subscribe($this->student);
-        foreach (range(1, 4) as $page) {
-            $this->readPage($this->student, $page);
-        }
+        $this->readUntilPaused();
         $hold = ReadingHold::sole();
 
         Carbon::setTestNow(now()->addMinute());
         $this->actingAs($this->superAdmin)->postJson(route('admin.library-protection.holds.release', $hold))->assertOk();
 
-        // Las 4 páginas de antes siguen dentro de los 5 minutos, pero ya se juzgaron.
-        $this->readPage($this->student, 5)->assertOk();
-        $this->readPage($this->student, 6)->assertOk();
+        // Las páginas de antes siguen dentro de los 5 minutos, pero ya se juzgaron.
+        $this->readPage($this->student, 9)->assertOk();
+        $this->readPage($this->student, 10)->assertOk();
+        $this->assertSame(1, ReadingHold::count());
+        Carbon::setTestNow();
+    }
+
+    public function test_after_reactivation_a_new_fast_stretch_is_warned_before_pausing(): void
+    {
+        $this->subscribe($this->student);
+        $this->readUntilPaused();
+
+        Carbon::setTestNow(now()->addMinute());
+        $this->actingAs($this->superAdmin)->postJson(route('admin.library-protection.holds.release', ReadingHold::sole()))->assertOk();
+
+        // Si el administrador la reactivó, se le da otra oportunidad: primero el aviso.
+        foreach (range(9, 11) as $page) {
+            $this->readPage($this->student, $page)->assertOk();
+        }
+        $this->readPage($this->student, 12)->assertStatus(429)->assertJsonPath('code', 'ritmo_rapido');
         $this->assertSame(1, ReadingHold::count());
         Carbon::setTestNow();
     }
@@ -196,5 +252,22 @@ class ReadingPauseTest extends ProtectionTestCase
         // Son dos pausas distintas: cada una avisa una vez.
         Notification::assertSentToTimes($this->superAdmin, ReadingAlertNotification::class, 2);
         $this->assertSame(2, ReadingHold::count());
+    }
+
+    /**
+     * Con el ritmo de prueba (4 páginas nuevas en 5 minutos), desde la página $from: la 4.ª
+     * provoca el aviso y, si sigue al mismo ritmo, la 8.ª pausa la lectura.
+     */
+    private function readUntilPaused(int $from = 1): void
+    {
+        foreach (range($from, $from + 2) as $page) {
+            $this->readPage($this->student, $page)->assertOk();
+        }
+        $this->readPage($this->student, $from + 3)->assertStatus(429)->assertJsonPath('code', 'ritmo_rapido');
+
+        foreach (range($from + 4, $from + 6) as $page) {
+            $this->readPage($this->student, $page)->assertOk();
+        }
+        $this->readPage($this->student, $from + 7)->assertStatus(423)->assertJsonPath('code', 'lectura_pausada');
     }
 }

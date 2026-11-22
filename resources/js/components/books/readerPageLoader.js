@@ -43,6 +43,15 @@ export const READER_NOTICES = {
         action: 'retry',
         actionLabel: 'Seguir leyendo',
     },
+    // Primer aviso de ritmo no humano: todavía no hay pausa; si sigue a ese ritmo, la habrá.
+    ritmo_rapido: {
+        tone: 'warning',
+        title: 'Vas más rápido de lo que se puede leer',
+        message:
+            'Sigue con calma: si continúa este ritmo, la lectura se pausará por unas horas. Para ir a un tema, usa el temario o escribe el número de página.',
+        action: 'retry',
+        actionLabel: 'Seguir leyendo',
+    },
     fuera_del_lector: {
         tone: 'info',
         title: 'Las páginas se leen dentro del lector',
@@ -57,10 +66,20 @@ export const READER_NOTICES = {
         action: 'retry',
         actionLabel: 'Intentar de nuevo',
     },
+    // Solo cuando el servidor lo dice con este código: entonces sí avisó al administrador.
     lector_detenido: {
         tone: 'error',
         title: 'El lector no está disponible ahora',
         message: 'Ya avisamos al administrador. Intenta de nuevo más tarde.',
+        action: 'retry',
+        actionLabel: 'Intentar de nuevo',
+    },
+    // Un 502/503/504 sin código viene del hosting o de un mantenimiento, no del lector:
+    // nadie avisó al administrador, así que el aviso no lo promete.
+    servidor_ocupado: {
+        tone: 'error',
+        title: 'El servidor no responde ahora',
+        message: 'Puede estar ocupado o en mantenimiento. Intenta de nuevo en unos minutos.',
         action: 'retry',
         actionLabel: 'Intentar de nuevo',
     },
@@ -94,7 +113,9 @@ const CODE_BY_STATUS = {
     409: 'otro_dispositivo',
     423: 'lectura_pausada',
     429: 'muy_rapido',
-    503: 'lector_detenido',
+    502: 'servidor_ocupado',
+    503: 'servidor_ocupado',
+    504: 'servidor_ocupado',
 };
 
 /** "membresia" no es un aviso: el lector muestra la cortina de la membresía. */
@@ -105,7 +126,10 @@ export function codeFor(status, serverCode) {
     return CODE_BY_STATUS[status] || 'error';
 }
 
-export function noticeFor(code, serverMessage = null, retryAtText = null) {
+/**
+ * @param {string|null} detail Motivo técnico: el servidor solo lo manda a administradores.
+ */
+export function noticeFor(code, serverMessage = null, retryAtText = null, detail = null) {
     const base = READER_NOTICES[code] || READER_NOTICES.error;
     return {
         code,
@@ -113,6 +137,7 @@ export function noticeFor(code, serverMessage = null, retryAtText = null) {
         // El servidor ya habla en palabras llanas y suele saber más (la hora en que vuelve).
         message: typeof serverMessage === 'string' && serverMessage.trim() !== '' ? serverMessage : base.message,
         retryAtText: retryAtText || null,
+        detail: typeof detail === 'string' && detail.trim() !== '' ? detail : null,
     };
 }
 
@@ -190,7 +215,7 @@ export function createPageLoader({
         }
 
         const code = codeFor(response.status, body?.code);
-        return { ok: false, status: response.status, ...noticeFor(code, body?.message, body?.retry_at_text) };
+        return { ok: false, status: response.status, ...noticeFor(code, body?.message, body?.retry_at_text, body?.detail) };
     }
 
     /** Libera todas las páginas guardadas (al cerrar el lector o cambiar de libro). */

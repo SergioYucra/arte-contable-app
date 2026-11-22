@@ -665,6 +665,7 @@ const readerNoticeIcon = computed(() => {
         case 'limite_diario':
         case 'lectura_pausada':
         case 'muy_rapido':
+        case 'ritmo_rapido':
             return Hourglass;
         case 'sin_conexion':
             return WifiOff;
@@ -1750,6 +1751,21 @@ onBeforeUnmount(() => {
                                         >
                                             Puedes leer páginas nuevas desde el {{ readerNotice.retryAtText }} (hora de Bolivia).
                                         </p>
+                                        <!-- Motivo técnico: el servidor solo lo manda a administradores -->
+                                        <div
+                                            v-if="readerNotice.detail"
+                                            class="w-full rounded-xl border px-4 py-3 text-left text-xs leading-relaxed break-words"
+                                            :class="
+                                                isDayReader
+                                                    ? 'bg-slate-50 border-slate-200 text-slate-700'
+                                                    : 'bg-slate-800/70 border-slate-700 text-slate-200'
+                                            "
+                                        >
+                                            <p class="font-semibold mb-1" :class="isDayReader ? 'text-slate-900' : 'text-white'">
+                                                Motivo (solo lo ven los administradores)
+                                            </p>
+                                            <p>{{ readerNotice.detail }}</p>
+                                        </div>
                                         <div class="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2 w-full">
                                             <button
                                                 type="button"

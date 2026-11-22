@@ -9,6 +9,9 @@ use Illuminate\Support\Carbon;
 /**
  * Resultado de revisar un pedido de página: se entrega, o se responde con un código que el
  * lector traduce a un aviso en palabras llanas (otro dispositivo, límite de hoy, pausa…).
+ *
+ * `detail` es el motivo técnico y solo se arma para el personal (SuperAdmin/Admin): así quien
+ * administra ve en el mismo lector qué falla, y un estudiante nunca ve datos del servidor.
  */
 final class ReadingDecision
 {
@@ -19,26 +22,35 @@ final class ReadingDecision
         public readonly string $message = '',
         public readonly ?Carbon $retryAt = null,
         public readonly ?int $remainingToday = null,
+        public readonly ?string $detail = null,
+        public readonly ?int $recordedViewId = null,
     ) {}
 
-    public static function allow(?int $remainingToday): self
+    /** @param  int|null  $recordedViewId  Registro de lectura creado por este pedido (página nueva hoy). */
+    public static function allow(?int $remainingToday, ?int $recordedViewId = null): self
     {
-        return new self(true, remainingToday: $remainingToday);
+        return new self(true, remainingToday: $remainingToday, recordedViewId: $recordedViewId);
     }
 
-    public static function deny(int $status, string $code, string $message, ?Carbon $retryAt = null): self
+    public static function deny(int $status, string $code, string $message, ?Carbon $retryAt = null, ?string $detail = null): self
     {
-        return new self(false, $status, $code, $message, $retryAt);
+        return new self(false, $status, $code, $message, $retryAt, detail: $detail);
     }
 
     public function toResponse(): JsonResponse
     {
-        return response()->json([
+        $body = [
             'code' => $this->code,
             'message' => $this->message,
             'retry_at' => $this->retryAt?->toIso8601String(),
             'retry_at_text' => $this->retryAt ? HumanDate::dateTime($this->retryAt) : null,
-        ], $this->status, [
+        ];
+
+        if ($this->detail !== null) {
+            $body['detail'] = $this->detail;
+        }
+
+        return response()->json($body, $this->status, [
             'Cache-Control' => 'no-store, private',
         ]);
     }

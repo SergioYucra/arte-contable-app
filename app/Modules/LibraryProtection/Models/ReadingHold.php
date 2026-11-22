@@ -76,9 +76,10 @@ class ReadingHold extends Model
 
         return match ($this->reason) {
             self::REASON_VELOCITY => sprintf(
-                'Pasó %d páginas en %d minutos, más rápido de lo que una persona puede leer.',
+                'Pasó %d páginas en %d minutos, más rápido de lo que una persona puede leer.%s',
                 (int) ($details['pages'] ?? 0),
                 (int) ($details['minutes'] ?? 0),
+                empty($details['aviso_previo']) ? '' : ' Ya se le había avisado que fuera más despacio y siguió a ese ritmo.',
             ),
             self::REASON_TRAPS => sprintf(
                 'Pidió %d veces páginas que el lector nunca pide (por ejemplo, páginas que no existen o que no le corresponden). Así trabajan los programas que copian libros.',

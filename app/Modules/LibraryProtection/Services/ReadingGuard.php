@@ -23,7 +23,8 @@ use Illuminate\Support\Facades\Cache;
  *  5. Permiso: muestra gratuita o membresía de esa edición (si no, pedido trampa).
  *  6. Tope diario de páginas distintas.
  *  7. Registro en book_page_views.
- *  8. Velocidad no humana: pausa automática y aviso al administrador.
+ *  8. Velocidad no humana: la primera vez, un aviso ("vas muy rápido") y la cuenta empieza de
+ *     cero; si sigue a ese ritmo, pausa automática y aviso al administrador.
  *
  * El personal (SuperAdmin/Admin) no tiene tope, pausa ni límite de dispositivos, pero lo que
  * lee queda registrado y sus páginas también llevan marca de agua.
@@ -96,15 +97,33 @@ final class ReadingGuard
             );
         }
 
-        $this->record($user, $edition, $page, $today, $request, $alreadySeenToday);
+        $recordedViewId = $this->record($user, $edition, $page, $today, $request, $alreadySeenToday);
 
-        if (! $isStaff && ! $alreadySeenToday && ($hold = $this->checkVelocity($user)) !== null) {
-            return $this->pausedDecision($hold);
+        if (! $isStaff && ! $alreadySeenToday && ($tooFast = $this->checkVelocity($user)) !== null) {
+            return $tooFast;
         }
 
         $seenAfter = $alreadySeenToday ? $seenToday : $seenToday + 1;
 
-        return ReadingDecision::allow($isStaff ? null : max(0, $limit - $seenAfter));
+        return ReadingDecision::allow($isStaff ? null : max(0, $limit - $seenAfter), $recordedViewId);
+    }
+
+    /**
+     * Deshace el registro de una página que al final no se entregó (por ejemplo, porque no se
+     * le pudo poner la marca de agua): no cuenta para el tope de hoy ni para el ritmo.
+     */
+    public function forgetView(ReadingDecision $decision): void
+    {
+        if ($decision->recordedViewId !== null) {
+            BookPageView::query()->whereKey($decision->recordedViewId)->delete();
+        }
+    }
+
+    /** Al reactivar una lectura, la cuenta empieza de cero: sin marcas de pedidos trampa ni aviso de ritmo. */
+    public function startOver(int $userId): void
+    {
+        Cache::forget($this->strikesKey($userId));
+        Cache::forget($this->speedWarningKey($userId));
     }
 
     /**
@@ -154,7 +173,7 @@ final class ReadingGuard
         $config = (array) config('library.protection.trap_strikes', []);
         $limit = max(1, (int) ($config['limit'] ?? 5));
         $window = max(1, (int) ($config['window_minutes'] ?? 30));
-        $key = "library-protection:strikes:{$user->id}";
+        $key = $this->strikesKey($user->id);
 
         Cache::add($key, 0, now()->addMinutes($window));
         $strikes = (int) Cache::increment($key);
@@ -174,12 +193,20 @@ final class ReadingGuard
         return ReadingDecision::deny($status, $code, $message);
     }
 
-    private function checkVelocity(User $user): ?ReadingHold
+    /**
+     * Ritmo de lectura no humano. La primera vez solo se avisa (quien hojea buscando un tema
+     * puede pasarse sin querer); si sigue a ese ritmo después del aviso, se pausa.
+     */
+    private function checkVelocity(User $user): ?ReadingDecision
     {
         // Lo leído antes de que terminara la última pausa ya se juzgó: si el administrador la
         // reactiva, la cuenta empieza de cero y no vuelve a pausarse con las mismas páginas.
         $lastHold = ReadingHold::where('user_id', $user->id)->latest('id')->first();
         $lastHoldEnd = $lastHold === null ? null : ($lastHold->released_at ?? $lastHold->ends_at);
+
+        // Lo mismo después del aviso: solo cuentan las páginas nuevas pedidas desde entonces.
+        $warning = Cache::get($this->speedWarningKey($user->id));
+        $warning = is_array($warning) ? $warning : null;
 
         foreach ((array) config('library.protection.velocity_rules', []) as $rule) {
             $pages = max(1, (int) ($rule['pages'] ?? 0));
@@ -193,17 +220,71 @@ final class ReadingGuard
             $newPages = BookPageView::query()
                 ->where('user_id', $user->id)
                 ->where('first_viewed_at', '>=', $since)
+                ->when($warning !== null, fn ($query) => $query->where('id', '>', (int) ($warning['after_view_id'] ?? 0)))
                 ->count();
 
-            if ($newPages >= $pages) {
-                return $this->pause($user, ReadingHold::REASON_VELOCITY, [
-                    'pages' => $newPages,
-                    'minutes' => $minutes,
-                ]);
+            if ($newPages < $pages) {
+                continue;
             }
+
+            if ($warning === null) {
+                return $this->warnAboutSpeed($user, $newPages, $minutes);
+            }
+
+            $hold = $this->pause($user, ReadingHold::REASON_VELOCITY, [
+                'pages' => $newPages,
+                'minutes' => $minutes,
+                'aviso_previo' => $warning['at'] ?? null,
+            ]);
+
+            return $this->pausedDecision($hold);
         }
 
         return null;
+    }
+
+    /**
+     * Primer aviso de ritmo: no pausa ni escribe al administrador. La página que lo provocó ya
+     * quedó registrada, así que "Seguir leyendo" la entrega sin volver a contarla.
+     */
+    private function warnAboutSpeed(User $user, int $pages, int $minutes): ReadingDecision
+    {
+        $now = Carbon::now();
+        $hours = max(1, (int) config('library.protection.velocity_warning_hours', 24));
+
+        // add() y no put(): si dos pedidos cruzan el ritmo a la vez, vale el primer aviso.
+        Cache::add($this->speedWarningKey($user->id), [
+            'at' => $now->toIso8601String(),
+            'after_view_id' => (int) BookPageView::query()->where('user_id', $user->id)->max('id'),
+        ], $now->copy()->addHours($hours));
+
+        activity('security')
+            ->causedBy($user)
+            ->event('aviso_de_ritmo')
+            ->withProperties(['pages' => $pages, 'minutes' => $minutes])
+            ->log(sprintf(
+                'Se le avisó que pasaba páginas muy rápido (%d en %d minutos). Si sigue a ese ritmo, la lectura se pausa.',
+                $pages,
+                $minutes,
+            ));
+
+        $pauseHours = max(1, (int) config('library.protection.pause_hours', 6));
+
+        return ReadingDecision::deny(
+            429,
+            'ritmo_rapido',
+            "Estás pasando páginas más rápido de lo que se alcanza a leer. Sigue con calma: si continúa este ritmo, la lectura se pausará por {$pauseHours} horas. Para ir a un tema, usa el temario o escribe el número de página.",
+        );
+    }
+
+    private function strikesKey(int $userId): string
+    {
+        return "library-protection:strikes:{$userId}";
+    }
+
+    private function speedWarningKey(int $userId): string
+    {
+        return "library-protection:speed-warning:{$userId}";
     }
 
     /**
@@ -236,7 +317,8 @@ final class ReadingGuard
         return $hold;
     }
 
-    private function record(User $user, BookEdition $edition, int $page, string $today, Request $request, bool $alreadySeenToday): void
+    /** Devuelve el id del registro nuevo, o null si solo sumó una visita a uno existente. */
+    private function record(User $user, BookEdition $edition, int $page, string $today, Request $request, bool $alreadySeenToday): ?int
     {
         $now = Carbon::now();
         $key = [
@@ -248,14 +330,12 @@ final class ReadingGuard
 
         if (! $alreadySeenToday) {
             try {
-                BookPageView::create($key + [
+                return (int) BookPageView::create($key + [
                     'hits' => 1,
                     'first_viewed_at' => $now,
                     'last_viewed_at' => $now,
                     'ip_address' => $request->ip(),
-                ]);
-
-                return;
+                ])->getKey();
             } catch (UniqueConstraintViolationException) {
                 // Dos pedidos simultáneos de la misma página: el segundo suma una visita.
             }
@@ -265,6 +345,8 @@ final class ReadingGuard
             'last_viewed_at' => $now,
             'ip_address' => $request->ip(),
         ]);
+
+        return null;
     }
 
     private function today(): string
