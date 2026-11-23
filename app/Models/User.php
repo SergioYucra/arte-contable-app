@@ -213,6 +213,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return true;
         }
 
-        return $this->hasActiveSubscription();
+        // Con el ID de la edición: una suscripción de un solo libro no abre los demás.
+        return $this->hasActiveSubscription((int) $edition->id);
     }
 }
