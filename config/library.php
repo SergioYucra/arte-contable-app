@@ -38,7 +38,8 @@ return [
         'pages_per_minute' => (int) env('LIBRARY_PAGES_PER_MINUTE', 30),
 
         // Páginas distintas por día y por persona. Volver a una página ya vista ese día no cuenta.
-        'daily_page_limit' => (int) env('LIBRARY_DAILY_PAGE_LIMIT', 300),
+        // Se cambia con LIBRARY_DAILY_PAGE_LIMIT en el .env (después: php artisan config:clear).
+        'daily_page_limit' => (int) env('LIBRARY_DAILY_PAGE_LIMIT', 1000),
 
         // Lectura más rápida de lo humano: N páginas nuevas en M minutos.
         // Holgado para quien hojea buscando algo (80 en 5 min = una página nueva cada ~4 s

@@ -89,8 +89,9 @@ guías de OWASP más específicas:
      a entrar en el mismo navegador no cuente como otro dispositivo.
 5. **Permiso:** muestra gratuita o membresía de esa edición. Si no, 403 `membresia` y suma una
    marca trampa.
-6. **Tope diario:** 300 páginas distintas por día (hora de Bolivia). Volver a una página ya
-   vista no cuenta. Al llegar, responde 429 `limite_diario`.
+6. **Tope diario:** páginas distintas por día (hora de Bolivia); 1000 por defecto. Se cambia
+   con `LIBRARY_DAILY_PAGE_LIMIT` en el `.env`. Volver a una página ya vista no cuenta. Al
+   llegar, responde 429 `limite_diario`.
 7. **Registro** en `book_page_views`: persona, edición, página, día, visitas e IP.
 8. **Velocidad no humana:** 80 páginas nuevas en 5 minutos, o 150 en 30.
    - **La primera vez solo se avisa:** responde 429 `ritmo_rapido` ("Vas más rápido de lo que
@@ -182,7 +183,6 @@ tocó porque la modifica `fix/revision-3`.
 - **¿Quién filtró esta página?:** se escribe el código de la captura y aparece la persona y lo
   que leyó en los últimos 30 días (libros, rangos de páginas, IP).
 - **Posibles cuentas compartidas** y **quién leyó más hoy**.
-
 Cada acción del administrador queda en `activity('security')`.
 
 ### Correos al administrador
@@ -199,7 +199,7 @@ en lo que se imprime con `{{ }}`.
 | Clave | Por defecto | Variable de entorno |
 |---|---|---|
 | `pages_per_minute` | 30 | `LIBRARY_PAGES_PER_MINUTE` |
-| `daily_page_limit` | 300 | `LIBRARY_DAILY_PAGE_LIMIT` |
+| `daily_page_limit` | 1000 (después de cambiarlo en el servidor: `php artisan config:clear`) | `LIBRARY_DAILY_PAGE_LIMIT` |
 | `velocity_rules` | 80 en 5 min, 150 en 30 min | — |
 | `velocity_warning_hours` | 24 (si vuelve a ir muy rápido en ese plazo, se pausa) | — |
 | `trap_strikes` | 5 en 30 min | — |
@@ -225,13 +225,14 @@ ni la barra lateral, que modifica `fix/revision-3`.
 - **Borrar la marca a mano:** sin la diagonal, son cuatro textos pequeños en lugares
   predecibles. Alguien con paciencia y un editor de imágenes puede taparlos página por página.
   Eso es lento, y el registro de lectura igual muestra quién abrió esas páginas y cuándo.
-- **Una persona paciente** puede copiar 300 páginas por día de forma "humana". El registro deja
-  rastro y la marca la identifica.
+- **Una persona paciente** puede copiar, de forma "humana", tantas páginas por día como diga el
+  tope: con 1000, un libro entero en un día. Cuanto más alto el tope, más rápido se puede
+  copiar. El registro deja rastro y la marca la identifica.
 - **Muchas cuentas falsas** solo obtienen las páginas de muestra (12 por defecto).
   Recomendación: no subir la muestra por encima de unas 20 páginas.
 - **El aviso antes de la pausa le da más margen a un programa:** uno que ignora el aviso llega a
   unas 160 páginas (unos 5 minutos, por el límite de 30 por minuto) antes de la pausa, en vez de
-  80. Todas llevan su marca y el tope de 300 por día no cambia. Es el precio de no pausar a un
+  80. Todas llevan su marca y el tope diario no cambia. Es el precio de no pausar a un
   estudiante que hojea rápido; las trampas siguen pausando sin aviso previo.
 - **Pedidos simultáneos:** el tope diario y el cambio de dispositivo se revisan sin bloqueo
   de base de datos. Con muchos pedidos al mismo tiempo se pueden pasar unas pocas páginas del
@@ -262,7 +263,7 @@ ni la barra lateral, que modifica `fix/revision-3`.
 
 ## 8. Pruebas
 
-- **PHPUnit, `tests/Feature/LibraryProtection/`:** 50 pruebas (tope, aviso de ritmo y pausa,
+- **PHPUnit, `tests/Feature/LibraryProtection/`:** 51 pruebas (tope diario y su variable de entorno, aviso de ritmo y pausa,
   trampas, dispositivos, marca de agua, falla cerrado, página dañada, motivo para el
   administrador, acceso por edición, panel, limpieza y diagnóstico).
   - Requieren GD con WebP y FreeType: imagen local `arte-php83-gd:local`.

@@ -102,6 +102,8 @@ async function askRevoke(student, revokeUrl, suggestedReason) {
     revokeReason.value = suggestedReason || '';
     revokeError.value = '';
     revokeOpen.value = true;
+    // BaseModal, al abrirse, enfoca su primer botón un tick después; el motivo se enfoca después de eso.
+    await nextTick();
     await nextTick();
     revokeField.value?.focus();
 }

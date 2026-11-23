@@ -32,6 +32,32 @@ class ReadingLimitsTest extends ProtectionTestCase
         $this->assertSame(2, BookPageView::where('user_id', $this->student->id)->where('page', 3)->value('hits'));
     }
 
+    public function test_daily_limit_comes_from_the_env_and_is_1000_by_default(): void
+    {
+        $original = getenv('LIBRARY_DAILY_PAGE_LIMIT');
+        $setEnv = function (?string $value): void {
+            if ($value === null) {
+                putenv('LIBRARY_DAILY_PAGE_LIMIT');
+                unset($_ENV['LIBRARY_DAILY_PAGE_LIMIT'], $_SERVER['LIBRARY_DAILY_PAGE_LIMIT']);
+
+                return;
+            }
+            putenv("LIBRARY_DAILY_PAGE_LIMIT={$value}");
+            $_ENV['LIBRARY_DAILY_PAGE_LIMIT'] = $_SERVER['LIBRARY_DAILY_PAGE_LIMIT'] = $value;
+        };
+        $limitInConfigFile = fn (): int => (require config_path('library.php'))['protection']['daily_page_limit'];
+
+        try {
+            $setEnv('1500');
+            $this->assertSame(1500, $limitInConfigFile());
+
+            $setEnv(null);
+            $this->assertSame(1000, $limitInConfigFile());
+        } finally {
+            $setEnv($original === false ? null : $original);
+        }
+    }
+
     public function test_daily_limit_starts_again_at_midnight_in_bolivia(): void
     {
         config()->set('library.protection.daily_page_limit', 2);
