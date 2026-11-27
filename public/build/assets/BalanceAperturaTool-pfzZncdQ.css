@@ -1,0 +1,1 @@
+.balance-print{display:none}@media print{@page{size:letter;margin:12mm}body.con-balance-apertura>*:not(.balance-print){display:none!important}body.con-balance-apertura{background:#fff!important}body.con-balance-apertura .balance-print{display:block}}

@@ -1,0 +1,1 @@
+import e from"./ItemLoadState-vD8iF_rB.js";import{G as r,h as n}from"./vendor-vue-BFQ6euZo.js";function i(o){return r({loader:o,loadingComponent:{render:()=>n(e)},errorComponent:{render:()=>n(e,{failed:!0})},delay:200,timeout:3e4})}export{i as l};
