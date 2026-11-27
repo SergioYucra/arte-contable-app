@@ -54,7 +54,7 @@ class LoginRequest extends FormRequest
                 ->where('email', $this->string('email'))
                 ->first();
 
-            if ($trashedUser && Hash::check($this->string('password'), $trashedUser->password)) {
+            if ($trashedUser && filled($trashedUser->password) && Hash::check($this->string('password'), $trashedUser->password)) {
                 throw ValidationException::withMessages([
                     'email' => __('Esta cuenta ha sido desactivada. Por favor, comunícate con el administrador del sistema.'),
                 ]);

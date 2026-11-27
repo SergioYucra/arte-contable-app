@@ -37,6 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'google_id',
     ];
 
     /**
@@ -50,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'deleted_at' => 'datetime',
             'password' => 'hashed',
+            'has_password' => 'boolean',
         ];
     }
 
@@ -190,6 +192,14 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return 'expired';
+    }
+
+    /**
+     * Indica si la cuenta tiene una contraseña local configurada por el usuario.
+     */
+    public function hasPassword(): bool
+    {
+        return (bool) ($this->has_password ?? true) && filled($this->password);
     }
 
     /**

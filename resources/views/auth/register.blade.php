@@ -7,6 +7,12 @@
         {{ __('Completa tus datos para comenzar en la plataforma') }}
     </x-slot:subheading>
 
+    @if ($errors->has('google'))
+        <div role="alert" class="mb-4 rounded-brand border border-rose-500/25 bg-rose-500/10 px-3.5 py-2.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+            {{ $errors->first('google') }}
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('register') }}" class="space-y-4">
         @csrf
 
@@ -78,6 +84,8 @@
             </x-primary-button>
         </div>
     </form>
+
+    <x-google-auth-button origin="register" />
 
     <x-slot:footer>
         <span>¿Ya tienes una cuenta registrada?</span>
